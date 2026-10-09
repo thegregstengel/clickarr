@@ -18,7 +18,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFeatureSettings
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.Text
 import kotlin.time.Duration
@@ -147,6 +146,3 @@ internal fun mmss(d: Duration): String {
     val s = total % 60
     return if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%02d:%02d".format(m, s)
 }
-
-@Suppress("unused")
-private val fontFeatureNote: FontFeatureSettings? = null

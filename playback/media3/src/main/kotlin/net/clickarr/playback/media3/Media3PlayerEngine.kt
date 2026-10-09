@@ -29,9 +29,12 @@ import okhttp3.OkHttpClient
 @OptIn(UnstableApi::class)
 class Media3PlayerEngine(context: Context, okHttp: OkHttpClient, userAgent: String) : PlayerEngine {
     private val dataSourceFactory = OkHttpDataSource.Factory(okHttp).setUserAgent(userAgent)
-    val player: ExoPlayer = ExoPlayer.Builder(context)
+    private val exo: ExoPlayer = ExoPlayer.Builder(context)
         .setMediaSourceFactory(DefaultMediaSourceFactory(context).setDataSourceFactory(dataSourceFactory))
         .build()
+
+    /** For PlayerView. Exposed as the common Player type so UI modules need no ExoPlayer dependency. */
+    val player: Player get() = exo
 
     private val _events = MutableSharedFlow<PlayerEvent>(extraBufferCapacity = 32)
     override val events: SharedFlow<PlayerEvent> = _events
