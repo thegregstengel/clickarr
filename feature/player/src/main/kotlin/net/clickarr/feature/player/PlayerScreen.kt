@@ -44,7 +44,6 @@ import net.clickarr.ui.design.ClickarrMotion
 fun PlayerScreen(
     onOpenGuide: () -> Unit,
     onOpenShell: () -> Unit,
-    onExit: () -> Unit,
     viewModel: PlayerViewModel = hiltViewModel(),
 ) {
     val tune by viewModel.tune.collectAsState()
@@ -72,20 +71,7 @@ fun PlayerScreen(
             .focusRequester(focus)
             .focusable()
             .onPreviewKeyEvent { event ->
-                if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
-                when (event.key) {
-                    Key.DirectionUp, Key.ChannelUp -> { viewModel.channelUp(); true }
-                    Key.DirectionDown, Key.ChannelDown -> { viewModel.channelDown(); true }
-                    Key.DirectionCenter, Key.Enter -> { viewModel.toggleOverlay(); true }
-                    Key.Menu, Key.DirectionLeft, Key.DirectionRight -> { onOpenGuide(); true }
-                    Key.MediaPlayPause, Key.MediaPlay, Key.MediaPause -> { viewModel.playPause(); true }
-                    Key.Back -> {
-                        if (overlayVisible) viewModel.hideOverlay() else onOpenShell()
-                        true
-                    }
-                    in DIGIT_KEYS -> { viewModel.enterDigit(DIGIT_KEYS.indexOf(event.key)); true }
-                    else -> false
-                }
+                event.type == KeyEventType.KeyDown && handleKey(event.key, viewModel, overlayVisible, onOpenGuide, onOpenShell)
             },
     ) {
         AndroidView(
@@ -114,6 +100,28 @@ fun PlayerScreen(
         }
         if (digits.isNotEmpty() && !overlayVisible) DigitBadge(digits)
     }
+}
+
+/** Remote mapping from design language 2.8. Returns true when the key was consumed. */
+private fun handleKey(
+    key: Key,
+    vm: PlayerViewModel,
+    overlayVisible: Boolean,
+    onOpenGuide: () -> Unit,
+    onOpenShell: () -> Unit,
+): Boolean {
+    val action: (() -> Unit)? = when (key) {
+        Key.DirectionUp, Key.ChannelUp -> vm::channelUp
+        Key.DirectionDown, Key.ChannelDown -> vm::channelDown
+        Key.DirectionCenter, Key.Enter -> vm::toggleOverlay
+        Key.Menu, Key.DirectionLeft, Key.DirectionRight -> onOpenGuide
+        Key.MediaPlayPause, Key.MediaPlay, Key.MediaPause -> vm::playPause
+        Key.Back -> if (overlayVisible) vm::hideOverlay else onOpenShell
+        in DIGIT_KEYS -> ({ vm.enterDigit(DIGIT_KEYS.indexOf(key)) })
+        else -> null
+    }
+    action?.invoke()
+    return action != null
 }
 
 private val DIGIT_KEYS = listOf(Key.Zero, Key.One, Key.Two, Key.Three, Key.Four, Key.Five, Key.Six, Key.Seven, Key.Eight, Key.Nine)

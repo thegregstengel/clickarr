@@ -1,0 +1,206 @@
+package net.clickarr.feature.channels
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.minutes
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import net.clickarr.core.common.Outcome
+import net.clickarr.core.model.Collection
+import net.clickarr.core.model.Library
+import net.clickarr.core.model.LibraryKind
+import net.clickarr.core.model.MediaFilter
+import net.clickarr.core.model.MediaRef
+import net.clickarr.core.model.OrderingMode
+import net.clickarr.core.model.Playlist
+import net.clickarr.core.model.ProgrammingSource
+import net.clickarr.core.model.Show
+import net.clickarr.data.ChannelRepository
+import net.clickarr.data.ProviderRegistry
+import net.clickarr.provider.api.MediaProvider
+
+/**
+ * Channel creation wizard. Steps: kind of source, pick the content, then name/number/order/rounding.
+ * Everything comes from the connected Plex server through the provider contract.
+ */
+@HiltViewModel
+class EditorViewModel @Inject constructor(
+    private val repository: ChannelRepository,
+    private val registry: ProviderRegistry,
+) : ViewModel() {
+    enum class Kind(val label: String, val hint: String) {
+        SHOWS("Shows", "Pick one or more shows. Episodes play in aired order."),
+        LIBRARY("Whole library", "Everything in a library, with optional decade and genre filters."),
+        COLLECTION("Collection", "A Plex collection, in its order."),
+        PLAYLIST("Playlist", "A Plex playlist, in its order."),
+    }
+
+    sealed interface Step {
+        data object ChooseKind : Step
+        data class ChooseLibrary(val libraries: List<Library>) : Step
+        data class PickShows(val library: Library, val shows: List<Show>, val selected: Set<MediaRef>) : Step
+        data class PickFilters(val library: Library, val genres: List<String>, val decades: List<Int>, val filter: MediaFilter) : Step
+        data class PickCollection(val library: Library, val collections: List<Collection>) : Step
+        data class PickPlaylist(val playlists: List<Playlist>) : Step
+        data class Details(val draft: Draft) : Step
+        data class Saving(val name: String) : Step
+        data class Saved(val name: String, val number: Int) : Step
+        data class Failed(val message: String) : Step
+        data object Loading : Step
+    }
+
+    data class Draft(
+        val source: ProgrammingSource,
+        val suggestedName: String,
+        val name: String,
+        val number: Int,
+        val order: OrderingMode = OrderingMode.SEQUENTIAL,
+        val rounding: Duration? = 30.minutes,
+    )
+
+    private val _step = MutableStateFlow<Step>(Step.ChooseKind)
+    val step: StateFlow<Step> = _step.asStateFlow()
+
+    private var kind: Kind = Kind.SHOWS
+    private val provider: MediaProvider? get() = registry.primary
+
+    fun choose(kind: Kind) {
+        this.kind = kind
+        _step.value = Step.Loading
+        viewModelScope.launch {
+            val p = provider ?: return@launch fail("No server connected")
+            when (kind) {
+                Kind.PLAYLIST -> when (val r = p.playlists()) {
+                    is Outcome.Success -> _step.value = Step.PickPlaylist(r.value)
+                    is Outcome.Failure -> fail(r.error.message)
+                }
+                else -> when (val r = p.libraries()) {
+                    is Outcome.Success -> {
+                        val wanted = when (kind) {
+                            Kind.SHOWS -> r.value.filter { it.kind == LibraryKind.SHOWS }
+                            else -> r.value.filter { it.kind != LibraryKind.OTHER }
+                        }
+                        if (wanted.size == 1) chooseLibrary(wanted.single()) else _step.value = Step.ChooseLibrary(wanted)
+                    }
+                    is Outcome.Failure -> fail(r.error.message)
+                }
+            }
+        }
+    }
+
+    fun chooseLibrary(library: Library) {
+        _step.value = Step.Loading
+        viewModelScope.launch {
+            val p = provider ?: return@launch fail("No server connected")
+            when (kind) {
+                Kind.SHOWS -> when (val r = p.shows(library)) {
+                    is Outcome.Success -> _step.value = Step.PickShows(library, r.value.items.sortedBy { it.title }, emptySet())
+                    is Outcome.Failure -> fail(r.error.message)
+                }
+                Kind.COLLECTION -> when (val r = p.collections(library.ref)) {
+                    is Outcome.Success -> _step.value = Step.PickCollection(library, r.value)
+                    is Outcome.Failure -> fail(r.error.message)
+                }
+                Kind.LIBRARY -> loadFilters(library)
+                Kind.PLAYLIST -> Unit
+            }
+        }
+    }
+
+    private suspend fun MediaProvider.shows(library: Library) = shows(library.ref)
+
+    private suspend fun loadFilters(library: Library) {
+        val p = provider ?: return fail("No server connected")
+        val items: List<Pair<List<String>, Int?>> = when (library.kind) {
+            LibraryKind.MOVIES -> when (val r = p.movies(library.ref)) {
+                is Outcome.Success -> r.value.items.map { it.genres to it.year }
+                is Outcome.Failure -> return fail(r.error.message)
+            }
+            else -> when (val r = p.shows(library.ref)) {
+                is Outcome.Success -> r.value.items.map { it.genres to it.year }
+                is Outcome.Failure -> return fail(r.error.message)
+            }
+        }
+        val genres = items.flatMap { it.first }.groupingBy { it }.eachCount().entries.sortedByDescending { it.value }.map { it.key }
+        val decades = items.mapNotNull { it.second }.map { it - it % 10 }.distinct().sorted()
+        _step.value = Step.PickFilters(library, genres, decades, MediaFilter())
+    }
+
+    fun toggleShow(ref: MediaRef) {
+        _step.update { s ->
+            if (s !is Step.PickShows) return@update s
+            s.copy(selected = if (ref in s.selected) s.selected - ref else s.selected + ref)
+        }
+    }
+
+    fun toggleGenre(genre: String) {
+        _step.update { s ->
+            if (s !is Step.PickFilters) return@update s
+            val g = s.filter.genres
+            s.copy(filter = s.filter.copy(genres = if (genre in g) g - genre else g + genre))
+        }
+    }
+
+    fun setDecade(decade: Int?) {
+        _step.update { s -> if (s is Step.PickFilters) s.copy(filter = s.filter.copy(decadeStart = decade)) else s }
+    }
+
+    fun confirmShows() {
+        val s = _step.value as? Step.PickShows ?: return
+        if (s.selected.isEmpty()) return
+        val picked = s.shows.filter { it.ref in s.selected }
+        val name = if (picked.size == 1) picked.single().title else "${picked.first().title} and ${picked.size - 1} more"
+        toDetails(ProgrammingSource.Shows(picked.map { it.ref }), name)
+    }
+
+    fun confirmFilters() {
+        val s = _step.value as? Step.PickFilters ?: return
+        val parts = buildList {
+            s.filter.decadeStart?.let { add("${it}s") }
+            addAll(s.filter.genres)
+            if (isEmpty()) add(s.library.name)
+        }
+        toDetails(ProgrammingSource.Library(s.library.ref, s.filter), parts.joinToString(" "))
+    }
+
+    fun confirmCollection(c: Collection) = toDetails(ProgrammingSource.Collection(c.ref), c.name)
+
+    fun confirmPlaylist(p: Playlist) = toDetails(ProgrammingSource.Playlist(p.ref), p.name)
+
+    private fun toDetails(source: ProgrammingSource, suggestedName: String) {
+        viewModelScope.launch {
+            val number = repository.nextFreeNumber()
+            _step.value = Step.Details(Draft(source, suggestedName, suggestedName, number))
+        }
+    }
+
+    fun updateDraft(transform: (Draft) -> Draft) {
+        _step.update { s -> if (s is Step.Details) s.copy(draft = transform(s.draft)) else s }
+    }
+
+    fun save() {
+        val s = _step.value as? Step.Details ?: return
+        val d = s.draft
+        _step.value = Step.Saving(d.name)
+        viewModelScope.launch {
+            _step.value = when (val r = repository.create(d.number, d.name.ifBlank { d.suggestedName }, d.source, d.order, d.rounding)) {
+                is Outcome.Success -> Step.Saved(r.value.name, r.value.number)
+                is Outcome.Failure -> Step.Failed(r.error.message)
+            }
+        }
+    }
+
+    fun restart() {
+        _step.value = Step.ChooseKind
+    }
+
+    private fun fail(message: String) {
+        _step.value = Step.Failed(message)
+    }
+}

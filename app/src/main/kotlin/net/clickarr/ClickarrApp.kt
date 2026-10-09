@@ -11,15 +11,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import net.clickarr.feature.channels.ChannelEditorScreen
 import net.clickarr.feature.player.PlayerScreen
 import net.clickarr.feature.setup.SetupScreen
 import net.clickarr.ui.design.ClickarrColors
-
-object Routes {
-    const val SETUP = "setup"
-    const val PLAYER = "player"
-    const val SHELL = "shell"
-}
 
 /**
  * Start route: setup when no server is connected, otherwise the player (television starts playing).
@@ -42,14 +37,17 @@ fun ClickarrApp(onExit: () -> Unit, viewModel: AppViewModel = hiltViewModel()) {
             PlayerScreen(
                 onOpenGuide = { nav.navigate(Routes.SHELL) },
                 onOpenShell = { nav.navigate(Routes.SHELL) },
-                onExit = onExit,
             )
         }
         composable(Routes.SHELL) {
             ShellScreen(
                 onWatch = { nav.navigate(Routes.PLAYER) { popUpTo(Routes.PLAYER) { inclusive = true } } },
+                onCreateChannel = { nav.navigate(Routes.EDITOR) },
                 onExit = onExit,
             )
+        }
+        composable(Routes.EDITOR) {
+            ChannelEditorScreen(onDone = { nav.popBackStack() })
         }
     }
 }
