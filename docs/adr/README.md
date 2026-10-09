@@ -40,3 +40,4 @@ The first batch (0001 to 0018) was split out of the approved [architecture propo
 | [0016](0016-module-structure-and-pure-kotlin-core.md) | Module structure and pure-Kotlin core boundaries | Accepted |
 | [0017](0017-release-github-actions-reproducible-builds.md) | Release: GitHub Actions, signed APK on tag, reproducible unsigned builds | Accepted |
 | [0018](0018-license-hygiene-mit-permissive-deps.md) | License hygiene: MIT, permissive dependencies only, no GPL code | Accepted |
+| [0019](0019-mvp-targets-plex-only.md) | MVP targets Plex only; Jellyfin and Emby after the household milestone | Accepted |

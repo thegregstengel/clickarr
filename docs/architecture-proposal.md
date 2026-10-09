@@ -2,6 +2,8 @@
 
 **Status:** Draft for approval. No application code has been written against this document yet.
 **Date:** 2026-10-09
+**Amendment (2026-10-09, after approval):** the MVP targets **Plex only**. Jellyfin and Emby move to a post-MVP phase (see ADR 0019). The `MediaProvider` abstraction and the normalized model stay exactly as designed so those providers slot in later; only the Plex client is built first. Wherever this document says "Plex and Jellyfin" for Phase 1, read "Plex".
+
 **Scope:** The MVP (single-device linear TV from Plex/Jellyfin, then two-device household agreement) and the structural decisions that let later features land without redesign.
 
 Clickarr turns a personal media library into channel-surfing television. The APK is the whole product: it talks to a media server, computes what every channel is airing right now, and plays it from the right offset. Several Clickarr devices in one home can optionally form a household that agrees on the lineup.

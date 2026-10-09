@@ -1,0 +1,33 @@
+# Clickarr detekt configuration. Builds on the default rule set; only deviations are listed.
+build:
+  maxIssues: 0
+
+style:
+  MaxLineLength:
+    maxLineLength: 140
+  MagicNumber:
+    active: false
+  ReturnCount:
+    max: 4
+  UnusedPrivateMember:
+    active: true
+
+complexity:
+  LongParameterList:
+    functionThreshold: 8
+    constructorThreshold: 10
+  TooManyFunctions:
+    thresholdInClasses: 20
+    thresholdInInterfaces: 20
+  LongMethod:
+    threshold: 120
+
+naming:
+  FunctionNaming:
+    ignoreAnnotated: ['Composable']
+  TopLevelPropertyNaming:
+    active: false
+
+exceptions:
+  TooGenericExceptionCaught:
+    active: false

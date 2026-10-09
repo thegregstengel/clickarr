@@ -5,14 +5,14 @@
 <h3 align="center">Turn your media library into TV.</h3>
 
 <p align="center">
-  An open-source Android TV app that gives your Plex, Jellyfin, or Emby library a channel lineup, a program guide, and a remote-control experience. Something is always on. Just change the channel.
+  An open-source Android TV app that gives your Plex library a channel lineup, a program guide, and a remote-control experience. Something is always on. Just change the channel.
 </p>
 
 <p align="center">
   <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-1479FD"></a>
   <img alt="Status: pre-alpha" src="https://img.shields.io/badge/status-pre--alpha-7E4DFD">
   <img alt="Platforms" src="https://img.shields.io/badge/platforms-Android%20TV%20%7C%20Google%20TV%20%7C%20Fire%20TV-0CE568">
-  <img alt="Servers" src="https://img.shields.io/badge/servers-Plex%20%7C%20Jellyfin%20%7C%20Emby-00ACFF">
+  <img alt="Servers" src="https://img.shields.io/badge/server-Plex%20(Jellyfin%2C%20Emby%20later)-00ACFF">
 </p>
 
 ---
@@ -42,7 +42,7 @@ These are the design mockups the app is being built to. They are direction, not 
   </tr>
   <tr>
     <td width="50%"><img src="docs/design/mockups/screen-settings-household.png" alt="Household settings"><br><sub><b>Household.</b> Several TVs in one home share channels and agree on the schedule. No extra server required.</sub></td>
-    <td width="50%"><img src="docs/design/mockups/screen-setup-server.png" alt="First-run server picker"><br><sub><b>Setup.</b> Sign in to Plex, Jellyfin, or Emby and start building channels.</sub></td>
+    <td width="50%"><img src="docs/design/mockups/screen-setup-server.png" alt="First-run server picker"><br><sub><b>Setup.</b> Sign in to Plex and start building channels. Jellyfin and Emby come after the MVP.</sub></td>
   </tr>
 </table>
 
@@ -51,7 +51,7 @@ These are the design mockups the app is being built to. They are direction, not 
 Clickarr is a single APK. There is no Clickarr server, container, or cloud account.
 
 ```text
-                    Plex / Jellyfin / Emby
+                     Plex Media Server
                              │
                              │  metadata + direct video stream
                              ▼
@@ -80,8 +80,8 @@ Phase 1 and 2 (the MVP) prove the core experience. Everything else lands after.
 
 | Now | Later |
 |---|---|
-| Plex and Jellyfin sign-in | Emby |
-| Channels from shows and libraries | Collections, playlists, genres, decades, custom filters |
+| Plex sign-in | Jellyfin and Emby |
+| Channels from shows, libraries, Plex collections, playlists, genre/decade/label filters, hand-picked lists, and combinations of those | Smart rules that re-evaluate automatically as the library grows |
 | Sequential and shuffled lineups | Time blocks, day-of-week schedules, fixed-time programs |
 | Half-hour slot padding with filler cards | Marathons, holiday programming, interstitials and bumpers |
 | Grid guide, overlay, channel surfing, numeric entry | Live preview while browsing channels, favorites filter |

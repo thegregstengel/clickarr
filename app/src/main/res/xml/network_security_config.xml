@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Media servers on a home LAN are commonly plain HTTP. Cleartext stays allowed app-wide;
+     the household protocol pins its own certificates (ADR 0013) and does not rely on this file. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>
