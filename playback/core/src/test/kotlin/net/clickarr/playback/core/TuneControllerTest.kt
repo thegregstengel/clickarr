@@ -70,7 +70,8 @@ class TuneControllerTest {
         h.engine.emit(PlayerEvent.FirstFrame)
         runCurrent()
         h.controller.state.value.status shouldBe TuneStatus.Playing
-        h.controller.state.value.slotPosition(h.clock.now()) shouldBe 17.minutes + debounce
+        // The clock itself sits at +301 ms after advanceTimeBy(301).
+        h.controller.state.value.slotPosition(h.clock.now()) shouldBe 17.minutes + 301.milliseconds
     }
 
     @Test
@@ -175,7 +176,7 @@ class TuneControllerTest {
         h.controller.resume()
         runCurrent()
         h.engine.loads.size shouldBe 2
-        h.engine.loads.last().startAt shouldBe 5.minutes + debounce // 2 min + debounce + 3 min
+        h.engine.loads.last().startAt shouldBe 5.minutes + 301.milliseconds // 2 min + 301 ms elapsed + 3 min
     }
 
     @Test
