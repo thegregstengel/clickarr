@@ -33,13 +33,14 @@ class FirstRunFlowTest {
         device.takeScreenshot(File(shots, "$name.png"))
     }
 
-    private fun waitForText(text: String, timeoutMs: Long = 20_000) {
+    private fun waitForText(text: String, timeoutMs: Long = 30_000) {
         compose.waitUntil(timeoutMs) { compose.onAllNodes(hasText(text, substring = true)).fetchSemanticsNodes().isNotEmpty() }
     }
 
     @Test
     fun connectCreateChannelTuneAndOpenGuide() {
-        waitForText("Connect to your Plex server")
+        // Cold start on a software-rendered emulator: Hilt graph, Room, DataStore, first Compose frame.
+        waitForText("Connect to your Plex server", timeoutMs = 90_000)
         shot("01-setup")
         compose.onNodeWithText("Enter address manually").performClick()
         waitForText("Server address and token")

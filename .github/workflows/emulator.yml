@@ -74,23 +74,7 @@ jobs:
           force-avd-creation: false
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
-          script: |
-            adb shell settings put global window_animation_scale 0
-            adb shell settings put global transition_animation_scale 0
-            adb shell settings put global animator_duration_scale 0
-            adb shell screenrecord --time-limit 180 --bit-rate 4000000 /sdcard/clickarr-run.mp4 &
-            REC=$!
-            set +e
-            ./gradlew :app:connectedDebugAndroidTest --no-daemon
-            RESULT=$?
-            set -e
-            adb shell pkill -2 screenrecord || true
-            sleep 3
-            mkdir -p emulator-artifacts
-            adb pull /sdcard/Pictures/clickarr emulator-artifacts/screenshots || true
-            adb pull /sdcard/clickarr-run.mp4 emulator-artifacts/ || true
-            adb logcat -d -s 'Clickarr/*' 'AndroidRuntime:E' 'TestRunner:*' > emulator-artifacts/logcat.txt || true
-            exit $RESULT
+          script: bash .github/scripts/emulator-tests.sh
 
       - name: Upload screenshots, recording, and reports
         if: always()
