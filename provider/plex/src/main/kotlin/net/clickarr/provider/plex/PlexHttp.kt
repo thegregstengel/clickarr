@@ -12,6 +12,7 @@ import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 
 /**
  * Plex-flavoured HTTP: identity headers on every request, JSON by default, typed failures.
@@ -80,7 +81,7 @@ internal class PlexHttp(
         val b = Request.Builder().url(url)
         headers().forEach { (k, v) -> b.header(k, v) }
         extraHeaders.forEach { (k, v) -> b.header(k, v) }
-        if (method == "POST") b.post(okhttp3.RequestBody.create(null, ByteArray(0)))
+        if (method == "POST") b.post(ByteArray(0).toRequestBody(null))
         return b.build()
     }
 

@@ -16,6 +16,7 @@ dependencies {
     api(project(":core:secrets"))
     api(project(":provider:api"))
     api(project(":provider:plex"))
+    api(libs.okhttp)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.datetime)
