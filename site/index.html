@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Clickarr</title>
+  <meta name="description" content="Clickarr turns your Plex library into television. Channels, a program guide, and channel surfing on Android TV, Google TV, and Fire TV. Open source, no extra server.">
+  <link rel="canonical" href="https://clickarr.net/">
+  <link rel="icon" href="assets/favicon.ico" sizes="any">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="manifest" href="site.webmanifest">
+  <meta name="theme-color" content="#05070F">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://clickarr.net/">
+  <meta property="og:title" content="Clickarr: turn your media library into TV">
+  <meta property="og:description" content="Channels, a program guide, and channel surfing for your Plex library. Open source, for Android TV and Fire TV.">
+  <meta property="og:image" content="https://clickarr.net/assets/og-image.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-base: #05070F; --bg-panel: #0A1220; --bg-surface: #131A36; --bg-cell: #1A2A47; --bg-border: #1E2B45;
+      --accent: #1479FD; --accent-deep: #063677; --glow: #00ACFF; --cyan: #00E2FD; --violet: #7E4DFD; --magenta: #AF2EFC;
+      --ok: #0CE568; --text: #F2F5FA; --text-2: #A9B4C8; --text-3: #6B7890;
+      --radius: 16px; --radius-sm: 12px; --max: 1120px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; background: var(--bg-base); color: var(--text); font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 18px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
+    a { color: var(--glow); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    img { max-width: 100%; height: auto; display: block; }
+    .wrap { max-width: var(--max); margin: 0 auto; padding: 0 24px; }
+    header { position: sticky; top: 0; z-index: 10; background: rgba(5,7,15,.82); backdrop-filter: blur(12px); border-bottom: 1px solid var(--bg-border); }
+    .nav { display: flex; align-items: center; justify-content: space-between; height: 72px; }
+    .nav img { height: 40px; }
+    .nav ul { display: flex; gap: 28px; list-style: none; margin: 0; padding: 0; }
+    .nav a { color: var(--text-2); font-weight: 500; }
+    .nav a:hover { color: var(--text); text-decoration: none; }
+    .btn { display: inline-block; padding: 14px 24px; border-radius: var(--radius-sm); font-weight: 600; color: #fff; background: var(--accent); }
+    .btn:hover { background: #2F8BFF; text-decoration: none; }
+    .btn.ghost { background: var(--bg-cell); color: var(--text); border: 1px solid var(--bg-border); }
+    .btn.ghost:hover { background: var(--bg-border); }
+    .hero { padding: 96px 0 56px; text-align: center; background: radial-gradient(60% 50% at 50% 0%, #101E42 0%, var(--bg-base) 100%); }
+    .hero h1 { font-size: clamp(36px, 6vw, 64px); line-height: 1.05; letter-spacing: -0.02em; margin: 0 0 20px; font-weight: 800; }
+    .hero h1 span { background: linear-gradient(90deg, var(--cyan), var(--accent), var(--magenta)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .hero p { max-width: 720px; margin: 0 auto 32px; color: var(--text-2); font-size: 22px; }
+    .hero .cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .hero .shot { margin: 56px auto 0; max-width: 960px; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--bg-border); box-shadow: 0 0 80px rgba(0,172,255,.18); }
+    .pill { display: inline-block; padding: 6px 14px; border-radius: 999px; background: var(--bg-surface); color: var(--text-2); font-size: 15px; font-weight: 500; margin-bottom: 24px; }
+    .pill b { color: var(--ok); }
+    section { padding: 80px 0; }
+    section h2 { font-size: 34px; letter-spacing: -0.01em; margin: 0 0 12px; }
+    section .lead { color: var(--text-2); font-size: 20px; max-width: 760px; margin: 0 0 40px; }
+    .flip { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: center; }
+    .flip .card { background: var(--bg-panel); border: 1px solid var(--bg-border); border-radius: var(--radius); padding: 28px; }
+    .flip .card h3 { margin: 0 0 8px; font-size: 20px; color: var(--text-2); font-weight: 600; }
+    .flip .card p { margin: 0; font-size: 24px; font-weight: 600; line-height: 1.35; }
+    .flip .card.on { border-color: var(--accent); background: linear-gradient(180deg, #0B1A3A, var(--bg-panel)); }
+    .flip .card.on h3 { color: var(--glow); }
+    .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
+    .tile { background: var(--bg-panel); border: 1px solid var(--bg-border); border-radius: var(--radius); overflow: hidden; }
+    .tile img { aspect-ratio: 3 / 2; object-fit: cover; }
+    .tile div { padding: 20px 24px 24px; }
+    .tile h3 { margin: 0 0 6px; font-size: 20px; }
+    .tile p { margin: 0; color: var(--text-2); }
+    .feat { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+    .feat .f { background: var(--bg-panel); border: 1px solid var(--bg-border); border-radius: var(--radius); padding: 24px; }
+    .feat h3 { margin: 0 0 8px; font-size: 20px; }
+    .feat p { margin: 0; color: var(--text-2); font-size: 17px; }
+    .feat .k { display: inline-block; width: 40px; height: 40px; border-radius: 10px; background: var(--accent-deep); color: var(--glow); font-weight: 700; text-align: center; line-height: 40px; margin-bottom: 14px; }
+    pre { background: var(--bg-panel); border: 1px solid var(--bg-border); border-radius: var(--radius); padding: 24px; overflow-x: auto; color: var(--text-2); font-size: 15px; line-height: 1.5; }
+    .two { display: grid; grid-template-columns: 1.1fr .9fr; gap: 40px; align-items: start; }
+    .two ul { color: var(--text-2); padding-left: 20px; }
+    .two li { margin-bottom: 10px; }
+    .two li b { color: var(--text); }
+    .status { background: var(--bg-surface); border-radius: var(--radius); padding: 32px; border: 1px solid var(--bg-border); }
+    .status h2 { font-size: 26px; }
+    .status ol { color: var(--text-2); padding-left: 22px; margin: 0; }
+    .status li { margin-bottom: 8px; }
+    .status li.now { color: var(--text); }
+    .status li.now::marker { color: var(--glow); }
+    footer { border-top: 1px solid var(--bg-border); padding: 40px 0 56px; color: var(--text-3); font-size: 15px; }
+    footer .row { display: flex; justify-content: space-between; gap: 24px; flex-wrap: wrap; align-items: center; }
+    footer a { color: var(--text-2); }
+    @media (max-width: 860px) {
+      .nav ul { display: none; }
+      .flip, .grid, .feat, .two { grid-template-columns: 1fr; }
+      section { padding: 56px 0; }
+      .hero { padding-top: 64px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap nav">
+      <a href="#" aria-label="Clickarr home"><img src="assets/logo-horizontal.png" alt="Clickarr"></a>
+      <ul>
+        <li><a href="#how">How it works</a></li>
+        <li><a href="#screens">Screens</a></li>
+        <li><a href="#features">Features</a></li>
+        <li><a href="#status">Status</a></li>
+        <li><a href="https://github.com/thegregstengel/clickarr">GitHub</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="wrap">
+      <span class="pill"><b>●</b> Open source, in development</span>
+      <h1>Turn your media library<br>into <span>television</span>.</h1>
+      <p>Clickarr gives your Plex library a channel lineup, a program guide, and a remote. Something is always on. Just change the channel.</p>
+      <div class="cta">
+        <a class="btn" href="https://github.com/thegregstengel/clickarr/releases">Download for Android TV &amp; Fire TV</a>
+        <a class="btn ghost" href="https://github.com/thegregstengel/clickarr">View on GitHub</a>
+      </div>
+      <div class="shot"><img src="assets/screen-player-overlay.png" alt="Clickarr playing The Office on channel 10 with the channel overlay visible" width="1540" height="1010"></div>
+    </div>
+  </section>
+
+  <section id="how">
+    <div class="wrap">
+      <h2>Not a video store. A TV.</h2>
+      <p class="lead">Media servers make you browse, pick, and press play every single time. Clickarr brings back the part of television that was actually good: turning it on and seeing what's on.</p>
+      <div class="flip">
+        <div class="card"><h3>Every media app</h3><p>Open app → browse library → choose title → choose episode → play</p></div>
+        <div class="card on"><h3>Clickarr</h3><p>Open app → something is already playing → change channels → watch</p></div>
+      </div>
+      <div class="two" style="margin-top:40px">
+        <div>
+          <p class="lead" style="margin-bottom:16px">Build channels out of what you already own. Give each one a number, a name, and a schedule. Then tune in.</p>
+          <ul>
+            <li><b>Channel 10, Sitcoms.</b> The Office, Parks and Rec, Seinfeld, Community, all evening.</li>
+            <li><b>Channel 30, 1980s Movies.</b> Everything in your library from the decade, shuffled.</li>
+            <li><b>Channel 20, Middle-earth.</b> Your Lord of the Rings collection, in order, forever.</li>
+            <li><b>Channel 50, Christmas.</b> A playlist that only matters in December.</li>
+          </ul>
+        </div>
+        <pre>Channel 10 · Sitcoms
+
+ 7:00 PM  The Office
+ 7:30 PM  Parks and Recreation
+ 8:00 PM  Seinfeld
+ 8:30 PM  Community
+
+Tune in at 7:17 PM and you land
+17 minutes into The Office.
+Leave, come back at 7:52, and
+Parks and Rec is 22 minutes in.</pre>
+      </div>
+    </div>
+  </section>
+
+  <section id="screens" style="background: var(--bg-panel)">
+    <div class="wrap">
+      <h2>What it looks like</h2>
+      <p class="lead">Design mockups the app is being built to. A real program guide, a channel list, and a household view for homes with more than one TV.</p>
+      <div class="grid">
+        <div class="tile"><img src="assets/screen-guide.png" alt="Program guide grid with a now-line" loading="lazy"><div><h3>Guide</h3><p>A real grid with half-hour columns and a now-line. Up and down move between channels, left and right through time, OK tunes in.</p></div></div>
+        <div class="tile"><img src="assets/screen-channels.png" alt="Channel list with a preview of the selected channel" loading="lazy"><div><h3>Channels</h3><p>Your lineup with numbers and icons, and a preview of what each channel is airing right now.</p></div></div>
+        <div class="tile"><img src="assets/screen-settings-household.png" alt="Household settings showing four synced TVs" loading="lazy"><div><h3>Household</h3><p>Several TVs share one lineup and agree on the schedule, over your own Wi-Fi. No extra server, no cloud account.</p></div></div>
+        <div class="tile"><img src="assets/screen-setup-server.png" alt="First-run screen to connect a media server" loading="lazy"><div><h3>Setup</h3><p>Sign in to Plex and start building channels. Jellyfin and Emby are planned after the first release.</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="features">
+    <div class="wrap">
+      <h2>How it's built</h2>
+      <p class="lead">A single Android app that talks straight to your media server. The decisions that shape it:</p>
+      <div class="feat">
+        <div class="f"><span class="k">1</span><h3>Video goes server to TV</h3><p>Clickarr never proxies media. Your server keeps doing direct play or transcoding; Clickarr asks for the right item at the right offset.</p></div>
+        <div class="f"><span class="k">2</span><h3>Schedules are math, not files</h3><p>A channel is a function from time to program. Every TV computes the same answer from the same lineup, so nothing drifts and nothing needs syncing in real time.</p></div>
+        <div class="f"><span class="k">3</span><h3>Households, not accounts</h3><p>TVs pair over the LAN with a PIN. One coordinates, the others cache the lineup and keep working when it's off.</p></div>
+        <div class="f"><span class="k">4</span><h3>Your tokens stay put</h3><p>Each TV signs in to Plex itself. Household sync shares channels, never credentials.</p></div>
+        <div class="f"><span class="k">5</span><h3>Fire TV first-class</h3><p>No Google Play Services anywhere. Sideload the APK on a Fire Stick and it just runs.</p></div>
+        <div class="f"><span class="k">6</span><h3>Open source, MIT</h3><p>Clean-room, permissively licensed, built in public with architecture decisions written down.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="status">
+    <div class="wrap">
+      <div class="status">
+        <h2>Where it's at</h2>
+        <ol>
+          <li>Architecture proposal, design language, brand: <b>done</b></li>
+          <li class="now">Phase 0, scaffold and technical spikes on real Fire TV and Android TV hardware: <b>in progress</b></li>
+          <li>Phase 1, one TV, one channel, correct tune-in offset</li>
+          <li>Phase 2, two TVs that agree on what's on</li>
+          <li>Phase 3, the full channel editor and the first public release</li>
+        </ol>
+        <p style="margin:24px 0 0;color:var(--text-2)">Follow along on <a href="https://github.com/thegregstengel/clickarr">GitHub</a>. Releases will appear there as sideloadable APKs.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap row">
+      <div><img src="assets/logo-mark.png" alt="" width="32" height="32" style="display:inline-block;vertical-align:middle;margin-right:10px">MIT licensed. Not affiliated with Plex, Jellyfin, or Emby.</div>
+      <div><a href="https://github.com/thegregstengel/clickarr">GitHub</a> · <a href="https://github.com/thegregstengel/clickarr/blob/main/docs/architecture.md">Architecture</a> · <a href="https://github.com/thegregstengel/clickarr/blob/main/docs/design/design-language.md">Design language</a></div>
+    </div>
+  </footer>
+</body>
+</html>
