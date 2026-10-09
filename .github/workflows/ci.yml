@@ -55,3 +55,37 @@ jobs:
             **/build/reports/detekt/
             app/build/reports/lint-results-debug.html
           retention-days: 7
+
+  nightly:
+    name: Publish nightly APK
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: clickarr-debug-apk
+          path: apk
+
+      - name: Move the nightly tag to this commit
+        run: |
+          git tag -f nightly
+          git push -f origin nightly
+
+      - name: Publish or update the nightly pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp apk/app-debug.apk clickarr-nightly-debug.apk
+          sha256sum clickarr-nightly-debug.apk > clickarr-nightly-debug.apk.sha256
+          NOTES="Automated debug build of main at ${GITHUB_SHA::7}. Not a release. Phase 0: opens into the spike menu (docs/spikes.md)."
+          if gh release view nightly >/dev/null 2>&1; then
+            gh release edit nightly --prerelease --title "Nightly (debug)" --notes "$NOTES"
+          else
+            gh release create nightly --prerelease --title "Nightly (debug)" --notes "$NOTES"
+          fi
+          gh release upload nightly clickarr-nightly-debug.apk clickarr-nightly-debug.apk.sha256 --clobber
