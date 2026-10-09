@@ -74,7 +74,8 @@ object DbMappers {
                 versions = json.encodeToString(versions, media),
             )
             is Movie -> base.copy(
-                type = TYPE_MOVIE, studio = studio, runtimeMs = runtime.inWholeMilliseconds, versions = json.encodeToString(versions, media),
+                type = TYPE_MOVIE, studio = studio, runtimeMs = runtime.inWholeMilliseconds,
+                versions = json.encodeToString(versions, media),
             )
         }
     }

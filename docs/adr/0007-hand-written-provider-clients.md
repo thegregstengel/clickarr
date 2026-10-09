@@ -5,7 +5,7 @@
 
 ## Context
 
-Clickarr reads metadata from, and plays video from, Plex. The scheduler must never see provider-specific query languages, and two household devices must resolve the same item ids against the same server. Each provider needs roughly a dozen endpoints. Jellyfin publishes an official Kotlin SDK; Plex and Emby do not.
+Clickarr reads metadata from, and plays video from, Plex. The scheduler must never see provider-specific query languages, and two household devices must resolve the same item ids against the same server. The Plex client needs roughly a dozen endpoints, and Plex publishes no official Kotlin SDK.
 
 ## Options considered
 
@@ -15,7 +15,7 @@ Clickarr reads metadata from, and plays video from, Plex. The scheduler must nev
 
 ## Decision
 
-**A hand-written thin Plex client behind a `MediaProvider` interface in `provider:api`.** The interface is pure Kotlin, suspend-based, and returns only normalized `core:model` types. other media servers share a base class because Emby is Jellyfin's ancestor; Plex is its own client.
+**A hand-written thin Plex client behind a `MediaProvider` interface in `provider:api`.** The interface is pure Kotlin, suspend-based, and returns only normalized `core:model` types.
 
 Key interface points: `resolve(source)` expands a `ProgrammingSource` into playables with durations so the scheduler only ever sees a `LineupSnapshot`; `playbackSource(item, profile, startAt)` lets a provider move the offset server-side for transcodes while the player seeks for direct play; `Result` is Clickarr's own sealed type with typed failures (`Unauthorized`, `Unreachable`, `NotFound`, `Unsupported`, `Unknown`).
 
