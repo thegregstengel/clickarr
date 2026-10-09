@@ -1,13 +1,16 @@
 package net.clickarr
 
 import android.view.KeyEvent
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.requestFocus
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
 import java.io.File
@@ -30,6 +33,10 @@ class FirstRunFlowTest {
     private val shots = File("/sdcard/Pictures/clickarr").apply { mkdirs() }
 
     private fun shot(name: String) {
+        // Let the real display catch up with the composition before capturing the frame.
+        compose.waitForIdle()
+        device.waitForIdle()
+        Thread.sleep(SHOT_SETTLE_MS)
         device.takeScreenshot(File(shots, "$name.png"))
     }
 
@@ -37,35 +44,53 @@ class FirstRunFlowTest {
         compose.waitUntil(timeoutMs) { compose.onAllNodes(hasText(text, substring = true)).fetchSemanticsNodes().isNotEmpty() }
     }
 
+    /**
+     * Compose for TV components act on D-pad key events, not synthetic taps, so performClick() does
+     * nothing on them. Invoke the semantic click action when there is one; otherwise focus the node
+     * and press the center key like a remote would.
+     */
+    private fun click(text: String) {
+        val node: SemanticsNodeInteraction = compose.onAllNodes(hasText(text, substring = false)).onFirst()
+        val hasOnClick = node.fetchSemanticsNode().config.contains(SemanticsActions.OnClick)
+        if (hasOnClick) {
+            node.performSemanticsAction(SemanticsActions.OnClick)
+        } else {
+            node.requestFocus()
+            compose.waitForIdle()
+            device.pressDPadCenter()
+        }
+        compose.waitForIdle()
+    }
+
     @Test
     fun connectCreateChannelTuneAndOpenGuide() {
         // Cold start on a software-rendered emulator: Hilt graph, Room, DataStore, first Compose frame.
         waitForText("Connect to your Plex server", timeoutMs = 90_000)
         shot("01-setup")
-        compose.onNodeWithText("Enter address manually").performClick()
+        click("Enter address manually")
         waitForText("Server address and token")
         compose.onNodeWithTag("setup.url").performTextClearance()
         compose.onNodeWithTag("setup.url").performTextInput(plex.baseUrl)
         compose.onNodeWithTag("setup.token").performTextInput("fixture-token")
         shot("02-manual-entry")
-        compose.onNodeWithText("Connect").performClick()
+        click("Connect")
 
         waitForText("Create channel")
         shot("03-channels-empty")
-        compose.onNodeWithText("Create channel").performClick()
+        click("Create channel")
         waitForText("What goes on this channel?")
-        compose.onNodeWithText("Shows").performClick()
+        click("Shows")
         waitForText("The Office (US)")
         shot("04-pick-shows")
-        compose.onNodeWithText("The Office (US)").performClick()
-        compose.onNodeWithText("Continue").performClick()
+        click("The Office (US)")
+        click("Continue")
         waitForText("Channel number")
         shot("05-details")
-        compose.onNodeWithText("Create channel").performClick()
+        click("Create channel")
 
         waitForText("The Office (US)")
         shot("06-channels-list")
-        compose.onNodeWithText("The Office (US)").performClick()
+        click("The Office (US)")
 
         waitForText("THE OFFICE (US)", timeoutMs = 30_000)
         shot("07-player-overlay")
@@ -76,6 +101,7 @@ class FirstRunFlowTest {
     }
 
     companion object {
+        private const val SHOT_SETTLE_MS = 700L
         lateinit var plex: PlexFixtureServer
 
         @JvmStatic
