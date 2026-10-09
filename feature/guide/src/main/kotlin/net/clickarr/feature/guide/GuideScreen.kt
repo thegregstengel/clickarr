@@ -88,10 +88,7 @@ fun GuideScreen(onWatch: () -> Unit, onlyFavorites: Boolean = false, viewModel: 
                     GuideRow(
                         row = row,
                         rowIndex = rowIndex,
-                        focus = focus,
-                        window = w,
-                        minutePx = minutePx,
-                        scroll = scroll,
+                        grid = GuideGrid(w, minutePx, scroll, focus),
                         isCurrent = row.channel.id.value == w.currentChannelId,
                         onFocusAiring = { focused = it },
                         onTune = { viewModel.tune(row.channel, onWatch) },
@@ -150,18 +147,27 @@ private class GuideFocus(rowCount: Int) {
     }
 }
 
+/** What every row shares: the time window, the scale, the horizontal scroll, and the focus map. */
+private class GuideGrid(
+    val window: GuideViewModel.Window,
+    val minutePx: Float,
+    val scroll: androidx.compose.foundation.ScrollState,
+    val focus: GuideFocus,
+)
+
 @Composable
 private fun GuideRow(
     row: GuideViewModel.Row,
     rowIndex: Int,
-    focus: GuideFocus,
-    window: GuideViewModel.Window,
-    minutePx: Float,
-    scroll: androidx.compose.foundation.ScrollState,
+    grid: GuideGrid,
     isCurrent: Boolean,
     onFocusAiring: (Airing) -> Unit,
     onTune: () -> Unit,
 ) {
+    val window = grid.window
+    val minutePx = grid.minutePx
+    val scroll = grid.scroll
+    val focus = grid.focus
     focus.airings[rowIndex].let { it.clear(); it.addAll(row.airings) }
     val scope = rememberCoroutineScope()
     val density = LocalDensity.current

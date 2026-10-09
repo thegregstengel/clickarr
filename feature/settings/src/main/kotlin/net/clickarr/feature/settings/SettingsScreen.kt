@@ -32,11 +32,6 @@ import net.clickarr.ui.design.ClickarrColors
 import net.clickarr.ui.design.ClickarrDimens
 import net.clickarr.ui.design.ClickarrTextStyles
 
-enum class SettingsSection(val label: String) {
-    GENERAL("General"), SERVER("Media Server"), CHANNELS("Channels"), APPEARANCE("Appearance"),
-    PLAYBACK("Playback"), HOUSEHOLD("Household"), DIAGNOSTICS("Diagnostics"), ABOUT("About"),
-}
-
 /** Settings: left nav, right pane (design language 4, "Settings"). */
 @Composable
 fun SettingsScreen(
