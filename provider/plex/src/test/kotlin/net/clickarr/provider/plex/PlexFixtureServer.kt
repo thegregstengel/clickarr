@@ -20,14 +20,21 @@ class PlexFixtureServer : AutoCloseable {
         server.dispatcher = object : Dispatcher() {
             override fun dispatch(request: RecordedRequest): MockResponse {
                 requests += request
-                failWithStatus?.let { return MockResponse().setResponseCode(it) }
-                val path = request.requestUrl?.encodedPath ?: return notFound()
-                val q = request.requestUrl
-                val fixture = when {
+                val forced = failWithStatus
+                val url = request.requestUrl
+                return when {
+                    forced != null -> MockResponse().setResponseCode(forced)
+                    url == null -> notFound()
+                    else -> respond(url.encodedPath, url.queryParameter("type"), request.method)
+                }
+            }
+
+            private fun respond(path: String, type: String?, method: String?): MockResponse {
+                val fixture: String? = when {
                     path == "/" -> "root"
                     path == "/library/sections" -> "sections"
-                    path == "/library/sections/1/all" && q?.queryParameter("type") == "1" -> "section-1-movies"
-                    path == "/library/sections/2/all" && q?.queryParameter("type") == "2" -> "section-2-shows"
+                    path == "/library/sections/1/all" && type == "1" -> "section-1-movies"
+                    path == "/library/sections/2/all" && type == "2" -> "section-2-shows"
                     path == "/library/metadata/201/allLeaves" -> "show-201-allLeaves"
                     path == "/library/metadata/202/allLeaves" -> "show-202-allLeaves"
                     path == "/library/sections/1/collections" -> "section-1-collections"
@@ -35,15 +42,18 @@ class PlexFixtureServer : AutoCloseable {
                     path == "/library/collections/301/children" -> "collection-301-children"
                     path == "/playlists" -> "playlists"
                     path == "/playlists/401/items" -> "playlist-401-items"
-                    path.startsWith("/library/metadata/") -> return metadataLookup(path.removePrefix("/library/metadata/"))
-                    path.startsWith("/video/:/transcode/universal/stop") -> return ok("{}")
-                    path.startsWith("/:/timeline") -> return ok("{}")
-                    path == "/api/v2/pins" && request.method == "POST" -> "plextv-pin-created"
+                    path == "/api/v2/pins" && method == "POST" -> "plextv-pin-created"
                     path == "/api/v2/pins/987654" -> if (pinClaimed) "plextv-pin-claimed" else "plextv-pin-created"
                     path == "/api/v2/resources" -> "plextv-resources"
-                    else -> return notFound()
+                    else -> null
                 }
-                return if (fixture == "empty") ok("""{"MediaContainer":{"size":0}}""") else ok(load(fixture))
+                return when {
+                    fixture == "empty" -> ok("""{"MediaContainer":{"size":0}}""")
+                    fixture != null -> ok(load(fixture))
+                    path.startsWith("/library/metadata/") -> metadataLookup(path.removePrefix("/library/metadata/"))
+                    path.startsWith("/video/:/transcode/universal/stop") || path.startsWith("/:/timeline") -> ok("{}")
+                    else -> notFound()
+                }
             }
         }
         server.start()

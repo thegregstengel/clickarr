@@ -62,10 +62,10 @@ class PlexProvider(
         http.get(url("/library/sections"), PlexResponse.serializer()).map { r -> r.container.directories.map(map::library) }
 
     override suspend fun shows(library: MediaRef, page: Page): Outcome<PageOf<Show>> =
-        pageOf(url("/library/sections/${library.id.value}/all", "type" to "2"), page, map::show)
+        http.pageOf(url("/library/sections/${library.id.value}/all", "type" to "2"), page, map::show)
 
     override suspend fun movies(library: MediaRef, page: Page): Outcome<PageOf<Movie>> =
-        pageOf(url("/library/sections/${library.id.value}/all", "type" to "1"), page, map::movie)
+        http.pageOf(url("/library/sections/${library.id.value}/all", "type" to "1"), page, map::movie)
 
     override suspend fun episodes(show: MediaRef): Outcome<List<Episode>> =
         http.get(url("/library/metadata/${show.id.value}/allLeaves"), PlexResponse.serializer()).map { r ->
@@ -190,73 +190,28 @@ class PlexProvider(
         ),
     )
 
-    // Helpers
-
-    private suspend fun <T> pageOf(listUrl: okhttp3.HttpUrl, page: Page, mapper: (PlexMetadata) -> T): Outcome<PageOf<T>> =
-        http.get(
-            listUrl,
-            PlexResponse.serializer(),
-            mapOf("X-Plex-Container-Start" to page.offset.toString(), "X-Plex-Container-Size" to page.size.toString()),
-        ).map { r ->
-            val items = r.container.metadata.map(mapper)
-            PageOf(items, page, r.container.totalSize ?: (page.offset + items.size))
-        }
-
-    private suspend fun <T> allPages(fetch: suspend (Page) -> Outcome<PageOf<T>>): Outcome<List<T>> {
-        val out = ArrayList<T>()
-        var page = Page.first()
-        while (true) {
-            val result = fetch(page)
-            val p = when (result) {
-                is Outcome.Success -> result.value
-                is Outcome.Failure -> return result
-            }
-            out += p.items
-            if (!p.hasMore || p.items.isEmpty()) return Outcome.Success(out)
-            page = page.next()
-        }
-    }
-
-    private suspend fun <I, T> collectAll(inputs: List<I>, fetch: suspend (I) -> Outcome<List<T>>): Outcome<List<T>> {
-        val out = ArrayList<T>()
-        for (i in inputs) {
-            when (val r = fetch(i)) {
-                is Outcome.Success -> out += r.value
-                is Outcome.Failure -> return r
-            }
-        }
-        return Outcome.Success(out)
-    }
-
-    private fun mimeFor(container: String?): String? = when (container?.lowercase()) {
-        "mp4", "m4v" -> "video/mp4"
-        "mkv" -> "video/x-matroska"
-        "webm" -> "video/webm"
-        "ts" -> "video/mp2t"
-        else -> null
-    }
 }
 
 /** Client-side evaluation of a MediaFilter against normalized items (proposal 6.2: no tag-id round trips in the MVP). */
-internal fun MediaFilter.matches(item: MediaItem): Boolean {
-    val year = item.year
-    val studio = (item as? Movie)?.studio ?: (item as? Show)?.studio
-    val network = (item as? Show)?.network
-    return (genres.isEmpty() || item.genres.any { it in genres }) &&
-        (decadeStart == null || (year != null && year in decadeStart until decadeStart + 10)) &&
-        (yearFrom == null || (year != null && year >= yearFrom)) &&
-        (yearTo == null || (year != null && year <= yearTo)) &&
-        (studios.isEmpty() || studio in studios) &&
-        (networks.isEmpty() || network in networks)
+internal fun MediaFilter.matches(item: MediaItem): Boolean = predicates().all { it(item) }
+
+private fun MediaFilter.predicates(): List<(MediaItem) -> Boolean> = buildList {
+    if (genres.isNotEmpty()) add { it.genres.any { g -> g in genres } }
+    decadeStart?.let { d -> add { (it.year ?: -1) in d until d + 10 } }
+    yearFrom?.let { from -> add { (it.year ?: Int.MIN_VALUE) >= from } }
+    yearTo?.let { to -> add { (it.year ?: Int.MAX_VALUE) <= to } }
+    if (studios.isNotEmpty()) add { it.studioOrNull() in studios }
+    if (networks.isNotEmpty()) add { (it as? Show)?.network in networks }
 }
+
+private fun MediaItem.studioOrNull(): String? = (this as? Movie)?.studio ?: (this as? Show)?.studio
 
 internal fun DeviceProfile.canDirectPlay(media: PlexMedia): Boolean {
     val container = media.container?.lowercase() ?: return false
     val video = media.videoCodec?.lowercase() ?: return false
     val audio = media.audioCodec?.lowercase() ?: return false
-    val hevcOk = video != "hevc" || supportsHevc
-    return container in containers && (video in videoCodecs || (video == "hevc" && supportsHevc)) && hevcOk &&
-        audio in audioCodecs &&
-        (media.height ?: 0) <= maxHeight && (media.width ?: 0) <= maxWidth &&
-        (maxBitrateKbps == null || (media.bitrate ?: 0) <= maxBitrateKbps)
+    val videoOk = video in videoCodecs || (video == "hevc" && supportsHevc)
+    val sizeOk = (media.height ?: 0) <= maxHeight && (media.width ?: 0) <= maxWidth
+    val bitrateOk = maxBitrateKbps == null || (media.bitrate ?: 0) <= maxBitrateKbps
+    return container in containers && videoOk && audio in audioCodecs && sizeOk && bitrateOk
 }
