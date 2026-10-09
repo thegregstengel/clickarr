@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108" width="432" height="432">
+  <defs>
+  <linearGradient id="af-screen" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#00E2FD"/><stop offset="0.5" stop-color="#1284FD"/><stop offset="1" stop-color="#AF2EFC"/>
+  </linearGradient>
+  <linearGradient id="af-frame" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#F4F7FF"/><stop offset="1" stop-color="#4FA8FF"/>
+  </linearGradient>
+  <linearGradient id="af-gloss" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.28"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+  </linearGradient>
+  <filter id="af-glow" x="-30%" y="-30%" width="160%" height="160%">
+    <feGaussianBlur stdDeviation="14" result="b"/>
+    <feColorMatrix in="b" type="matrix" values="0 0 0 0 0.07  0 0 0 0 0.52  0 0 0 0 1  0 0 0 0.55 0" result="c"/>
+    <feMerge><feMergeNode in="c"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter></defs>
+  <g transform="translate(23,25) scale(0.12109)">
+  <!-- antennae -->
+  <g stroke="#F4F7FF" stroke-width="20" stroke-linecap="round" fill="none">
+    <line x1="208" y1="150" x2="150" y2="52"/>
+    <line x1="304" y1="150" x2="362" y2="52"/>
+  </g>
+  <circle cx="150" cy="52" r="22" fill="#F4F7FF"/>
+  <circle cx="362" cy="52" r="22" fill="#F4F7FF"/>
+  <!-- frame -->
+  <rect x="48" y="132" width="416" height="316" rx="70" fill="url(#af-frame)"/>
+  <!-- bezel -->
+  <rect x="78" y="162" width="356" height="256" rx="48" fill="#0B1324"/>
+  <!-- screen -->
+  <rect x="96" y="180" width="240" height="220" rx="36" fill="url(#af-screen)"/>
+  <path d="M132 180 h170 a36 36 0 0 1 36 36 v30 c-70 10 -140 40 -206 110 z" fill="url(#af-gloss)"/>
+  <!-- controls -->
+  <circle cx="386" cy="218" r="17" fill="#D6E6FF"/>
+  <circle cx="386" cy="264" r="17" fill="#D6E6FF"/>
+  <rect x="366" y="306" width="40" height="9" rx="4.5" fill="#D6E6FF"/>
+  <rect x="366" y="326" width="40" height="9" rx="4.5" fill="#D6E6FF"/>
+  <rect x="366" y="346" width="40" height="9" rx="4.5" fill="#D6E6FF"/></g>
+</svg>

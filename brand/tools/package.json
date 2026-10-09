@@ -1,0 +1,13 @@
+{
+  "name": "clickarr-brand-tools",
+  "private": true,
+  "description": "Regenerates every file under brand/ from the SVG geometry in gen.js and the Inter font.",
+  "scripts": {
+    "fetch-font": "mkdir -p .fonts && curl -sSL -o .fonts/inter.zip https://github.com/rsms/inter/releases/download/v4.1/Inter-4.1.zip && cd .fonts && python3 -I -c \"import zipfile; zipfile.ZipFile('inter.zip').extractall('.')\"",
+    "build": "node gen.js .. .fonts/extras/ttf && python3 -I -c \"from PIL import Image; Image.open('../web/icon-256.png').save('../web/favicon.ico', sizes=[(16,16),(32,32),(48,48)])\""
+  },
+  "dependencies": {
+    "@resvg/resvg-js": "2.6.2",
+    "opentype.js": "1.3.4"
+  }
+}
