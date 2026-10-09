@@ -1,10 +1,6 @@
-# Ktor + Netty on Android. These keep the embedded server working under R8.
--dontwarn io.netty.**
+# Ktor CIO server, SLF4J, BouncyCastle (spike only) under R8.
 -dontwarn org.slf4j.**
--dontwarn reactor.blockhound.**
 -dontwarn org.bouncycastle.**
--keep class io.netty.** { *; }
--keepclassmembers class io.netty.** { *; }
 -keep class org.bouncycastle.jcajce.provider.** { *; }
 
 # kotlinx.serialization

@@ -22,15 +22,10 @@ dependencies {
     implementation(libs.androidx.media3.datasource.okhttp)
     implementation(libs.androidx.media3.ui)
 
-    // Spike C: embedded TLS server and pinned client
+    // Spike C: TLS termination (platform SSLServerSocket), Ktor CIO for plain HTTP, OkHttp as the pinned client.
+    // Netty and the Ktor client are excluded on purpose: they need API 26 (see SslHttpServer).
     implementation(libs.ktor.server.core)
-    implementation(libs.ktor.server.netty)
     implementation(libs.ktor.server.cio)
-    implementation(libs.ktor.server.content.negotiation)
-    implementation(libs.ktor.client.core)
-    implementation(libs.ktor.client.okhttp)
-    implementation(libs.ktor.client.content.negotiation)
-    implementation(libs.ktor.serialization.kotlinx.json)
     implementation(libs.okhttp)
     implementation("org.slf4j:slf4j-simple:2.0.17")
     implementation("org.bouncycastle:bcpkix-jdk18on:1.80")

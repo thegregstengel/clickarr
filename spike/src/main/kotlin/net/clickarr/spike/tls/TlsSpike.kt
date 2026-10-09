@@ -22,15 +22,9 @@ import androidx.compose.ui.unit.dp
 import androidx.tv.material3.Button
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.okhttp.OkHttp
-import io.ktor.client.request.get
-import io.ktor.client.statement.bodyAsText
 import io.ktor.server.cio.CIO
 import io.ktor.server.engine.EmbeddedServer
 import io.ktor.server.engine.embeddedServer
-import io.ktor.server.engine.sslConnector
-import io.ktor.server.netty.Netty
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
@@ -42,13 +36,16 @@ import javax.net.ssl.X509TrustManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import net.clickarr.ui.design.ClickarrColors
 import net.clickarr.ui.design.ClickarrDimens
 
 /**
- * Spike C. Answers: can a Ktor Netty server on this device serve TLS from a certificate whose private
- * key lives in the Android Keystore, and can a Ktor client connect while pinning only that key?
- * Also runs the software-certificate fallback and a plaintext CIO server for comparison.
+ * Spike C. Answers: can this device terminate TLS from a certificate whose private key lives in the
+ * Android Keystore, and can a client connect while pinning only that key? Uses the platform
+ * SSLServerSocket (see SslHttpServer for why not Netty) plus the software-certificate fallback and a
+ * plaintext Ktor CIO server for comparison.
  *
  * Pass criterion (docs/spikes.md): "Keystore TLS self-test OK" on Fire OS 6, Fire OS 7/8, and Android TV 12+.
  */
@@ -60,13 +57,17 @@ private const val PLAIN_PORT = 47833
 fun TlsSpike() {
     val log = remember { mutableStateListOf<String>() }
     var running by remember { mutableStateOf<List<EmbeddedServer<*, *>>>(emptyList()) }
+    var tlsServers by remember { mutableStateOf<List<SslHttpServer>>(emptyList()) }
     val scope = rememberCoroutineScope()
     fun say(s: String) {
         log.add(0, s)
     }
 
     DisposableEffect(Unit) {
-        onDispose { running.forEach { runCatching { it.stop(500, 1000) } } }
+        onDispose {
+            running.forEach { runCatching { it.stop(500, 1000) } }
+            tlsServers.forEach { it.stop() }
+        }
     }
 
     Column(
@@ -82,9 +83,9 @@ fun TlsSpike() {
                             val cert = DeviceIdentity.ensure()
                             val fp = DeviceIdentity.fingerprint(cert)
                             val ks = DeviceIdentity.keyStore()
-                            startTls(ks, DeviceIdentity.ALIAS, charArrayOf(), TLS_PORT) to fp
+                            startTls(ks, null, TLS_PORT) to fp
                         }
-                        running = running + server
+                        tlsServers = tlsServers + server
                         say("Keystore TLS server up on $TLS_PORT, fingerprint ${fp.take(16)}...")
                         say(selfTest("https://127.0.0.1:$TLS_PORT/v1/info", fp, "Keystore TLS"))
                     }.onFailure { say("Keystore TLS FAILED: ${it::class.simpleName}: ${it.message}") }
@@ -95,9 +96,10 @@ fun TlsSpike() {
                     runCatching {
                         val (server, fp) = withContext(Dispatchers.IO) {
                             val (ks, cert) = SoftwareIdentity.create()
-                            startTls(ks, SoftwareIdentity.ALIAS, SoftwareIdentity.password, TLS_SW_PORT) to DeviceIdentity.fingerprint(cert)
+                            val fp = DeviceIdentity.fingerprint(cert)
+                            startTls(ks, SoftwareIdentity.password, TLS_SW_PORT) to fp
                         }
-                        running = running + server
+                        tlsServers = tlsServers + server
                         say("Software TLS server up on $TLS_SW_PORT")
                         say(selfTest("https://127.0.0.1:$TLS_SW_PORT/v1/info", fp, "Software TLS"))
                     }.onFailure { say("Software TLS FAILED: ${it::class.simpleName}: ${it.message}") }
@@ -120,55 +122,38 @@ fun TlsSpike() {
         Button(onClick = {
             running.forEach { runCatching { it.stop(500, 1000) } }
             running = emptyList()
+            tlsServers.forEach { it.stop() }
+            tlsServers = emptyList()
             say("Stopped all servers")
         }) { Text("Stop servers") }
         log.forEach { Text(it, style = MaterialTheme.typography.labelSmall, color = ClickarrColors.TextSecondary) }
     }
 }
 
-private fun startTls(ks: KeyStore, alias: String, keyPassword: CharArray, port: Int): EmbeddedServer<*, *> {
-    val server = embeddedServer(
-        Netty,
-        configure = {
-            sslConnector(
-                keyStore = ks,
-                keyAlias = alias,
-                keyStorePassword = { keyPassword },
-                privateKeyPassword = { keyPassword },
-            ) {
-                this.port = port
-                this.host = "0.0.0.0"
-            }
-        },
-    ) {
-        routing { get("/v1/info") { call.respondText("""{"ok":true,"tls":true}""") } }
-    }
-    server.start(wait = false)
-    return server
-}
+private fun startTls(ks: KeyStore, keyPassword: CharArray?, port: Int): SslHttpServer =
+    SslHttpServer(ks, keyPassword, port).also { it.start() }
 
 /** Connects with a trust manager that accepts exactly one SPKI fingerprint and nothing else. */
 private suspend fun selfTest(url: String, pinnedFingerprint: String?, label: String): String = withContext(Dispatchers.IO) {
     val t0 = SystemClock.elapsedRealtime()
-    val client = HttpClient(OkHttp) {
-        engine {
-            config {
-                if (pinnedFingerprint != null) {
-                    val tm = PinnedTrustManager(pinnedFingerprint)
-                    val ctx = SSLContext.getInstance("TLS").apply { init(null, arrayOf(tm), null) }
-                    sslSocketFactory(ctx.socketFactory, tm)
-                    hostnameVerifier { _, _ -> true }
-                }
-            }
-        }
+    val builder = OkHttpClient.Builder()
+    if (pinnedFingerprint != null) {
+        val tm = PinnedTrustManager(pinnedFingerprint)
+        val ctx = SSLContext.getInstance("TLS").apply { init(null, arrayOf(tm), null) }
+        builder.sslSocketFactory(ctx.socketFactory, tm)
+        builder.hostnameVerifier { _, _ -> true }
     }
+    val client = builder.build()
     try {
-        val body = client.get(url).bodyAsText()
-        "$label self-test OK in ${SystemClock.elapsedRealtime() - t0} ms: $body"
+        client.newCall(Request.Builder().url(url).build()).execute().use { response ->
+            val body = response.body?.string()
+            "$label self-test OK in ${SystemClock.elapsedRealtime() - t0} ms: HTTP ${response.code} $body"
+        }
     } catch (e: Exception) {
         "$label self-test FAILED: ${e::class.simpleName}: ${e.message}"
     } finally {
-        client.close()
+        client.dispatcher.executorService.shutdown()
+        client.connectionPool.evictAll()
     }
 }
 

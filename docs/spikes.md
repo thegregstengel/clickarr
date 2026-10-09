@@ -62,6 +62,17 @@ curl -k https://<tv-ip>:47831/v1/info
 | Fire TV Stick 4K Max | Fire OS 7/8 | | | | | | |
 | Android TV 12+ device | | | | | | | |
 
+### Finding C1 (2026-10-09, from CI, before any device test)
+
+D8 refuses to dex Netty 4.2 below API 26 ("Increase the minSdkVersion to 26 or above": Netty uses `java.lang.invoke`). The Ktor 3.2.0 client failed the same way, which is at least partly a separate Ktor 3.2.0/3.2.1 D8 bug fixed in 3.2.2 (per the [Ktor 3.2.2 release notes](https://blog.jetbrains.com/kotlin/2025/07/ktor-3-2-0-is-now-available-2/)). Ktor server core and the CIO engine dex fine on 25.
+
+Consequences applied:
+- The spike terminates TLS with the platform `SSLServerSocket` (`SslHttpServer.kt`) instead of Netty, which is a purer test of the Keystore question anyway.
+- Clients use OkHttp directly (already present through Media3). The Ktor client is out of the catalog.
+- Ktor bumped to 3.2.3.
+
+Decision for the maintainer, with data from the device matrix: keep minSdk 25 and build the coordinator as Ktor CIO behind an in-process TLS acceptor (or NanoHTTPD HTTPS), or raise minSdk to 26, drop Fire OS 6 devices (2018 Fire TV Stick 4K, 2018 to 2020 Fire TV Edition sets), and use Netty. ADR 0001 and ADR 0004 carry the note.
+
 ## D. LAN discovery (NsdManager)
 
 **Question.** Do two devices discover each other's `_clickarr._tcp` service within 10 s, including a Fire TV, and does resolution return the TXT record?

@@ -32,3 +32,7 @@ Server engine, given Ktor:
 - APK grows by the size of Netty. Accepted.
 - Provider clients, the coordinator, and the member sync client share one HTTP stack, so fixtures via Ktor `MockEngine` and the Ktor test host cover all of them.
 - Pairing and sync tests (success, wrong PIN, expired PIN, attempt limit, replayed proof, revoked token) run on the JVM against the in-process test host.
+
+## Note (2026-10-09, Phase 0 finding C1)
+
+Amended by CI evidence: Netty requires API 26, and the Ktor 3.2.0 client failed D8 (fixed in Ktor 3.2.2). Current direction: Ktor server with the CIO engine for routing, TLS terminated by an in-process `SSLServerSocket` acceptor (proven in the spike) or NanoHTTPD HTTPS, and OkHttp as the HTTP client everywhere (providers, household member, Media3). The Ktor client is no longer part of the stack. If minSdk is raised to 26 later, Netty becomes an option again.
