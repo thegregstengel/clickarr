@@ -35,6 +35,7 @@ import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.tv.material3.Text
@@ -156,7 +157,13 @@ private fun ChannelCell(channel: Channel, isCurrent: Boolean) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(channel.number.toString(), style = ClickarrTextStyles.RowTitle, modifier = Modifier.width(56.dp))
-        Text(channel.name.uppercase(), style = ClickarrTextStyles.LabelAllCaps, color = ClickarrColors.TextSecondary, maxLines = 1)
+        Text(
+            channel.name.uppercase(),
+            style = ClickarrTextStyles.LabelAllCaps,
+            color = ClickarrColors.TextSecondary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 

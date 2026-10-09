@@ -26,6 +26,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import net.clickarr.core.model.Airing
 import net.clickarr.playback.core.TuneState
+import net.clickarr.playback.core.TuneStatus
 import net.clickarr.ui.design.ClickarrColors
 import net.clickarr.ui.design.ClickarrDimens
 import net.clickarr.ui.design.ClickarrTextStyles
@@ -59,7 +60,8 @@ fun ChannelOverlay(state: TuneState, now: Instant, digits: String) {
             Spacer(Modifier.width(20.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(channel.name.uppercase(), style = ClickarrTextStyles.LabelAllCaps, color = ClickarrColors.TextSecondary)
-                Text(airing?.entry?.title ?: "Nothing scheduled", style = ClickarrTextStyles.ProgramTitle, maxLines = 1)
+                val headline = airing?.entry?.title ?: if (state.status == TuneStatus.Loading) "Tuning…" else "Nothing scheduled"
+                Text(headline, style = ClickarrTextStyles.ProgramTitle, maxLines = 1)
                 airing?.entry?.subtitle?.let { Text(it, style = ClickarrTextStyles.Secondary, color = ClickarrColors.TextSecondary) }
                 if (airing != null) {
                     Text(slotRange(airing), style = ClickarrTextStyles.Secondary.tabular(), color = ClickarrColors.TextSecondary)

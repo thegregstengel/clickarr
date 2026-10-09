@@ -4,6 +4,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Typography
 
@@ -17,6 +18,7 @@ val InterFamily = FontFamily(
 /** TV type scale from docs/design/README.md. Nothing below 18 sp. */
 object ClickarrTextStyles {
     val ChannelNumber = TextStyle(
+        color = ClickarrColors.TextPrimary,
         fontFamily = InterFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 40.sp,
@@ -24,17 +26,19 @@ object ClickarrTextStyles {
         letterSpacing = (-0.5).sp,
     )
     val ProgramTitle = TextStyle(
+        color = ClickarrColors.TextPrimary,
         fontFamily = InterFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 34.sp,
         lineHeight = 40.sp,
         letterSpacing = (-0.25).sp,
     )
-    val ScreenTitle = TextStyle(fontFamily = InterFamily, fontWeight = FontWeight.SemiBold, fontSize = 26.sp, lineHeight = 32.sp)
-    val RowTitle = TextStyle(fontFamily = InterFamily, fontWeight = FontWeight.Medium, fontSize = 24.sp, lineHeight = 30.sp)
-    val Body = TextStyle(fontFamily = InterFamily, fontWeight = FontWeight.Normal, fontSize = 24.sp, lineHeight = 32.sp)
-    val Secondary = TextStyle(fontFamily = InterFamily, fontWeight = FontWeight.Normal, fontSize = 20.sp, lineHeight = 26.sp)
+    val ScreenTitle = TextStyle(color = ClickarrColors.TextPrimary, fontFamily = InterFamily, fontWeight = FontWeight.SemiBold, fontSize = 26.sp, lineHeight = 32.sp)
+    val RowTitle = TextStyle(color = ClickarrColors.TextPrimary, fontFamily = InterFamily, fontWeight = FontWeight.Medium, fontSize = 24.sp, lineHeight = 30.sp)
+    val Body = TextStyle(color = ClickarrColors.TextPrimary, fontFamily = InterFamily, fontWeight = FontWeight.Normal, fontSize = 24.sp, lineHeight = 32.sp)
+    val Secondary = TextStyle(color = ClickarrColors.TextPrimary, fontFamily = InterFamily, fontWeight = FontWeight.Normal, fontSize = 20.sp, lineHeight = 26.sp)
     val Caption = TextStyle(
+        color = ClickarrColors.TextPrimary,
         fontFamily = InterFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 18.sp,
@@ -42,6 +46,7 @@ object ClickarrTextStyles {
         letterSpacing = 0.1.sp,
     )
     val LabelAllCaps = TextStyle(
+        color = ClickarrColors.TextPrimary,
         fontFamily = InterFamily,
         fontWeight = FontWeight.SemiBold,
         fontSize = 18.sp,

@@ -88,11 +88,13 @@ class FirstRunFlowTest {
         shot("05-details")
         click("Create channel")
 
+        waitForText("Create channel") // back on the Channels tab
         waitForText("The Office (US)")
         shot("06-channels-list")
         click("The Office (US)")
 
         waitForText("THE OFFICE (US)", timeoutMs = 30_000)
+        waitForText("S1E", timeoutMs = 30_000) // the schedule resolved to an episode
         shot("07-player-overlay")
 
         device.pressKeyCode(KeyEvent.KEYCODE_DPAD_RIGHT)

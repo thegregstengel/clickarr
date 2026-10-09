@@ -1,7 +1,9 @@
 package net.clickarr.ui.design
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
+import androidx.tv.material3.LocalContentColor
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.darkColorScheme
 
@@ -30,6 +32,8 @@ fun ClickarrTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = ClickarrColorScheme,
         typography = ClickarrTypography,
-        content = content,
-    )
+    ) {
+        // TV Material only sets a content color inside a Surface; everything else would default to black.
+        CompositionLocalProvider(LocalContentColor provides ClickarrColors.TextPrimary, content = content)
+    }
 }
