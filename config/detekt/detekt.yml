@@ -19,6 +19,8 @@ complexity:
   TooManyFunctions:
     thresholdInClasses: 20
     thresholdInInterfaces: 20
+    thresholdInObjects: 20
+    thresholdInFiles: 20
   LongMethod:
     threshold: 120
 

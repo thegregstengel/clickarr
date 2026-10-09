@@ -5,18 +5,21 @@ plugins {
 }
 
 android {
-    namespace = "net.clickarr.feature.setup"
+    namespace = "net.clickarr.feature.player"
 }
 
 dependencies {
     implementation(project(":core:common"))
     implementation(project(":core:model"))
-    implementation(project(":provider:api"))
-    implementation(project(":provider:plex"))
+    implementation(project(":core:scheduling"))
     implementation(project(":data"))
+    implementation(project(":playback:core"))
+    implementation(project(":playback:media3"))
     implementation(project(":ui:design"))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.hilt.navigation.compose)
+    implementation(libs.androidx.media3.ui)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.kotlinx.datetime)
 }

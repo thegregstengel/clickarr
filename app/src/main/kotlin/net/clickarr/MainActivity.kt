@@ -10,10 +10,11 @@ import androidx.compose.runtime.setValue
 import dagger.hilt.android.AndroidEntryPoint
 import net.clickarr.spike.SpikeApp
 import net.clickarr.spike.SpikeArgs
+import net.clickarr.ui.design.ClickarrTheme
 
 /**
- * Phase 0: the app launches straight into the spike menu. Phase 1 replaces this with the player
- * (proposal: launch Clickarr, television starts playing).
+ * Launches into the app (setup, then the player). The Phase 0 spike menu stays reachable with
+ * `--es spike <name>` until the spikes have verdicts (docs/spikes.md).
  */
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -22,7 +23,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         args = intent.toSpikeArgs()
-        setContent { SpikeApp(args) }
+        setContent {
+            if (args.spike != null) SpikeApp(args) else ClickarrTheme { ClickarrApp(onExit = { finish() }) }
+        }
     }
 
     override fun onNewIntent(intent: Intent) {
