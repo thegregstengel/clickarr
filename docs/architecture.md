@@ -26,7 +26,7 @@ Three things follow:
 |  HouseholdService . ProviderRegistry . MetadataCache        |
 +---------------+-------------------+-------------------------+
 | Scheduling    | Providers         | Household               |
-| (pure Kotlin) | Plex/Jellyfin/Emby| Discovery . Pairing     |
+| (pure Kotlin) | Plex client       | Discovery . Pairing     |
 |               | behind one API    | Coordinator . Client    |
 +---------------+-------------------+-------------------------+
 |  Platform adapters                                          |
@@ -67,7 +67,7 @@ Gradle Kotlin DSL, a version catalog, convention plugins in `build-logic/`, and 
 | `core:common` | `Result`, `Clock` abstraction, logging facade | no |
 | `core:database` | Room entities, DAOs, migrations, mappers | yes |
 | `provider:api` | `MediaProvider` interface and normalized contracts | no |
-| `provider:plex`, `provider:jellyfin`, `provider:emby` | Thin clients and mappers | yes |
+| `provider:plex` | Plex client and mapper | yes |
 | `provider:testing` | `FakeMediaProvider`, fixtures, contract test suite | no |
 | `household:protocol` | Message and state types, versioning, golden tests | no |
 | `household:discovery` | NSD wrapper, manual fallback | yes |
@@ -83,9 +83,9 @@ Rules: `core:*`, `provider:api`, and `household:protocol` are `kotlin("jvm")` mo
 
 All types are Kotlin `data class` or `value class` in `core:model`. Identifiers are typed, never raw strings.
 
-**Identity.** `ProviderId` (one per configured server connection), `NativeItemId` (Plex ratingKey, Jellyfin/Emby GUID), and `MediaRef = (ProviderId, NativeItemId)`, which is globally unique inside Clickarr. Also `ChannelId`, `DeviceId` (generated once per install), and `HouseholdId`. Every reference to media carries the provider it came from.
+**Identity.** `ProviderId` (one per configured server connection), `NativeItemId` (the Plex ratingKey), and `MediaRef = (ProviderId, NativeItemId)`, which is globally unique inside Clickarr. Also `ChannelId`, `DeviceId` (generated once per install), and `HouseholdId`. Every reference to media carries the provider it came from.
 
-**Media (normalized).** `ServerInfo` carries `kind` (PLEX, JELLYFIN, EMBY), a `serverIdentity` that is stable across URLs, and `baseUrl`. `MediaItem` is a sealed interface with `Show`, `Season`, `Episode`, and `Movie`; `Episode` and `Movie` are `Playable` and carry `runtime` and a list of `MediaVersion`. `runtime` is the **file duration** reported by the server for the chosen version, not the metadata runtime; the schedule depends on it being accurate. `Artwork` holds provider-relative `ArtworkRef`s resolved to URLs by the provider.
+**Media (normalized).** `ServerInfo` carries `kind` (PLEX), a `serverIdentity` that is stable across URLs, and `baseUrl`. `MediaItem` is a sealed interface with `Show`, `Season`, `Episode`, and `Movie`; `Episode` and `Movie` are `Playable` and carry `runtime` and a list of `MediaVersion`. `runtime` is the **file duration** reported by the server for the chosen version, not the metadata runtime; the schedule depends on it being accurate. `Artwork` holds provider-relative `ArtworkRef`s resolved to URLs by the provider.
 
 **Channel.** `Channel(id, number, name, icon, source, order, slotRounding, seed, lineup, anchor, enabled)`. `source` is a sealed `ProgrammingSource`: `Shows` (with aired or interleaved episode order), `Library` (with an optional `MediaFilter`), `Collection`, `Playlist`, or `Explicit`. The MVP implements `Shows`, `Library` without filter, and `Explicit`. `order` is SEQUENTIAL or SHUFFLE. `seed` is fixed at creation. `anchor` is the schedule epoch where cycle 0 begins. `slotRounding` (for example 30 minutes) pads each program to the grid.
 
@@ -113,7 +113,7 @@ Future strategies validated against the model but not scheduled: `TimeBlockStrat
 
 The player is created once and reused across channel changes. It lives in the player screen's ViewModel scope; there is no foreground service.
 
-Latency budget on channel change: the overlay switches to the new channel's info immediately from local data; `airingAt` is sub-millisecond; `playbackSource` is zero round trips for Plex direct play (the URL is constructable) and one `PlaybackInfo` POST for Jellyfin/Emby; transcodes cost a decision round trip plus server spin-up. Direct play from a LAN server typically shows first frame in about a second, HLS transcodes in three to six. The MVP prefers direct play aggressively, debounces 300 ms during rapid surfing so intermediate channels never start loading, and stops Plex transcode sessions on departure.
+Latency budget on channel change: the overlay switches to the new channel's info immediately from local data; `airingAt` is sub-millisecond; `playbackSource` is one metadata GET for direct play; transcodes cost a decision round trip plus server spin-up. Direct play from a LAN server typically shows first frame in about a second, HLS transcodes in three to six. The MVP prefers direct play aggressively, debounces 300 ms during rapid surfing so intermediate channels never start loading, and stops Plex transcode sessions on departure.
 
 Program boundaries are seamless: when `airing.end - now < 20 s`, the next program is appended to the ExoPlayer playlist with a `clippingConfiguration`, and the current item is clipped at `contentEnd`. If the file is shorter than the lineup claims, filler shows until `end`; if longer, it is cut at `contentEnd`.
 
@@ -151,6 +151,6 @@ Releases are built by GitHub Actions on tag, signed with a keystore held only in
 
 ## 11. Roadmap and open risks
 
-Phase 0 is spikes and scaffold: Compose for TV performance on a 2018 Fire TV Stick 4K, ExoPlayer offset playback from Plex, Netty TLS with a Keystore certificate on Fire OS 6, and NSD between Fire TV and an emulator. Phase 1 delivers one device and one channel (Plex, scheduler, player, guide). Phase 2 delivers two devices that agree (identity, pairing, coordinator, member, offline). Phase 3 adds remaining channel sources, the channel editor, guide polish, and the first public release. Phase 4 hardens: reproducible builds in CI, manual coordinator migration, multiple servers per household, opt-in watched-state reporting, accessibility. Phase 5, after the first public release, adds Jellyfin and then Emby behind the same provider contract. Full detail is in proposal sections 19 to 21.
+Phase 0 is spikes and scaffold: Compose for TV performance on a 2018 Fire TV Stick 4K, ExoPlayer offset playback from Plex, Netty TLS with a Keystore certificate on Fire OS 6, and NSD between Fire TV and an emulator. Phase 1 delivers one device and one channel (Plex, scheduler, player, guide). Phase 2 delivers two devices that agree (identity, pairing, coordinator, member, offline). Phase 3 adds remaining channel sources, the channel editor, guide polish, and the first public release. Phase 4 hardens: reproducible builds in CI, manual coordinator migration, multiple servers per household, opt-in watched-state reporting, accessibility. Full detail is in proposal sections 19 to 21.
 
 The top tracked risks are Compose startup and frame time on low-end Fire sticks, the embedded TLS server on Android, and seek accuracy into transcoded streams. Each has a Phase 0 measurement and a named fallback in the corresponding ADR.

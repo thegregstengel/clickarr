@@ -4,13 +4,14 @@ import kotlin.time.Duration
 import kotlinx.serialization.Serializable
 
 @Serializable
-enum class ProviderKind { PLEX, JELLYFIN, EMBY }
+/** Clickarr supports Plex. The provider boundary stays so the fake provider and tests can stand in for it. */
+enum class ProviderKind { PLEX }
 
 @Serializable
 data class ServerInfo(
     val providerId: ProviderId,
     val kind: ProviderKind,
-    /** Stable across URL changes: Plex machineIdentifier, Jellyfin/Emby server Id. */
+    /** Stable across URL changes: the Plex machineIdentifier. */
     val serverIdentity: String,
     val name: String,
     val baseUrl: String,

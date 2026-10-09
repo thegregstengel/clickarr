@@ -14,7 +14,7 @@ See [docs/development.md](docs/development.md). Short version: JDK 17, Android S
 
 ## Rules of the road
 
-- **No code from other media clients.** Do not copy from Plex, Jellyfin, Emby, Kodi, QuasiTV, or anything GPL. Clickarr is MIT and must stay clean. Read the API docs, not the apps.
+- **No code from other media clients.** Do not copy from Plex, Kodi, QuasiTV, or any other media client, GPL or otherwise. Clickarr is MIT and must stay clean. Read the API docs, not the apps.
 - **No secrets in the repo.** Tokens, keystores, and local server addresses never get committed. `.gitignore` covers the obvious ones; think before adding files.
 - **Pure Kotlin stays pure.** `core:*` and `household:protocol` must not import Android. The build enforces it; please do not work around it.
 - **Tests go with the code.** Scheduler and protocol changes need unit tests. Provider changes need fixture-based tests. UI changes should at least keep the existing Compose tests green.

@@ -12,7 +12,8 @@
   <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-1479FD"></a>
   <img alt="Status: pre-alpha" src="https://img.shields.io/badge/status-pre--alpha-7E4DFD">
   <img alt="Platforms" src="https://img.shields.io/badge/platforms-Android%20TV%20%7C%20Google%20TV%20%7C%20Fire%20TV-0CE568">
-  <img alt="Servers" src="https://img.shields.io/badge/server-Plex%20(Jellyfin%2C%20Emby%20later)-00ACFF">
+  <a href="https://clickarr.net"><img alt="Website" src="https://img.shields.io/badge/web-clickarr.net-00ACFF"></a>
+  <img alt="Server" src="https://img.shields.io/badge/server-Plex-E5A00D">
 </p>
 
 ---
@@ -42,9 +43,13 @@ These are the design mockups the app is being built to. They are direction, not 
   </tr>
   <tr>
     <td width="50%"><img src="docs/design/mockups/screen-settings-household.png" alt="Household settings"><br><sub><b>Household.</b> Several TVs in one home share channels and agree on the schedule. No extra server required.</sub></td>
-    <td width="50%"><img src="docs/design/mockups/screen-setup-server.png" alt="First-run server picker"><br><sub><b>Setup.</b> Sign in to Plex and start building channels. Jellyfin and Emby come after the MVP.</sub></td>
+    <td width="50%"><img src="docs/design/mockups/screen-setup-server.png" alt="First-run server picker"><br><sub><b>Setup.</b> Sign in to Plex and start building channels.</sub></td>
   </tr>
 </table>
+
+## Website
+
+[clickarr.net](https://clickarr.net) is the project's home on the web: the pitch, the screens, and a one-line way to get the latest nightly build onto a Fire TV (`clickarr.net/nightly` in the Downloader app). It is a static page in [`site/`](site/) in this repo, deployed by GitHub Pages on every push.
 
 ## How it works
 
@@ -80,7 +85,6 @@ Phase 1 and 2 (the MVP) prove the core experience. Everything else lands after.
 
 | Now | Later |
 |---|---|
-| Plex sign-in | Jellyfin and Emby |
 | Channels from shows, libraries, Plex collections, playlists, genre/decade/label filters, hand-picked lists, and combinations of those | Smart rules that re-evaluate automatically as the library grows |
 | Sequential and shuffled lineups | Time blocks, day-of-week schedules, fixed-time programs |
 | Half-hour slot padding with filler cards | Marathons, holiday programming, interstitials and bumpers |
@@ -114,4 +118,4 @@ Clickarr is developed in the open and contributions are welcome once the Phase 1
 
 ## License
 
-MIT. See [LICENSE](LICENSE). Inter is bundled under the SIL Open Font License. Plex, Jellyfin, and Emby are trademarks of their respective owners; Clickarr is not affiliated with any of them.
+MIT. See [LICENSE](LICENSE). Inter is bundled under the SIL Open Font License. Plex is a trademark of Plex, Inc.; Clickarr is an independent project and is not affiliated with or endorsed by Plex.

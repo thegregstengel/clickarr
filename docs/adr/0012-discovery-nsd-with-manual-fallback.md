@@ -13,7 +13,7 @@ A member device needs to find the household coordinator on the LAN. The platform
 |---|---|---|
 | Android NSD (`NsdManager`, mDNS/DNS-SD) | Built in, no dependency, Fire OS supports it (AOSP) | Known flakiness before API 28 (one resolve at a time, occasional stale entries); needs a multicast lock on some devices |
 | JmDNS library | Works around NSD bugs | Unmaintained; raw sockets fight the system's mDNS responder |
-| Custom UDP broadcast beacon | Simplest to reason about; Jellyfin does this | Broadcast is blocked by some router isolation features; reinvents DNS-SD |
+| Custom UDP broadcast beacon | Simplest to reason about; Plex's GDM discovery does this | Broadcast is blocked by some router isolation features; reinvents DNS-SD |
 | Manual IP entry only | Zero discovery risk | Poor UX |
 
 ## Decision

@@ -2,7 +2,7 @@
 
 **Status:** Draft for approval. No application code has been written against this document yet.
 **Date:** 2026-10-09
-**Amendment (2026-10-09, after approval):** the MVP targets **Plex only**. Jellyfin and Emby move to a post-MVP phase (see ADR 0019). The `MediaProvider` abstraction and the normalized model stay exactly as designed so those providers slot in later; only the Plex client is built first. Wherever this document says "Plex and Jellyfin" for Phase 1, read "Plex".
+**Amendment (2026-10-09, after approval):** Clickarr supports **Plex only**. Other media servers are not planned (ADR 0019). The `MediaProvider` abstraction stays as a clean boundary and a test seam (the fake provider), not as a promise of other backends. This document has been edited to remove the other servers from every plan; the original multi-server reasoning is in the git history.
 
 **Scope:** The MVP (single-device linear TV from Plex, then two-device household agreement) and the structural decisions that let later features land without redesign.
 
@@ -19,7 +19,7 @@ This document is organised as the twenty deliverables requested, in order. Each 
 3. [Gradle, project, and module structure](#3-gradle-project-and-module-structure)
 4. [Core domain model](#4-core-domain-model)
 5. [MediaProvider interface](#5-mediaprovider-interface)
-6. [Plex, Jellyfin, and Emby integration strategy](#6-plex-jellyfin-and-emby-integration-strategy)
+6. [Plex integration strategy](#6-plex-integration-strategy)
 7. [Local database model](#7-local-database-model)
 8. [Scheduling engine design](#8-scheduling-engine-design)
 9. [Deterministic scheduling strategy](#9-deterministic-scheduling-strategy)
@@ -63,7 +63,7 @@ That framing drives most of the design:
 │  HouseholdService · ProviderRegistry · MetadataCache        │
 ├───────────────┬───────────────────┬─────────────────────────┤
 │ Scheduling    │ Providers         │ Household               │
-│ (pure Kotlin) │ Plex/Jellyfin/Emby│ Discovery · Pairing     │
+│ (pure Kotlin) │ Plex client       │ Discovery · Pairing     │
 │               │ behind one API    │ Coordinator · Client    │
 ├───────────────┴───────────────────┴─────────────────────────┤
 │  Platform adapters                                          │
@@ -118,7 +118,7 @@ Each choice below was evaluated rather than assumed. Fire TV compatibility was a
 
 | Option | Pros | Cons |
 |---|---|---|
-| Leanback (Views) | Mature, battle-tested on Fire TV, familiar to Jellyfin/Plex TV devs | In maintenance mode; the EPG grid would be a fully custom View anyway; styling fights the framework; XML + Kotlin split raises contributor friction |
+| Leanback (Views) | Mature, battle-tested on Fire TV, familiar to TV app developers | In maintenance mode; the EPG grid would be a fully custom View anyway; styling fights the framework; XML + Kotlin split raises contributor friction |
 | **Compose + Compose for TV (`tv-material`)** | Stable since 1.0 (Aug 2024), now 1.1.0; custom layouts (EPG grid) are far easier; one language for everything; focus APIs are first-class | Larger APK and higher startup cost than Views on 1.5 GB Fire sticks; some focus edge cases still need care |
 | Plain Compose without `tv-material` | Fewer dependencies | Re-implementing D-pad focus indication and TV-sized components |
 
@@ -126,7 +126,7 @@ Each choice below was evaluated rather than assumed. Fire TV compatibility was a
 
 ### 2.4 Player
 
-**AndroidX Media3 ExoPlayer.** The only realistic option. Amazon's own Fire TV guidance recommends ExoPlayer. It handles progressive MP4/MKV direct play, HLS (Plex and Jellyfin transcodes), and DASH, and gives precise `seekTo`. MediaPlayer is too limited and opaque.
+**AndroidX Media3 ExoPlayer.** The only realistic option. Amazon's own Fire TV guidance recommends ExoPlayer. It handles progressive MP4/MKV direct play, HLS (Plex transcodes), and DASH, and gives precise `seekTo`. MediaPlayer is too limited and opaque.
 
 ### 2.5 HTTP
 
@@ -190,8 +190,6 @@ clickarr/
 ├── provider/
 │   ├── api/                   MediaProvider interface + normalized DTO contracts (pure Kotlin)
 │   ├── plex/                  Plex client + mapper
-│   ├── jellyfin/              Jellyfin client + mapper
-│   ├── emby/                  Emby client + mapper
 │   └── testing/               FakeMediaProvider, recorded fixtures, shared contract test suite
 ├── household/
 │   ├── protocol/              Pure Kotlin. Message/state types, versioning, serialization golden tests
@@ -228,7 +226,7 @@ All types are Kotlin `data class` / `value class` in `core:model`. Identifiers a
 
 ```kotlin
 @JvmInline value class ProviderId(val value: String)      // UUID per configured server connection
-@JvmInline value class NativeItemId(val value: String)    // Plex ratingKey, Jellyfin/Emby GUID
+@JvmInline value class NativeItemId(val value: String)    // Plex ratingKey
 data class MediaRef(val provider: ProviderId, val id: NativeItemId)  // globally unique inside Clickarr
 
 @JvmInline value class ChannelId(val value: String)       // UUID
@@ -241,11 +239,11 @@ Every reference to media carries the provider it came from. Two household device
 ### 4.2 Media (normalized)
 
 ```kotlin
-enum class ProviderKind { PLEX, JELLYFIN, EMBY }
+enum class ProviderKind { PLEX }
 
 data class ServerInfo(
     val providerId: ProviderId, val kind: ProviderKind,
-    val serverIdentity: String,   // Plex machineIdentifier / Jellyfin-Emby server Id, stable across URLs
+    val serverIdentity: String,   // Plex machineIdentifier, stable across URLs
     val name: String, val baseUrl: String, val version: String?,
 )
 
@@ -411,23 +409,18 @@ interface MediaProviderFactory {
 
 Design notes:
 
-- `resolve()` is the hook that keeps provider-specific query languages (Plex filters, Jellyfin `Items` params) out of the scheduler. The scheduler only ever sees `LineupSnapshot`.
-- `startAt` on `PlaybackSource` lets a provider move the offset server-side for transcodes (Plex `offset`, Jellyfin `StartTimeTicks`) while the player still seeks for direct play.
+- `resolve()` is the hook that keeps provider-specific query languages (Plex filters) out of the scheduler. The scheduler only ever sees `LineupSnapshot`.
+- `startAt` on `PlaybackSource` lets a provider move the offset server-side for transcodes (Plex `offset`) while the player still seeks for direct play.
 - `Result` is Clickarr's own sealed type in `core:common` with typed failures (`Unauthorized`, `Unreachable`, `NotFound`, `Unsupported`, `Unknown`), so the UI can distinguish "sign in again" from "server off".
 - No provider type leaks past `provider:api`. Mappers inside each provider module translate wire DTOs to `core:model`.
 
 ---
 
-## 6. Plex, Jellyfin, and Emby integration strategy
+## 6. Plex integration strategy
 
-### 6.1 Build thin clients or use SDKs?
+### 6.1 Build a thin client or use an SDK?
 
-| Option | Tradeoff |
-|---|---|
-| Jellyfin's official Kotlin SDK for Jellyfin, hand-written for the others | Saves work for one provider; pulls its own Ktor version; does not work against Emby; asymmetry across providers |
-| **Hand-written thin clients for all three on a shared Ktor client** | Each provider needs roughly a dozen endpoints; we own every byte of the mapping; identical structure across providers makes the contract test suite meaningful |
-
-**Recommendation: hand-written clients.** Jellyfin and Emby share ancestry, so their clients will share a base class; Plex is its own thing. Each client is a few hundred lines.
+There is no official Plex SDK for Kotlin, and the community ones track an undocumented API loosely. Clickarr needs roughly a dozen endpoints. **Recommendation: a hand-written thin client** on OkHttp and kotlinx.serialization, with recorded fixtures pinning every response shape we rely on. A few hundred lines, fully under our control.
 
 ### 6.2 Plex
 
@@ -438,22 +431,11 @@ Design notes:
 - **Transcode:** `/video/:/transcode/universal/start.m3u8` with a decision request first (`/video/:/transcode/universal/decision`) and `offset=<seconds>`. The HLS session must be stopped on channel change (`/video/:/transcode/universal/stop?session=`) or the server keeps transcoding.
 - **Risk:** the API is undocumented and occasionally shifts. Fixtures recorded from real servers (sanitized) pin the behavior we rely on.
 
-### 6.3 Jellyfin
-
-- **Auth:** `POST /Users/AuthenticateByName` with the `Authorization: MediaBrowser Client=..., Device=..., DeviceId=..., Version=...` header. Returns `AccessToken` + `UserId`. Quick Connect (code shown on TV, approved in another Jellyfin client) is a natural second flow.
-- **Metadata:** `/Users/{userId}/Views`, `/Users/{userId}/Items?ParentId=&IncludeItemTypes=Series|Movie&Recursive=true&Fields=...`, `/Shows/{id}/Episodes`. Durations from `RunTimeTicks` on the item (ticks are 100 ns).
-- **Playback:** `POST /Items/{id}/PlaybackInfo` with a `DeviceProfile` body; the server replies with `MediaSources[]` indicating `SupportsDirectPlay`, `SupportsDirectStream`, or a `TranscodingUrl`. Direct play uses `/Videos/{id}/stream?static=true&MediaSourceId=&api_key=`. Transcodes accept `StartTimeTicks`.
-- **Discovery:** Jellyfin answers a UDP broadcast on port 7359 (`who is JellyfinServer?`). Nice for setup, not required.
-
-### 6.4 Emby
-
-Same shape as Jellyfin (Emby is the ancestor): `AuthenticateByName`, `/Users/{id}/Items`, `/Items/{id}/PlaybackInfo`, `/Videos/{id}/stream`. Differences that matter: header is `X-Emby-Authorization`, API key auth is available as an alternative, some `Fields` names differ, and premium features (Emby Premiere) gate some transcoding paths. Shared base class with Jellyfin, with overrides for header names and field quirks. Emby ships in Phase 3 (after the household milestone) because the Jellyfin client de-risks most of it.
-
 ### 6.5 Matching servers across household devices
 
-A household syncs **server locations** (kind, server identity, friendly name, last known URLs) but not credentials. When a member device joins and sees a server it has no credentials for, setup prompts: "This household uses Jellyfin server *Attic*. Sign in on this device." Item IDs line up because both devices talk to the same server identity: Plex `ratingKey` values are per-server, Jellyfin and Emby item IDs are per-server GUIDs.
+A household syncs **server locations** (kind, server identity, friendly name, last known URLs) but not credentials. When a member device joins and sees a server it has no credentials for, setup prompts: "This household uses Plex server *WOPR*. Sign in on this device." Item IDs line up because both devices talk to the same server identity: Plex `ratingKey` values are per-server.
 
-Edge case handled in the model: a member signed in as a different Jellyfin user may lack access to a library. `playbackSource` returns `NotFound`/`Unauthorized`; the player shows a "Not available on this device" card for that program and advances at the scheduled time.
+Edge case handled in the model: a member signed in as a different Plex user (a managed or shared account) may lack access to a library. `playbackSource` returns `NotFound`/`Unauthorized`; the player shows a "Not available on this device" card for that program and advances at the scheduled time.
 
 ### 6.6 Metadata caching
 
@@ -625,7 +607,7 @@ The player lives in the player screen's ViewModel scope. TV apps have no backgro
 
 1. User presses channel up. Overlay switches to the new channel's info **immediately** from local data (0 ms perceived).
 2. `airingAt` (sub-millisecond).
-3. `playbackSource`: direct play needs no network round trip for Plex (URL is constructable) and one `PlaybackInfo` POST for Jellyfin/Emby (tens of ms on LAN). Transcode requires a decision/start round trip (hundreds of ms) and server spin-up (seconds).
+3. `playbackSource`: direct play needs one metadata GET to learn the file part key (tens of ms on LAN). Transcode requires a decision/start round trip (hundreds of ms) and server spin-up (seconds).
 4. `setMediaItem` + `prepare` + `seekTo(startAt)` + `play`. Direct play from a LAN server typically shows first frame within about a second; HLS transcodes within three to six.
 
 Optimizations in scope for the MVP: reuse the player, prefer direct play aggressively, cancel the previous load on rapid channel changes (debounce 300 ms while the user is still surfing so intermediate channels never start loading), and stop Plex transcode sessions on departure.
@@ -704,7 +686,7 @@ A one-row variant (current channel: now and next three) that slides in from the 
 |---|---|---|
 | **Android NSD (`NsdManager`, mDNS/DNS-SD)** | Built in, no dependency, Fire OS supports it (AOSP) | Known flakiness before API 28 (one resolve at a time, occasional stale entries); needs a multicast lock on some devices |
 | JmDNS library | Works around NSD bugs | Unmaintained; raw sockets fight the system's mDNS responder |
-| Custom UDP broadcast beacon | Simplest to reason about; Jellyfin does this | Broadcast is blocked by some router isolation features; reinvents DNS-SD |
+| Custom UDP broadcast beacon | Simplest to reason about; Plex's GDM discovery works this way | Broadcast is blocked by some router isolation features; reinvents DNS-SD |
 | Manual IP entry only | Zero discovery risk | Poor UX |
 
 **Recommendation: NSD for discovery, manual address entry always available as a fallback.** The pairing and sync protocols do not depend on how the address was learned, so discovery can be replaced later without protocol changes.
@@ -859,7 +841,7 @@ Independent of household state. The player shows a channel card "Can't reach Ple
 
 | Data | Sync scope | Storage |
 |---|---|---|
-| Plex account token, Jellyfin/Emby access tokens, API keys | **Never synchronized** | Encrypted on device (16.2) |
+| Plex account and server tokens | **Never synchronized** | Encrypted on device (16.2) |
 | Household device token, coordinator certificate fingerprint | Device-specific, never synchronized | Encrypted on device |
 | Device private key | Device-specific | Android Keystore, non-exportable |
 | Pairing PIN | Ephemeral, never stored | Memory only, 120 s |
@@ -868,7 +850,7 @@ Independent of household state. The player shows a channel card "Can't reach Ple
 | Last channel, device profile, UI preferences | Device-specific | DataStore |
 | Viewing history | Device-specific in the MVP (not collected by default) | Room if enabled |
 
-Why media server tokens are never shared: a Plex account token grants access to every server and setting on the account; a Jellyfin token is a full user session. Copying either to another TV silently expands the blast radius of a lost or sold device from "that TV" to "every TV". Each device authenticates itself; the UX cost is one sign-in per TV per server, which is the same cost every other media client imposes. A future opt-in "share this server's sign-in with the household" would require end-to-end encryption to the member's public key and a visible warning, and is not in the MVP.
+Why media server tokens are never shared: a Plex account token grants access to every server and setting on the account. Copying it to another TV silently expands the blast radius of a lost or sold device from "that TV" to "every TV". Each device authenticates itself; the UX cost is one sign-in per TV per server, which is the same cost every other media client imposes. A future opt-in "share this server's sign-in with the household" would require end-to-end encryption to the member's public key and a visible warning, and is not in the MVP.
 
 ### 16.2 At-rest encryption
 
@@ -897,7 +879,7 @@ Pyramid, weighted toward JVM tests because the parts that must be correct (sched
 - **Scheduler:** property-based tests with Kotest. Invariants: airings tile time with no gaps or overlaps; `airingAt(t)` is inside `airingsBetween(a,b)` for `a ≤ t < b`; identical inputs give identical outputs across 10,000 random `(lineup, seed, t)` samples; shuffle permutations are bijections; PRNG matches committed test vectors; lineup cut-over produces continuity at the boundary.
 - **Two-device agreement test:** two `Scheduler` instances constructed from a `HouseholdState` serialized and deserialized through the protocol module must agree on every channel at 1,000 random instants. This is the MVP's second milestone expressed as a unit test.
 - **Protocol:** golden JSON files for every message type; a test fails if serialization changes without the golden file being updated, which forces reviewers to see wire changes.
-- **Provider mappers:** recorded, sanitized fixtures from real Plex, Jellyfin, and Emby servers served through Ktor's `MockEngine`. A shared **contract test suite** in `provider:testing` runs against each provider and asserts normalized output shape (every episode has a positive duration, parent refs resolve, artwork refs resolve to URLs).
+- **Provider mappers:** recorded, sanitized fixtures from a real Plex server served through OkHttp's MockWebServer. A shared **contract test suite** in `provider:testing` runs against the Plex client and the fake provider and asserts normalized output shape (every episode has a positive duration, parent refs resolve, artwork refs resolve to URLs).
 - **TuneController:** a `FakePlayer` and a `FakeClock` verify the offset math, boundary advancement, drift re-seek, and debounce during fast surfing.
 - **Pairing:** Ktor test host runs coordinator and client in one JVM; tests cover success, wrong PIN, expired PIN, attempt limit, replayed proof against a different fingerprint, revoked token.
 
@@ -956,16 +938,16 @@ Ordered by expected impact on the MVP. Each has a Phase 0 action.
 
 1. **Compose startup and frame time on low-end Fire TV (1.5 GB sticks).** Compose for TV is stable but heavier than Leanback. Action: Phase 0 builds a skeleton player + 50-row guide and measures cold start and frame time on a Fire TV Stick 4K (2018). Threshold: cold start to first frame under 4 s, guide at 60 fps. Mitigations if missed: baseline profiles, R8 full mode, lazy feature init, lighter guide cells. Fallback: Leanback for the guide only.
 2. **Embedded TLS server on Android (Netty + Keystore-backed cert).** Action: Phase 0 spike on Fire OS 6 and Android TV 14. Fallback: option B from Section 13 with identical message formats.
-3. **Seek accuracy and latency into transcoded streams.** Plex `offset` and Jellyfin `StartTimeTicks` work, but server spin-up is seconds and some containers seek imprecisely. Action: measure on both servers; make direct play the overwhelming default by building accurate device profiles; show overlay instantly so perceived latency is lower than actual.
+3. **Seek accuracy and latency into transcoded streams.** Plex `offset` works, but server spin-up is seconds and some containers seek imprecisely. Action: measure; make direct play the overwhelming default by building accurate device profiles; show overlay instantly so perceived latency is lower than actual.
 4. **Plex API drift.** Undocumented, occasionally changes. Mitigation: fixture-based tests, a narrow surface, and a fast release cadence. Accept.
 5. **NSD reliability on Fire OS 6/7.** Multicast filtering and pre-28 resolver bugs. Mitigation: multicast lock, sequential resolves, cached coordinator address, manual entry. Accept.
 6. **Runtime mismatch between metadata and file.** Some files report wrong durations (VFR, broken headers). Mitigation: lineups record the server-reported file duration; player clips at `contentEnd`; filler covers shortfalls. Residual: a few seconds of filler or truncation on bad files. Accept.
 7. **Clock skew.** Covered by coordinator-relative offset. Residual: a device with a wildly wrong clock and no household; it will still be internally consistent, just not matching wall time. Accept with a settings warning.
 8. **Codec and HDR quirks on Fire TV** (Dolby Vision profiles, HEVC Main10 on older sticks, audio passthrough). Mitigation: conservative profile table, user override, ExoPlayer's decoder fallbacks. Will generate bug reports regardless. Accept.
 9. **Household state growth** (pathological lineups). Mitigation already in the API (per-lineup fetch); monitor.
-10. **Licensing hygiene.** MIT project; all dependencies are Apache-2.0/MIT/BSD. No code may be taken from GPL media clients (Jellyfin Android TV, Kodi) or from any closed product. Documented in `CONTRIBUTING.md`.
+10. **Licensing hygiene.** MIT project; all dependencies are Apache-2.0/MIT/BSD. No code may be taken from GPL media clients or from any closed product. Documented in `CONTRIBUTING.md`.
 
-Unknowns to confirm during implementation rather than now: exact Emby header and field differences on current Emby versions; whether Jellyfin Quick Connect is worth including in the MVP; how Fire TV handles `LEANBACK_LAUNCHER` banners versus Amazon's own asset requirements for sideloaded apps.
+Unknowns to confirm during implementation rather than now: how Fire TV handles `LEANBACK_LAUNCHER` banners versus Amazon's own asset requirements for sideloaded apps.
 
 ---
 
@@ -1015,14 +997,9 @@ Each phase ends with something runnable. Estimates assume one primary developer 
 
 - Reproducible-build verification in CI; F-Droid metadata.
 - Manual coordinator migration.
-- Multiple media servers per household; per-device "not available here" handling.
+- Multiple Plex servers per household; per-device "not available here" handling.
 - Watched-state reporting to servers (opt-in).
 - Accessibility pass (TalkBack on Android TV, focus order, text scaling).
-
-### Phase 5: More servers (after the first public release)
-
-- Jellyfin provider, then Emby, each passing the shared contract suite. Jellyfin Quick Connect as its sign-in flow.
-- Multiple server kinds in one household.
 
 ### Later (not scheduled)
 
@@ -1032,7 +1009,7 @@ Time blocks and day-parts, fixed-time programs, overrides for marathons and holi
 
 ## 21. Assumptions
 
-1. Users own a working Plex, Jellyfin, or Emby server reachable on the same LAN as the TVs, with libraries already scanned and durations available.
+1. Users own a working Plex Media Server reachable on the same LAN as the TVs, with libraries already scanned and durations available.
 2. TVs have a reasonably correct clock (automatic time is on, which is the default on all target platforms).
 3. A household is one LAN; devices on different networks are out of scope.
 4. The first user of a household is comfortable designating one always-on-ish TV as coordinator and understands that channel editing requires it to be on.

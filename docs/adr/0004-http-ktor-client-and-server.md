@@ -5,7 +5,7 @@
 
 ## Context
 
-Clickarr needs an HTTP client for the Plex, Jellyfin, and Emby APIs, and the household coordinator is an HTTP server embedded inside the app ([ADR-0011](0011-household-sync-single-document.md)). The pairing design ([ADR-0013](0013-pairing-tls-tofu-pin-proof.md)) requires that server to speak TLS. The protocol module should be testable in-process.
+Clickarr needs an HTTP client for the Plex APIs, and the household coordinator is an HTTP server embedded inside the app ([ADR-0011](0011-household-sync-single-document.md)). The pairing design ([ADR-0013](0013-pairing-tls-tofu-pin-proof.md)) requires that server to speak TLS. The protocol module should be testable in-process.
 
 ## Options considered
 

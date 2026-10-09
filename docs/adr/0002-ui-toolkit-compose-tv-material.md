@@ -11,7 +11,7 @@ The two most demanding screens in Clickarr are the EPG grid (a time-positioned, 
 
 | Option | Pros | Cons |
 |---|---|---|
-| Leanback (Views) | Mature, battle-tested on Fire TV, familiar to Jellyfin/Plex TV developers | In maintenance mode; the EPG grid would be a fully custom View anyway; styling fights the framework; XML plus Kotlin split raises contributor friction |
+| Leanback (Views) | Mature, battle-tested on Fire TV, familiar to TV app developers | In maintenance mode; the EPG grid would be a fully custom View anyway; styling fights the framework; XML plus Kotlin split raises contributor friction |
 | Compose with Compose for TV (`tv-material`) | Stable since 1.0 (August 2024), now 1.1.0; custom layouts are far easier; one language for everything; focus APIs are first-class | Larger APK and higher startup cost than Views on 1.5 GB Fire sticks; some focus edge cases still need care |
 | Plain Compose without `tv-material` | Fewer dependencies | Re-implementing D-pad focus indication and TV-sized components |
 

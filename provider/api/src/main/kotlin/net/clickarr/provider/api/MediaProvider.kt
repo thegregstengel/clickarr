@@ -18,7 +18,7 @@ import net.clickarr.core.model.Show
 
 /**
  * One connected media server, speaking only normalized types. Nothing outside provider:* may
- * see a Plex (or later Jellyfin, Emby) wire object. See ADR 0007 and proposal section 5.
+ * see a Plex wire object. See ADR 0007 and proposal section 5.
  *
  * Implementations are safe to call from any thread; all calls are suspending and may do I/O.
  */

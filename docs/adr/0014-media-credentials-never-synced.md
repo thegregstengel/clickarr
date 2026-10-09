@@ -5,7 +5,7 @@
 
 ## Context
 
-A Plex account token grants access to every server and setting on the account; a Jellyfin or Emby token is a full user session. Households synchronize configuration between TVs ([ADR-0011](0011-household-sync-single-document.md)), and it would be convenient to sync sign-ins too. Jetpack Security's `EncryptedSharedPreferences`, the usual answer for at-rest secrets on Android, is deprecated. TVs have no lock screen.
+A Plex account token grants access to every server and setting on the account; a other media servers token is a full user session. Households synchronize configuration between TVs ([ADR-0011](0011-household-sync-single-document.md)), and it would be convenient to sync sign-ins too. Jetpack Security's `EncryptedSharedPreferences`, the usual answer for at-rest secrets on Android, is deprecated. TVs have no lock screen.
 
 ## Options considered
 

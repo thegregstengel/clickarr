@@ -7,7 +7,7 @@ import kotlinx.serialization.Serializable
 @JvmInline
 value class ProviderId(val value: String)
 
-/** The server's own identifier for an item: Plex ratingKey, Jellyfin or Emby item GUID. */
+/** The server's own identifier for an item: the Plex ratingKey. */
 @Serializable
 @JvmInline
 value class NativeItemId(val value: String)

@@ -157,7 +157,7 @@ Over video, chrome uses `scrim` gradients rather than solid panels: bottom overl
 
 Channel icons are a curated subset the user can pick from: `tv`, `film`, `drama`, `rocket`, `smile`, `snowflake`, `music`, `trophy`, `ghost`, `heart`, `star`, `gamepad-2`, `baby`, `laugh`, `sword`, `globe`, `clapperboard`, `radio`, `flame`, `sun`. Icons inherit text color; on a focused (blue) row they are white.
 
-Provider marks (Plex now; Jellyfin and Emby later) appear only on the setup screen and the Media Server settings pane, at 40 dp, unmodified, on a `bg.elevated` tile.
+Provider marks (Plex now; other media servers later) appear only on the setup screen and the Media Server settings pane, at 40 dp, unmodified, on a `bg.elevated` tile.
 
 ### 2.7 Motion
 

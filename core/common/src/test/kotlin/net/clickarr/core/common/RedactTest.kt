@@ -13,10 +13,10 @@ class RedactTest {
     }
 
     @Test
-    fun `jellyfin api_key and bearer tokens are redacted`() {
+    fun `api_key and bearer tokens are redacted`() {
         Redact.apply("http://jf/Videos/1/stream?static=true&api_key=deadbeef") shouldNotContain "deadbeef"
         Redact.apply("Authorization: Bearer eyJhbGciOi.payload.sig") shouldNotContain "eyJhbGciOi"
-        Redact.apply("X-Emby-Token: 5f6a") shouldNotContain "5f6a"
+        Redact.apply("X-Plex-Token: 5f6a") shouldNotContain "5f6a"
     }
 
     @Test

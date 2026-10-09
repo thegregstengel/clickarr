@@ -5,7 +5,7 @@
 
 ## Context
 
-Clickarr's core trick is tuning into a program at a computed offset. The player must support progressive MP4/MKV direct play, HLS (Plex and Jellyfin transcodes), DASH, and precise seeking. It must run on Fire TV. Channel changes should be fast, so codec re-initialization cost matters.
+Clickarr's core trick is tuning into a program at a computed offset. The player must support progressive MP4/MKV direct play, HLS (Plex transcodes), DASH, and precise seeking. It must run on Fire TV. Channel changes should be fast, so codec re-initialization cost matters.
 
 ## Options considered
 

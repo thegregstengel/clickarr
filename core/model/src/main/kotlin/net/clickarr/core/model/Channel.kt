@@ -34,7 +34,7 @@ data class MediaFilter(
     val yearTo: Int? = null,
     val networks: Set<String> = emptySet(),
     val studios: Set<String> = emptySet(),
-    /** Plex labels (Jellyfin/Emby tags later). */
+    /** Plex labels. */
     val labels: Set<String> = emptySet(),
     val contentRatings: Set<String> = emptySet(),
 )

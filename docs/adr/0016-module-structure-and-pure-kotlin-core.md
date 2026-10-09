@@ -27,7 +27,7 @@ core/scheduling         Pure Kotlin deterministic schedule engine
 core/common             Pure Kotlin Result, Clock abstraction, logging facade
 core/database           Room entities, DAOs, migrations, mappers
 provider/api            MediaProvider interface and DTO contracts (pure Kotlin)
-provider/plex|jellyfin|emby   Clients and mappers
+provider/plex                 Plex client and mapper
 provider/testing        FakeMediaProvider, fixtures, contract test suite
 household/protocol      Pure Kotlin message and state types, golden tests
 household/discovery     NSD wrapper, manual fallback
