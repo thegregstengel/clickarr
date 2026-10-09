@@ -32,6 +32,8 @@ okhttp = "4.12.0"
 junit5 = "5.13.1"
 kotest = "5.9.1"
 androidxJunit = "1.2.1"
+androidxTestRunner = "1.6.2"
+uiautomator = "2.3.0"
 espresso = "3.6.1"
 
 [libraries]
@@ -104,6 +106,8 @@ kotest-assertions = { group = "io.kotest", name = "kotest-assertions-core", vers
 kotest-property = { group = "io.kotest", name = "kotest-property", version.ref = "kotest" }
 androidx-test-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidxJunit" }
 androidx-test-espresso = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espresso" }
+androidx-test-runner = { group = "androidx.test", name = "runner", version.ref = "androidxTestRunner" }
+androidx-test-uiautomator = { group = "androidx.test.uiautomator", name = "uiautomator", version.ref = "uiautomator" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

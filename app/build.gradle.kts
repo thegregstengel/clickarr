@@ -76,5 +76,8 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
 
     androidTestImplementation(libs.androidx.test.junit)
-    androidTestImplementation(libs.androidx.test.espresso)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.uiautomator)
+    androidTestImplementation(libs.okhttp.mockwebserver)
+    androidTestImplementation(project(":provider:plex-fixtures"))
 }

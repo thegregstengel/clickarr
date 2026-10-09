@@ -5,6 +5,7 @@ import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.test.runTest
 import net.clickarr.core.common.Outcome
 import net.clickarr.provider.api.ClientIdentity
+import net.clickarr.provider.plex.fixtures.PlexFixtureServer
 import okhttp3.OkHttpClient
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test

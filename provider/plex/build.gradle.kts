@@ -10,6 +10,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
 
     testImplementation(project(":provider:testing"))
+    testImplementation(project(":provider:plex-fixtures"))
     testImplementation(libs.okhttp.mockwebserver)
     testImplementation(libs.kotlinx.coroutines.test)
 }

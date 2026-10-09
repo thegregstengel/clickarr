@@ -9,7 +9,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
+import androidx.navigation.NavType
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import androidx.navigation.compose.rememberNavController
 import net.clickarr.feature.channels.ChannelEditorScreen
 import net.clickarr.feature.player.PlayerScreen
@@ -31,16 +33,20 @@ fun ClickarrApp(onExit: () -> Unit, viewModel: AppViewModel = hiltViewModel()) {
     val nav = rememberNavController()
     NavHost(navController = nav, startDestination = if (hasServer) Routes.PLAYER else Routes.SETUP) {
         composable(Routes.SETUP) {
-            SetupScreen(onDone = { nav.navigate(Routes.SHELL) { popUpTo(Routes.SETUP) { inclusive = true } } })
+            SetupScreen(onDone = { nav.navigate(Routes.shell()) { popUpTo(Routes.SETUP) { inclusive = true } } })
         }
         composable(Routes.PLAYER) {
             PlayerScreen(
-                onOpenGuide = { nav.navigate(Routes.SHELL) },
-                onOpenShell = { nav.navigate(Routes.SHELL) },
+                onOpenGuide = { nav.navigate(Routes.shell("guide")) },
+                onOpenShell = { nav.navigate(Routes.shell()) },
             )
         }
-        composable(Routes.SHELL) {
+        composable(
+            Routes.SHELL,
+            arguments = listOf(navArgument("tab") { type = NavType.StringType; defaultValue = "channels" }),
+        ) { entry ->
             ShellScreen(
+                initialTab = entry.arguments?.getString("tab") ?: "channels",
                 onWatch = { nav.navigate(Routes.PLAYER) { popUpTo(Routes.PLAYER) { inclusive = true } } },
                 onCreateChannel = { nav.navigate(Routes.EDITOR) },
                 onExit = onExit,

@@ -21,6 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -121,8 +122,8 @@ private fun Manual(vm: SetupViewModel) {
     var url by remember { mutableStateOf("http://") }
     var token by remember { mutableStateOf("") }
     Text("Server address and token", style = ClickarrTextStyles.ScreenTitle)
-    TvField("Address, e.g. http://192.168.1.20:32400", url) { url = it }
-    TvField("X-Plex-Token", token) { token = it }
+    TvField("Address, e.g. http://192.168.1.20:32400", url, "setup.url") { url = it }
+    TvField("X-Plex-Token", token, "setup.token") { token = it }
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Button(onClick = { vm.connectManual(url, token) }) { Text("Connect") }
         Button(onClick = vm::reset) { Text("Back") }
@@ -130,7 +131,7 @@ private fun Manual(vm: SetupViewModel) {
 }
 
 @Composable
-private fun TvField(placeholder: String, value: String, onChange: (String) -> Unit) {
+private fun TvField(placeholder: String, value: String, tag: String, onChange: (String) -> Unit) {
     Box(
         Modifier
             .background(ClickarrColors.BgCell, RoundedCornerShape(ClickarrDimens.RadiusCell))
@@ -142,6 +143,7 @@ private fun TvField(placeholder: String, value: String, onChange: (String) -> Un
             onValueChange = onChange,
             singleLine = true,
             textStyle = ClickarrTextStyles.RowTitle.copy(color = ClickarrColors.TextPrimary),
+            modifier = Modifier.testTag(tag),
         )
     }
 }

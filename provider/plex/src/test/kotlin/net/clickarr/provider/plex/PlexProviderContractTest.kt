@@ -19,6 +19,7 @@ import net.clickarr.core.model.ProviderKind
 import net.clickarr.core.model.ServerInfo
 import net.clickarr.provider.api.ArtworkSize
 import net.clickarr.provider.api.ClientIdentity
+import net.clickarr.provider.plex.fixtures.PlexFixtureServer
 import net.clickarr.provider.api.DeviceProfile
 import net.clickarr.provider.api.MediaProvider
 import net.clickarr.provider.api.PlaybackSource

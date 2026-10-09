@@ -1,0 +1,102 @@
+name: Emulator
+
+# End-to-end UI run on an Android TV emulator with screenshots and a screen recording as artifacts.
+# Separate from CI so the fast build is never gated on a 15-minute emulator boot.
+on:
+  push:
+    branches: [main]
+    paths-ignore: ["docs/**", "site/**", "brand/**", "*.md"]
+  workflow_dispatch:
+
+concurrency:
+  group: emulator-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  API_LEVEL: 34
+  TARGET: android-tv
+  ARCH: x86_64
+  PROFILE: tv_1080p
+
+jobs:
+  ui-tests:
+    name: Android TV emulator UI tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Enable KVM for the hosted runner
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: AVD cache
+        uses: actions/cache@v4
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-${{ env.API_LEVEL }}-${{ env.TARGET }}-${{ env.PROFILE }}-v1
+
+      - name: Create AVD snapshot (cache miss only)
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ env.API_LEVEL }}
+          target: ${{ env.TARGET }}
+          arch: ${{ env.ARCH }}
+          profile: ${{ env.PROFILE }}
+          ram-size: 2048M
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: false
+          script: echo "AVD snapshot generated"
+
+      - name: Run UI tests on the emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ env.API_LEVEL }}
+          target: ${{ env.TARGET }}
+          arch: ${{ env.ARCH }}
+          profile: ${{ env.PROFILE }}
+          ram-size: 2048M
+          force-avd-creation: false
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: |
+            adb shell settings put global window_animation_scale 0
+            adb shell settings put global transition_animation_scale 0
+            adb shell settings put global animator_duration_scale 0
+            adb shell screenrecord --time-limit 180 --bit-rate 4000000 /sdcard/clickarr-run.mp4 &
+            REC=$!
+            set +e
+            ./gradlew :app:connectedDebugAndroidTest --no-daemon
+            RESULT=$?
+            set -e
+            adb shell pkill -2 screenrecord || true
+            sleep 3
+            mkdir -p emulator-artifacts
+            adb pull /sdcard/Pictures/clickarr emulator-artifacts/screenshots || true
+            adb pull /sdcard/clickarr-run.mp4 emulator-artifacts/ || true
+            adb logcat -d -s 'Clickarr/*' 'AndroidRuntime:E' 'TestRunner:*' > emulator-artifacts/logcat.txt || true
+            exit $RESULT
+
+      - name: Upload screenshots, recording, and reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: emulator-run
+          path: |
+            emulator-artifacts/
+            app/build/reports/androidTests/
+          retention-days: 14

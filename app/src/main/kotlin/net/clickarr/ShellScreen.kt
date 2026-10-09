@@ -37,9 +37,15 @@ private enum class ShellTab(val label: String) { GUIDE("Guide"), CHANNELS("Chann
  * increment; Settings holds the Phase 0 spikes until they have verdicts.
  */
 @Composable
-fun ShellScreen(onWatch: () -> Unit, onCreateChannel: () -> Unit, onExit: () -> Unit, viewModel: AppViewModel = hiltViewModel()) {
+fun ShellScreen(
+    initialTab: String,
+    onWatch: () -> Unit,
+    onCreateChannel: () -> Unit,
+    onExit: () -> Unit,
+    viewModel: AppViewModel = hiltViewModel(),
+) {
     val channelCount by viewModel.channelCount.collectAsState()
-    var tab by rememberSaveable { mutableStateOf(ShellTab.CHANNELS) }
+    var tab by rememberSaveable { mutableStateOf(ShellTab.entries.firstOrNull { it.name.equals(initialTab, true) } ?: ShellTab.CHANNELS) }
     var spikes by rememberSaveable { mutableStateOf(false) }
     BackHandler {
         when {
