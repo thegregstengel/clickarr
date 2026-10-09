@@ -30,7 +30,8 @@ import org.junit.jupiter.api.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class TuneControllerTest {
     private val anchor = Instant.parse("2026-10-09T19:00:00Z")
-    private val debounce = 301.milliseconds
+    // TuneController waits 300 ms; advanceTimeBy(301) runs that task, so loads happen at +300 ms exactly.
+    private val debounce = 300.milliseconds
     private val provider = FakeMediaProvider()
 
     // Four sitcom episodes from the fake library, 30-minute slots, sequential.
@@ -89,13 +90,14 @@ class TuneControllerTest {
 
     @Test
     fun `at the slot boundary the controller advances to the next program at offset zero`() = runTest {
-        val h = Harness(this, provider, lineup, anchor + 29.minutes)
+        // Episode 0 runs 21 minutes in a 30-minute slot; tune in at 7:20 so content is still playing.
+        val h = Harness(this, provider, lineup, anchor + 20.minutes)
         h.controller.tune(channel)
         advanceTimeBy(301)
         runCurrent()
         h.engine.emit(PlayerEvent.FirstFrame)
         h.engine.loads.size shouldBe 1
-        advanceTimeBy(1.minutes.inWholeMilliseconds)
+        advanceTimeBy(10.minutes.inWholeMilliseconds)
         runCurrent()
         h.engine.loads.size shouldBe 2
         h.engine.loads[1].startAt shouldBe 0.seconds
@@ -151,12 +153,12 @@ class TuneControllerTest {
     @Test
     fun `unavailable items show a reason and still advance at the boundary`() = runTest {
         val failing = FakeMediaProvider(failWith = ClickarrError.Unauthorized("Sign in again"))
-        val h = Harness(this, failing, lineup, anchor + 29.minutes)
+        val h = Harness(this, failing, lineup, anchor + 20.minutes)
         h.controller.tune(channel)
         advanceTimeBy(301)
         runCurrent()
         h.controller.state.value.status.shouldBeInstanceOf<TuneStatus.Unavailable>().reason shouldBe "Sign in again"
-        advanceTimeBy(2.minutes.inWholeMilliseconds)
+        advanceTimeBy(11.minutes.inWholeMilliseconds)
         runCurrent()
         h.controller.state.value.airing.shouldNotBeNull().entry.title shouldBe entries[1].title
     }
