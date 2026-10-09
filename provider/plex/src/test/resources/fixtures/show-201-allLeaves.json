@@ -1,0 +1,10 @@
+{"MediaContainer":{"size":4,"Metadata":[
+ {"ratingKey":"2012","key":"/library/metadata/2012","type":"episode","title":"Diversity Day","index":2,"parentIndex":1,"parentRatingKey":"2010","grandparentRatingKey":"201","grandparentTitle":"The Office (US)","year":2005,"duration":1320000,"thumb":"/library/metadata/2012/thumb/1",
+  "Media":[{"id":3012,"duration":1321000,"bitrate":5000,"width":1280,"height":720,"container":"mkv","videoCodec":"h264","audioCodec":"aac","Part":[{"id":4012,"key":"/library/parts/4012/1600000000/file.mkv","duration":1321000,"container":"mkv"}]}]},
+ {"ratingKey":"2011","key":"/library/metadata/2011","type":"episode","title":"Pilot","index":1,"parentIndex":1,"parentRatingKey":"2010","grandparentRatingKey":"201","grandparentTitle":"The Office (US)","year":2005,"duration":1380000,"thumb":"/library/metadata/2011/thumb/1",
+  "Media":[{"id":3011,"duration":1382000,"bitrate":5000,"width":1280,"height":720,"container":"mkv","videoCodec":"h264","audioCodec":"aac","Part":[{"id":4011,"key":"/library/parts/4011/1600000000/file.mkv","duration":1382000,"container":"mkv"}]}]},
+ {"ratingKey":"2021","key":"/library/metadata/2021","type":"episode","title":"The Dundies","index":1,"parentIndex":2,"parentRatingKey":"2020","grandparentRatingKey":"201","grandparentTitle":"The Office (US)","year":2005,"duration":1290000,
+  "Media":[{"id":3021,"duration":1290000,"bitrate":5000,"width":1280,"height":720,"container":"mkv","videoCodec":"h264","audioCodec":"aac","Part":[{"id":4021,"key":"/library/parts/4021/1600000000/file.mkv","duration":1290000,"container":"mkv"}]}]},
+ {"ratingKey":"2022","key":"/library/metadata/2022","type":"episode","title":"Sexual Harassment","index":2,"parentIndex":2,"parentRatingKey":"2020","grandparentRatingKey":"201","grandparentTitle":"The Office (US)","year":2005,"duration":1300000,
+  "Media":[{"id":3022,"duration":1300000,"bitrate":5000,"width":1280,"height":720,"container":"mkv","videoCodec":"h264","audioCodec":"aac","Part":[{"id":4022,"key":"/library/parts/4022/1600000000/file.mkv","duration":1300000,"container":"mkv"}]}]}
+]}}

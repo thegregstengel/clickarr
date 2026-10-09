@@ -1,0 +1,6 @@
+{"MediaContainer":{"size":2,"Metadata":[
+ {"ratingKey":"2201","type":"episode","title":"Pilot","index":1,"parentIndex":1,"parentRatingKey":"2200","grandparentRatingKey":"202","grandparentTitle":"Parks and Recreation","year":2009,"duration":1330000,
+  "Media":[{"id":3201,"duration":1330000,"bitrate":5000,"width":1280,"height":720,"container":"mkv","videoCodec":"h264","audioCodec":"aac","Part":[{"id":4201,"key":"/library/parts/4201/1600000000/file.mkv","duration":1330000,"container":"mkv"}]}]},
+ {"ratingKey":"2202","type":"episode","title":"Canvassing","index":2,"parentIndex":1,"parentRatingKey":"2200","grandparentRatingKey":"202","grandparentTitle":"Parks and Recreation","year":2009,"duration":1310000,
+  "Media":[{"id":3202,"duration":1310000,"bitrate":5000,"width":1280,"height":720,"container":"mkv","videoCodec":"h264","audioCodec":"aac","Part":[{"id":4202,"key":"/library/parts/4202/1600000000/file.mkv","duration":1310000,"container":"mkv"}]}]}
+]}}

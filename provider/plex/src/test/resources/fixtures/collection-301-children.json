@@ -1,0 +1,4 @@
+{"MediaContainer":{"size":2,"Metadata":[
+ {"ratingKey":"101","type":"movie","title":"The Fellowship of the Ring","year":2001,"duration":10680000,"Media":[{"id":1001,"duration":10680000,"container":"mkv","videoCodec":"h264","audioCodec":"eac3","width":1920,"height":1080,"Part":[{"id":2001,"key":"/library/parts/2001/1600000000/file.mkv"}]}]},
+ {"ratingKey":"102","type":"movie","title":"The Two Towers","year":2002,"duration":10740000,"Media":[{"id":1002,"duration":10740000,"container":"mkv","videoCodec":"h264","audioCodec":"ac3","width":1920,"height":1080,"Part":[{"id":2002,"key":"/library/parts/2002/1600000000/file.mkv"}]}]}
+]}}

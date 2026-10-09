@@ -1,0 +1,14 @@
+{"MediaContainer":{"size":4,"totalSize":4,"offset":0,"Metadata":[
+ {"ratingKey":"101","key":"/library/metadata/101","type":"movie","title":"The Fellowship of the Ring","year":2001,"studio":"New Line Cinema","contentRating":"PG-13","duration":10680000,"thumb":"/library/metadata/101/thumb/1","art":"/library/metadata/101/art/1",
+  "Genre":[{"tag":"Fantasy"},{"tag":"Adventure"}],"Label":[{"tag":"middle-earth"}],
+  "Media":[{"id":1001,"duration":10680000,"bitrate":12000,"width":1920,"height":1080,"container":"mkv","videoCodec":"h264","audioCodec":"eac3","Part":[{"id":2001,"key":"/library/parts/2001/1600000000/file.mkv","duration":10680000,"container":"mkv"}]}]},
+ {"ratingKey":"102","key":"/library/metadata/102","type":"movie","title":"The Two Towers","year":2002,"studio":"New Line Cinema","duration":10740000,"thumb":"/library/metadata/102/thumb/1",
+  "Genre":[{"tag":"Fantasy"},{"tag":"Adventure"}],"Label":[{"tag":"middle-earth"}],
+  "Media":[{"id":1002,"duration":10740000,"bitrate":11000,"width":1920,"height":1080,"container":"mkv","videoCodec":"h264","audioCodec":"ac3","Part":[{"id":2002,"key":"/library/parts/2002/1600000000/file.mkv","duration":10740000,"container":"mkv"}]}]},
+ {"ratingKey":"103","key":"/library/metadata/103","type":"movie","title":"Back to the Future","year":1985,"studio":"Universal Pictures","duration":6960000,"thumb":"/library/metadata/103/thumb/1",
+  "Genre":[{"tag":"Comedy"},{"tag":"Sci-Fi"}],
+  "Media":[{"id":1003,"duration":6960000,"bitrate":45000,"width":3840,"height":2160,"container":"mkv","videoCodec":"hevc","audioCodec":"truehd","Part":[{"id":2003,"key":"/library/parts/2003/1600000000/file.mkv","duration":6960000,"container":"mkv"}]}]},
+ {"ratingKey":"104","key":"/library/metadata/104","type":"movie","title":"The Goonies","year":1985,"studio":"Warner Bros.","duration":6840000,"thumb":"/library/metadata/104/thumb/1",
+  "Genre":[{"tag":"Adventure"},{"tag":"Comedy"}],
+  "Media":[{"id":1004,"duration":6840000,"bitrate":6000,"width":1920,"height":1080,"container":"mp4","videoCodec":"h264","audioCodec":"aac","Part":[{"id":2004,"key":"/library/parts/2004/1600000000/file.mp4","duration":6840000,"container":"mp4"}]}]}
+]}}

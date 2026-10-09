@@ -1,0 +1,8 @@
+[
+ {"name":"WOPR","product":"Plex Media Server","productVersion":"1.41.0.8992","provides":"server","clientIdentifier":"abc123machine","owned":true,"accessToken":"server-token-123",
+  "connections":[
+   {"protocol":"https","address":"203.0.113.10","port":32400,"uri":"https://203-0-113-10.abc123.plex.direct:32400","local":false,"relay":false},
+   {"protocol":"https","address":"192.168.1.20","port":32400,"uri":"https://192-168-1-20.abc123.plex.direct:32400","local":true,"relay":false}
+  ]},
+ {"name":"Living Room Shield","product":"Plex for Android (TV)","provides":"player","clientIdentifier":"player-1","owned":true,"connections":[]}
+]

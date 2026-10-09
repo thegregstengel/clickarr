@@ -1,0 +1,4 @@
+{"MediaContainer":{"size":2,"Directory":[
+ {"key":"1","type":"movie","title":"Movies","uuid":"uuid-movies","agent":"tv.plex.agents.movie"},
+ {"key":"2","type":"show","title":"TV Shows","uuid":"uuid-tv","agent":"tv.plex.agents.series"}
+]}}

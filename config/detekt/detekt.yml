@@ -24,7 +24,8 @@ complexity:
 
 naming:
   FunctionNaming:
-    ignoreAnnotated: ['Composable']
+    # Backticked names are the convention for tests; the shared contract suite lives in a main source set.
+    ignoreAnnotated: ['Composable', 'Test']
   TopLevelPropertyNaming:
     active: false
 
