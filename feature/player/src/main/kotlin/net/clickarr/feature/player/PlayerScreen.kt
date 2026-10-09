@@ -88,7 +88,7 @@ fun PlayerScreen(
 
         val status = tune.status
         if (status is TuneStatus.Filler || status is TuneStatus.Unavailable || tune.channel == null) {
-            FillerCard(tune, viewModel.now(), reason = (status as? TuneStatus.Unavailable)?.reason)
+            FillerCard(tune, viewModel.now(), reason = (status as? TuneStatus.Unavailable)?.reason, showHeader = !overlayVisible)
         }
 
         AnimatedVisibility(

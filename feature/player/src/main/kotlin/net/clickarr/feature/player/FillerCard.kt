@@ -23,11 +23,11 @@ import net.clickarr.ui.design.ClickarrTextStyles
  * (design language 4, "Filler card"). The countdown is the activity indicator; there is no spinner.
  */
 @Composable
-fun FillerCard(state: TuneState, now: Instant, reason: String?) {
+fun FillerCard(state: TuneState, now: Instant, reason: String?, showHeader: Boolean = true) {
     val channel = state.channel
     val airing = state.airing
     Box(Modifier.fillMaxSize().background(ClickarrColors.BgBase)) {
-        if (channel != null) {
+        if (channel != null && showHeader) {
             Column(Modifier.align(Alignment.TopStart).padding(ClickarrDimens.SafeArea)) {
                 Text(channel.number.toString(), style = ClickarrTextStyles.ChannelNumber)
                 Text(channel.name.uppercase(), style = ClickarrTextStyles.LabelAllCaps, color = ClickarrColors.TextSecondary)
