@@ -48,10 +48,12 @@ class TuneController(
     private val engine: PlayerEngine,
     private val clock: Clock,
     private val scope: CoroutineScope,
-    private val debounce: Duration = 300.milliseconds,
-    private val driftInterval: Duration = 10.seconds,
-    private val driftTolerance: Duration = 5.seconds,
+    private val config: TuneConfig = TuneConfig(),
 ) {
+    private val debounce get() = config.debounce
+    private val driftInterval get() = config.driftInterval
+    private val driftTolerance get() = config.driftTolerance
+
     private val _state = MutableStateFlow(TuneState())
     val state: StateFlow<TuneState> = _state.asStateFlow()
 
@@ -213,6 +215,13 @@ class TuneController(
         private const val TAG = "Tune"
     }
 }
+
+/** Timing knobs. Defaults are the proposal's numbers (10.1, 10.2). */
+data class TuneConfig(
+    val debounce: Duration = 300.milliseconds,
+    val driftInterval: Duration = 10.seconds,
+    val driftTolerance: Duration = 5.seconds,
+)
 
 data class TuneState(
     val channel: Channel? = null,

@@ -4,7 +4,7 @@
 **Date:** 2026-10-09
 **Amendment (2026-10-09, after approval):** the MVP targets **Plex only**. Jellyfin and Emby move to a post-MVP phase (see ADR 0019). The `MediaProvider` abstraction and the normalized model stay exactly as designed so those providers slot in later; only the Plex client is built first. Wherever this document says "Plex and Jellyfin" for Phase 1, read "Plex".
 
-**Scope:** The MVP (single-device linear TV from Plex/Jellyfin, then two-device household agreement) and the structural decisions that let later features land without redesign.
+**Scope:** The MVP (single-device linear TV from Plex, then two-device household agreement) and the structural decisions that let later features land without redesign.
 
 Clickarr turns a personal media library into channel-surfing television. The APK is the whole product: it talks to a media server, computes what every channel is airing right now, and plays it from the right offset. Several Clickarr devices in one home can optionally form a household that agrees on the lineup.
 
@@ -977,7 +977,7 @@ Each phase ends with something runnable. Estimates assume one primary developer 
 
 - Repository scaffold: modules, convention plugins, version catalog, CI with lint and unit tests, `CONTRIBUTING.md`, ADR template, this proposal split into ADRs.
 - Spike A: Compose for TV skeleton with a 50-row synthetic guide; measure on Fire TV Stick 4K 2018 and Shield.
-- Spike B: ExoPlayer direct play from Plex and Jellyfin at an arbitrary offset; measure tune-in latency.
+- Spike B: ExoPlayer direct play from Plex at an arbitrary offset; measure tune-in latency.
 - Spike C: Ktor + Netty TLS server on Fire OS 6 with a Keystore certificate; Ktor client pinning it.
 - Spike D: NSD advertise/browse between a Fire TV and an Android TV emulator with multicast lock.
 - Deliverable: go/no-go notes on each spike; stack decisions confirmed or amended.
@@ -985,10 +985,10 @@ Each phase ends with something runnable. Estimates assume one primary developer 
 ### Phase 1: One device, one channel (3 to 4 weeks) — Milestone 1
 
 - `core:model`, `core:scheduling` with `CyclicLineupStrategy`, PRNG, property tests.
-- `provider:api`, Plex and Jellyfin clients with auth flows, library browse, episode listing, direct play + HLS fallback, fixtures and contract tests.
+- `provider:api`, the Plex client with the plex.tv PIN flow, library browse, episode listing, direct play + HLS fallback, fixtures and contract tests; `provider:testing` with a fake provider and the shared contract suite.
 - Room schema v1, `SecretStore`.
-- Setup flow: sign in to one server.
-- Channel creation from one or more shows, sequential or shuffle, optional 30-minute rounding; lineup snapshot built on device.
+- Setup flow: sign in to one Plex server.
+- Channel creation from shows, libraries with filters, Plex collections, playlists, hand-picked lists, and unions of those; sequential or shuffle; optional 30-minute rounding; lineup snapshot built on device.
 - Player with tune-in offset, overlay, boundary advancement, drift monitor, filler card.
 - Basic guide (grid, focus, tune), mini-guide, resume last channel on launch.
 - Diagnostics screen.
@@ -1006,8 +1006,6 @@ Each phase ends with something runnable. Estimates assume one primary developer 
 
 ### Phase 3: A real lineup (3 to 4 weeks)
 
-- Emby provider.
-- Channel sources: whole library, collection, playlist, explicit picks; genre/decade filters.
 - Channel editor: numbers, names, icons, reorder; favorites; numeric channel entry.
 - Guide polish: detail card, time jump, favorites filter, past-program dimming, performance pass.
 - Plex transcode session hygiene, device profile table for Fire TV models, resolution caps.
@@ -1021,9 +1019,14 @@ Each phase ends with something runnable. Estimates assume one primary developer 
 - Watched-state reporting to servers (opt-in).
 - Accessibility pass (TalkBack on Android TV, focus order, text scaling).
 
+### Phase 5: More servers (after the first public release)
+
+- Jellyfin provider, then Emby, each passing the shared contract suite. Jellyfin Quick Connect as its sign-in flow.
+- Multiple server kinds in one household.
+
 ### Later (not scheduled)
 
-Time blocks and day-parts, fixed-time programs, overrides for marathons and holidays, interstitials and bumpers, viewing history and "what did I miss", Jellyfin Quick Connect, opt-in encrypted credential sharing, PAKE pairing, additional platforms.
+Time blocks and day-parts, fixed-time programs, overrides for marathons and holidays, interstitials and bumpers, viewing history and "what did I miss", opt-in encrypted credential sharing, PAKE pairing, additional platforms.
 
 ---
 

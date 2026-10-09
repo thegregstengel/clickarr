@@ -207,11 +207,11 @@ private fun MediaFilter.predicates(): List<(MediaItem) -> Boolean> = buildList {
 private fun MediaItem.studioOrNull(): String? = (this as? Movie)?.studio ?: (this as? Show)?.studio
 
 internal fun DeviceProfile.canDirectPlay(media: PlexMedia): Boolean {
-    val container = media.container?.lowercase() ?: return false
-    val video = media.videoCodec?.lowercase() ?: return false
-    val audio = media.audioCodec?.lowercase() ?: return false
+    val container = media.container?.lowercase().orEmpty()
+    val video = media.videoCodec?.lowercase().orEmpty()
+    val audio = media.audioCodec?.lowercase().orEmpty()
     val videoOk = video in videoCodecs || (video == "hevc" && supportsHevc)
     val sizeOk = (media.height ?: 0) <= maxHeight && (media.width ?: 0) <= maxWidth
-    val bitrateOk = maxBitrateKbps == null || (media.bitrate ?: 0) <= maxBitrateKbps
+    val bitrateOk = (media.bitrate ?: 0) <= (maxBitrateKbps ?: Int.MAX_VALUE)
     return container in containers && videoOk && audio in audioCodecs && sizeOk && bitrateOk
 }
