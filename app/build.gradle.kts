@@ -60,6 +60,7 @@ dependencies {
     implementation(project(":feature:setup"))
     implementation(project(":feature:player"))
     implementation(project(":feature:channels"))
+    implementation(project(":feature:guide"))
     implementation(project(":spike"))
     debugImplementation(project(":provider:testing"))
 

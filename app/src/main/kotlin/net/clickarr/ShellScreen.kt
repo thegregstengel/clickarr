@@ -23,6 +23,7 @@ import androidx.tv.material3.Tab
 import androidx.tv.material3.TabRow
 import androidx.tv.material3.Text
 import net.clickarr.feature.channels.ChannelsScreen
+import net.clickarr.feature.guide.GuideScreen
 import net.clickarr.spike.SpikeApp
 import net.clickarr.spike.SpikeArgs
 import net.clickarr.ui.design.ClickarrColors
@@ -67,15 +68,8 @@ fun ShellScreen(onWatch: () -> Unit, onCreateChannel: () -> Unit, onExit: () -> 
         }
         Box(Modifier.fillMaxSize()) {
             when (tab) {
-                ShellTab.GUIDE -> Column(Modifier.padding(ClickarrDimens.SafeArea), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(
-                        "The program guide arrives in the next build.",
-                        style = ClickarrTextStyles.Secondary,
-                        color = ClickarrColors.TextSecondary,
-                    )
-                    if (channelCount > 0) Button(onClick = onWatch) { Text("Watch") }
-                }
-                ShellTab.CHANNELS -> ChannelsScreen(onCreate = onCreateChannel, onTune = { onWatch() })
+                ShellTab.GUIDE -> GuideScreen(onWatch = onWatch)
+                ShellTab.CHANNELS -> ChannelsScreen(onCreate = onCreateChannel, onWatch = onWatch)
                 ShellTab.SETTINGS -> Column(Modifier.padding(ClickarrDimens.SafeArea), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text("Settings", style = ClickarrTextStyles.ScreenTitle)
                     Button(onClick = { spikes = true }) { Text("Phase 0 spikes") }

@@ -23,7 +23,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.tv.material3.Button
 import androidx.tv.material3.ListItem
 import androidx.tv.material3.Text
-import net.clickarr.core.model.Channel
 import net.clickarr.ui.design.ClickarrColors
 import net.clickarr.ui.design.ClickarrDimens
 import net.clickarr.ui.design.ClickarrTextStyles
@@ -32,7 +31,7 @@ import net.clickarr.ui.design.ClickarrTextStyles
 @Composable
 fun ChannelsScreen(
     onCreate: () -> Unit,
-    onTune: (Channel) -> Unit,
+    onWatch: () -> Unit,
     viewModel: ChannelsViewModel = hiltViewModel(),
 ) {
     val channels by viewModel.channels.collectAsState()
@@ -49,7 +48,7 @@ fun ChannelsScreen(
                 items(channels, key = { it.id.value }) { ch ->
                     ListItem(
                         selected = preview?.channel?.id == ch.id,
-                        onClick = { onTune(ch) },
+                        onClick = { viewModel.tune(ch, onWatch) },
                         headlineContent = { Text(ch.name, style = ClickarrTextStyles.RowTitle) },
                         leadingContent = { Text(ch.number.toString(), style = ClickarrTextStyles.RowTitle) },
                         modifier = Modifier.onFocusChanged { if (it.isFocused) viewModel.focus(ch) },

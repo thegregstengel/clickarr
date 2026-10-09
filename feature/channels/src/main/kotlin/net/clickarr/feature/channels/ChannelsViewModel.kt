@@ -16,6 +16,7 @@ import net.clickarr.core.model.Channel
 import net.clickarr.core.model.ChannelId
 import net.clickarr.core.scheduling.ScheduleStrategy
 import net.clickarr.data.ChannelRepository
+import net.clickarr.data.DevicePrefs
 
 /** The Channels tab: the lineup, and a preview of what the focused channel is airing right now. */
 @HiltViewModel
@@ -23,6 +24,7 @@ class ChannelsViewModel @Inject constructor(
     private val repository: ChannelRepository,
     private val strategy: ScheduleStrategy,
     private val clock: Clock,
+    private val prefs: DevicePrefs,
 ) : ViewModel() {
     val channels: StateFlow<List<Channel>> =
         repository.channels.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -38,6 +40,14 @@ class ChannelsViewModel @Inject constructor(
             val now = lineup?.let { strategy.airingAt(channel, it, clock.now()) }
             val next = if (lineup != null && now != null) strategy.next(channel, lineup, now) else null
             _preview.value = Preview(channel, now, next)
+        }
+    }
+
+    /** Make [channel] the one the player opens on, then run [then] (navigate to the player). */
+    fun tune(channel: Channel, then: () -> Unit) {
+        viewModelScope.launch {
+            prefs.setLastChannelId(channel.id.value)
+            then()
         }
     }
 
