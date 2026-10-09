@@ -56,6 +56,7 @@ dependencies {
     implementation(project(":playback:core"))
     implementation(project(":playback:media3"))
     implementation(project(":ui:design"))
+    implementation(project(":feature:setup"))
     implementation(project(":spike"))
     debugImplementation(project(":provider:testing"))
 

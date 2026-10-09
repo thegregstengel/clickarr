@@ -3,6 +3,7 @@ package net.clickarr.provider.testing
 import io.kotest.matchers.collections.shouldBeSortedWith
 import io.kotest.matchers.collections.shouldNotBeEmpty
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldNotBeEmpty as shouldNotBeEmptyString
 import io.kotest.matchers.string.shouldStartWith
 import kotlin.time.Duration.Companion.minutes
 import kotlinx.coroutines.test.runTest
@@ -120,7 +121,7 @@ abstract class MediaProviderContractTest {
         source.url shouldStartWith "http"
         when (source) {
             is PlaybackSource.DirectPlay -> source.startAt shouldBe 17.minutes
-            is PlaybackSource.Hls -> source.sessionId.shouldNotBeEmpty()
+            is PlaybackSource.Hls -> source.sessionId.shouldNotBeEmptyString()
         }
         p.endPlayback(source).value()
     }
