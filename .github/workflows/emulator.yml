@@ -2,6 +2,7 @@ name: Emulator
 
 # End-to-end UI run on an Android TV emulator with screenshots and a screen recording as artifacts.
 # Separate from CI so the fast build is never gated on a 15-minute emulator boot.
+# Google publishes a 64-bit Android TV system image only for API 36 (older TV images are 32-bit x86).
 on:
   push:
     branches: [main]
@@ -13,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  API_LEVEL: 34
+  API_LEVEL: 36
   TARGET: android-tv
   ARCH: x86_64
   PROFILE: tv_1080p
@@ -46,7 +47,7 @@ jobs:
           path: |
             ~/.android/avd/*
             ~/.android/adb*
-          key: avd-${{ env.API_LEVEL }}-${{ env.TARGET }}-${{ env.PROFILE }}-v1
+          key: avd-${{ env.API_LEVEL }}-${{ env.TARGET }}-${{ env.ARCH }}-${{ env.PROFILE }}-v2
 
       - name: Create AVD snapshot (cache miss only)
         if: steps.avd-cache.outputs.cache-hit != 'true'

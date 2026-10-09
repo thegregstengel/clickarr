@@ -8,6 +8,20 @@
 
 No Android Studio is required; it is convenient but everything builds from the command line.
 
+## Picking up on another machine
+
+Everything lives in the repo; nothing on a developer machine is special. On a new box:
+
+1. Install a JDK 17 and the Android SDK (platform 36, build-tools 36). Android Studio does this for you, or use
+   `sdkmanager` from the command-line tools.
+2. `git clone https://github.com/thegregstengel/clickarr && cd clickarr`
+3. Write `local.properties` with `sdk.dir=/path/to/Android/Sdk` (gitignored, machine-specific).
+4. `./gradlew assembleDebug` to confirm the toolchain, then open the folder in Android Studio if you like.
+5. `gh auth login` if you want to watch CI and download artifacts from the terminal.
+
+Nightly APKs and the emulator screenshots come from GitHub Actions regardless of where you develop, so a
+machine without a working emulator can still see the app run (see the emulator section below).
+
 ## Build and install
 
 ```bash
@@ -47,7 +61,7 @@ adb logcat -s 'Clickarr/*'
 
 ## Emulator runs in GitHub Actions
 
-`.github/workflows/emulator.yml` boots an Android TV emulator (API 34, `tv_1080p`, KVM-accelerated) on
+`.github/workflows/emulator.yml` boots an Android TV emulator (API 36, the only level with a 64-bit TV image, `tv_1080p`, KVM-accelerated) on
 every push to `main` that touches code, installs the debug APK, and runs `app/src/androidTest`. The
 test `FirstRunFlowTest` walks the real first-run path against a fake Plex server that runs inside the
 test process (`provider:plex-fixtures`): manual connect, create a channel from a show, tune, overlay,

@@ -47,32 +47,42 @@ class PlexFixtureServer : AutoCloseable {
 
     val baseUrl: String get() = server.url("/").toString().trimEnd('/')
 
+    /** Exact-path fixtures. Query type is appended for the two library listings. */
+    private val static: Map<String, String> = mapOf(
+        "/" to "root",
+        "/library/sections" to "sections",
+        "/library/sections/1/all?type=1" to "section-1-movies",
+        "/library/sections/2/all?type=2" to "section-2-shows",
+        "/library/metadata/201/allLeaves" to "show-201-allLeaves",
+        "/library/metadata/202/allLeaves" to "show-202-allLeaves",
+        "/library/sections/1/collections" to "section-1-collections",
+        "/library/sections/2/collections" to "empty",
+        "/library/collections/301/children" to "collection-301-children",
+        "/playlists" to "playlists",
+        "/playlists/401/items" to "playlist-401-items",
+        "/api/v2/pins" to "plextv-pin-created",
+        "/api/v2/resources" to "plextv-resources",
+    )
+
     private fun respond(path: String, type: String?, method: String?): MockResponse {
-        val fixture: String? = when {
-            path == "/" -> "root"
-            path == "/library/sections" -> "sections"
-            path == "/library/sections/1/all" && type == "1" -> "section-1-movies"
-            path == "/library/sections/2/all" && type == "2" -> "section-2-shows"
-            path == "/library/metadata/201/allLeaves" -> "show-201-allLeaves"
-            path == "/library/metadata/202/allLeaves" -> "show-202-allLeaves"
-            path == "/library/sections/1/collections" -> "section-1-collections"
-            path == "/library/sections/2/collections" -> "empty"
-            path == "/library/collections/301/children" -> "collection-301-children"
-            path == "/playlists" -> "playlists"
-            path == "/playlists/401/items" -> "playlist-401-items"
-            path == "/api/v2/pins" && method == "POST" -> "plextv-pin-created"
+        val key = if (type != null && path.endsWith("/all")) "$path?type=$type" else path
+        val fixture = when {
             path == "/api/v2/pins/987654" -> if (pinClaimed) "plextv-pin-claimed" else "plextv-pin-created"
-            path == "/api/v2/resources" -> "plextv-resources"
-            else -> null
+            path == "/api/v2/pins" && method != "POST" -> null
+            else -> static[key]
         }
         return when {
             fixture == "empty" -> ok("""{"MediaContainer":{"size":0}}""")
             fixture != null -> ok(load(fixture))
-            path.startsWith("/library/metadata/") -> metadataLookup(path.removePrefix("/library/metadata/"))
-            path.startsWith("/library/parts/") -> media()
-            path.startsWith("/video/:/transcode/universal/stop") || path.startsWith("/:/timeline") -> ok("{}")
-            else -> notFound()
+            else -> dynamic(path)
         }
+    }
+
+    private fun dynamic(path: String): MockResponse = when {
+        path.startsWith("/library/metadata/") -> metadataLookup(path.removePrefix("/library/metadata/"))
+        path.startsWith("/library/parts/") -> media()
+        path.startsWith("/video/:/transcode/universal/stop") || path.startsWith("/:/timeline") -> ok("{}")
+        else -> notFound()
     }
 
     /** /library/metadata/{a,b,c}: pull each item out of the fixtures by ratingKey. */
