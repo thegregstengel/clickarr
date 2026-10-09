@@ -657,6 +657,9 @@ Built once at startup from `MediaCodecList` and display capabilities, with a Fir
 
 ## 11. EPG architecture
 
+> Design reference: the TV UI mockups and the token set extracted from them live in [`docs/design/`](design/README.md). They establish a tabbed shell (Guide · Channels · Favorites · Settings) that Back-from-playback lands in, a Channels screen with a preview pane, and the overlay layout already described in Section 10. Where this document and the mockups differ, `docs/design/README.md` §3 records the resolution.
+
+
 ### 11.1 Data
 
 `GuideWindowBuilder` asks `Scheduler.guideWindow(channels, from = now - 30 min, to = now + 3 h)` and produces a flat, pre-laid-out structure: per channel, a list of `(airing, leftPx, widthPx)` given a pixels-per-minute scale. Scrolling right past the window extends it by another window; results are memoized per `(channel, lineupId, from)` so moving focus never recomputes.
