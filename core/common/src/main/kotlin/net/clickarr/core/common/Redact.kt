@@ -6,7 +6,9 @@ package net.clickarr.core.common
  */
 object Redact {
     private val queryParams = Regex("(?i)([?&](?:X-Plex-Token|api_key|ApiKey|token)=)[^&\\s]+")
-    private val headerValues = Regex("(?i)((?:Authorization|X-Emby-Token|X-MediaBrowser-Token|X-Plex-Token)\\s*:\\s*(?:Bearer\\s+)?)([^\\s,;]+)")
+    private val headerValues = Regex(
+        "(?i)((?:Authorization|X-Emby-Token|X-MediaBrowser-Token|X-Plex-Token)\\s*:\\s*(?:Bearer\\s+)?)([^\\s,;]+)",
+    )
     private val bearer = Regex("(?i)(Bearer\\s+)[A-Za-z0-9._\\-]+")
 
     fun apply(input: String): String =

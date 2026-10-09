@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1996" height="846" font-family="Inter">
+  <rect width="1996" height="846" fill="#05070F"/>
+  <text x="48" y="82" font-size="34" font-weight="700" fill="#F2F5FA">Clickarr palette</text>
+  <text x="48" y="114" font-size="20" fill="#A9B4C8">Base colors with their semantic role. Components reference roles, never base names.</text>
+  <rect x="48" y="138" width="300" height="200" rx="16" fill="#05070F" stroke="#1E2B45" stroke-width="1"/>
+  <text x="68" y="178" font-size="22" font-weight="600" fill="#F2F5FA">navy-950</text>
+  <text x="68" y="208" font-size="20" fill="#A9B4C8">#05070F</text>
+  <text x="68" y="314" font-size="18" fill="#A9B4C8">bg.base</text>
+  <rect x="368" y="138" width="300" height="200" rx="16" fill="#0A1220" stroke="#1E2B45" stroke-width="1"/>
+  <text x="388" y="178" font-size="22" font-weight="600" fill="#F2F5FA">navy-900</text>
+  <text x="388" y="208" font-size="20" fill="#A9B4C8">#0A1220</text>
+  <text x="388" y="314" font-size="18" fill="#A9B4C8">bg.panel</text>
+  <rect x="688" y="138" width="300" height="200" rx="16" fill="#131A36" stroke="#1E2B45" stroke-width="1"/>
+  <text x="708" y="178" font-size="22" font-weight="600" fill="#F2F5FA">navy-800</text>
+  <text x="708" y="208" font-size="20" fill="#A9B4C8">#131A36</text>
+  <text x="708" y="314" font-size="18" fill="#A9B4C8">bg.surface</text>
+  <rect x="1008" y="138" width="300" height="200" rx="16" fill="#1A2A47" stroke="#1E2B45" stroke-width="1"/>
+  <text x="1028" y="178" font-size="22" font-weight="600" fill="#F2F5FA">navy-700</text>
+  <text x="1028" y="208" font-size="20" fill="#A9B4C8">#1A2A47</text>
+  <text x="1028" y="314" font-size="18" fill="#A9B4C8">bg.cell</text>
+  <rect x="1328" y="138" width="300" height="200" rx="16" fill="#0F2038" stroke="#1E2B45" stroke-width="1"/>
+  <text x="1348" y="178" font-size="22" font-weight="600" fill="#F2F5FA">navy-750</text>
+  <text x="1348" y="208" font-size="20" fill="#A9B4C8">#0F2038</text>
+  <text x="1348" y="314" font-size="18" fill="#A9B4C8">bg.cellBorder</text>
+  <rect x="1648" y="138" width="300" height="200" rx="16" fill="#1E2B45" stroke="#1E2B45" stroke-width="1"/>
+  <text x="1668" y="178" font-size="22" font-weight="600" fill="#F2F5FA">navy-600</text>
+  <text x="1668" y="208" font-size="20" fill="#A9B4C8">#1E2B45</text>
+  <text x="1668" y="314" font-size="18" fill="#A9B4C8">bg.elevated</text>
+  <rect x="48" y="358" width="300" height="200" rx="16" fill="#1479FD" stroke="#1E2B45" stroke-width="1"/>
+  <text x="68" y="398" font-size="22" font-weight="600" fill="#F2F5FA">blue-500</text>
+  <text x="68" y="428" font-size="20" fill="#A9B4C8">#1479FD</text>
+  <text x="68" y="534" font-size="18" fill="#A9B4C8">accent.primary</text>
+  <rect x="368" y="358" width="300" height="200" rx="16" fill="#063677" stroke="#1E2B45" stroke-width="1"/>
+  <text x="388" y="398" font-size="22" font-weight="600" fill="#F2F5FA">blue-900</text>
+  <text x="388" y="428" font-size="20" fill="#A9B4C8">#063677</text>
+  <text x="388" y="534" font-size="18" fill="#A9B4C8">accent.primaryDeep</text>
+  <rect x="688" y="358" width="300" height="200" rx="16" fill="#00ACFF" stroke="#1E2B45" stroke-width="1"/>
+  <text x="708" y="398" font-size="22" font-weight="600" fill="#05070F">sky-400</text>
+  <text x="708" y="428" font-size="20" fill="#1E2B45">#00ACFF</text>
+  <text x="708" y="534" font-size="18" fill="#1E2B45">accent.glow</text>
+  <rect x="1008" y="358" width="300" height="200" rx="16" fill="#00E2FD" stroke="#1E2B45" stroke-width="1"/>
+  <text x="1028" y="398" font-size="22" font-weight="600" fill="#05070F">cyan-300</text>
+  <text x="1028" y="428" font-size="20" fill="#1E2B45">#00E2FD</text>
+  <text x="1028" y="534" font-size="18" fill="#1E2B45">brand</text>
+  <rect x="1328" y="358" width="300" height="200" rx="16" fill="#7E4DFD" stroke="#1E2B45" stroke-width="1"/>
+  <text x="1348" y="398" font-size="22" font-weight="600" fill="#F2F5FA">violet-500</text>
+  <text x="1348" y="428" font-size="20" fill="#A9B4C8">#7E4DFD</text>
+  <text x="1348" y="534" font-size="18" fill="#A9B4C8">brand</text>
+  <rect x="1648" y="358" width="300" height="200" rx="16" fill="#AF2EFC" stroke="#1E2B45" stroke-width="1"/>
+  <text x="1668" y="398" font-size="22" font-weight="600" fill="#F2F5FA">magenta-500</text>
+  <text x="1668" y="428" font-size="20" fill="#A9B4C8">#AF2EFC</text>
+  <text x="1668" y="534" font-size="18" fill="#A9B4C8">brand</text>
+  <rect x="48" y="578" width="300" height="200" rx="16" fill="#0CE568" stroke="#1E2B45" stroke-width="1"/>
+  <text x="68" y="618" font-size="22" font-weight="600" fill="#05070F">green-400</text>
+  <text x="68" y="648" font-size="20" fill="#1E2B45">#0CE568</text>
+  <text x="68" y="754" font-size="18" fill="#1E2B45">status.ok</text>
+  <rect x="368" y="578" width="300" height="200" rx="16" fill="#FFB020" stroke="#1E2B45" stroke-width="1"/>
+  <text x="388" y="618" font-size="22" font-weight="600" fill="#05070F">amber-400</text>
+  <text x="388" y="648" font-size="20" fill="#1E2B45">#FFB020</text>
+  <text x="388" y="754" font-size="18" fill="#1E2B45">status.warn</text>
+  <rect x="688" y="578" width="300" height="200" rx="16" fill="#FF4D5E" stroke="#1E2B45" stroke-width="1"/>
+  <text x="708" y="618" font-size="22" font-weight="600" fill="#F2F5FA">red-400</text>
+  <text x="708" y="648" font-size="20" fill="#A9B4C8">#FF4D5E</text>
+  <text x="708" y="754" font-size="18" fill="#A9B4C8">status.error</text>
+  <rect x="1008" y="578" width="300" height="200" rx="16" fill="#F2F5FA" stroke="#1E2B45" stroke-width="1"/>
+  <text x="1028" y="618" font-size="22" font-weight="600" fill="#05070F">white-100</text>
+  <text x="1028" y="648" font-size="20" fill="#1E2B45">#F2F5FA</text>
+  <text x="1028" y="754" font-size="18" fill="#1E2B45">text.primary</text>
+  <rect x="1328" y="578" width="300" height="200" rx="16" fill="#A9B4C8" stroke="#1E2B45" stroke-width="1"/>
+  <text x="1348" y="618" font-size="22" font-weight="600" fill="#05070F">white-60</text>
+  <text x="1348" y="648" font-size="20" fill="#1E2B45">#A9B4C8</text>
+  <text x="1348" y="754" font-size="18" fill="#1E2B45">text.secondary</text>
+  <rect x="1648" y="578" width="300" height="200" rx="16" fill="#6B7890" stroke="#1E2B45" stroke-width="1"/>
+  <text x="1668" y="618" font-size="22" font-weight="600" fill="#F2F5FA">white-35</text>
+  <text x="1668" y="648" font-size="20" fill="#A9B4C8">#6B7890</text>
+  <text x="1668" y="754" font-size="18" fill="#A9B4C8">text.muted</text>
+</svg>

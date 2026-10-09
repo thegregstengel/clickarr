@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="964" font-family="Inter">
+  <rect width="1400" height="964" fill="#05070F"/>
+  <text x="48" y="82" font-size="34" font-weight="700" fill="#F2F5FA">Clickarr type scale</text>
+  <text x="48" y="114" font-size="20" fill="#A9B4C8">Inter, 1080p canvas, sp = px. Nothing below 18 sp. Tabular figures for times and channel numbers.</text>
+  <line x1="48" y1="230" x2="1352" y2="230" stroke="#1E2B45"/>
+  <text x="48" y="198" font-size="18" fill="#6B7890">display.channel</text>
+  <text x="308" y="198" font-size="18" fill="#6B7890">40 / 700 / -0.5</text>
+  <text x="548" y="206" font-size="40" font-weight="700" letter-spacing="-0.5" fill="#F2F5FA" style="font-variant-numeric: tabular-nums">10</text>
+  <line x1="48" y1="326" x2="1352" y2="326" stroke="#1E2B45"/>
+  <text x="48" y="294" font-size="18" fill="#6B7890">headline.program</text>
+  <text x="308" y="294" font-size="18" fill="#6B7890">34 / 700 / -0.25</text>
+  <text x="548" y="302" font-size="34" font-weight="700" letter-spacing="-0.25" fill="#F2F5FA" style="font-variant-numeric: tabular-nums">The Office</text>
+  <line x1="48" y1="422" x2="1352" y2="422" stroke="#1E2B45"/>
+  <text x="48" y="390" font-size="18" fill="#6B7890">title.screen</text>
+  <text x="308" y="390" font-size="18" fill="#6B7890">26 / 600 / 0</text>
+  <text x="548" y="398" font-size="26" font-weight="600" letter-spacing="0" fill="#F2F5FA" style="font-variant-numeric: tabular-nums">Household</text>
+  <line x1="48" y1="518" x2="1352" y2="518" stroke="#1E2B45"/>
+  <text x="48" y="486" font-size="18" fill="#6B7890">title.row</text>
+  <text x="308" y="486" font-size="18" fill="#6B7890">24 / 500 / 0</text>
+  <text x="548" y="494" font-size="24" font-weight="500" letter-spacing="0" fill="#F2F5FA" style="font-variant-numeric: tabular-nums">Parks and Recreation</text>
+  <line x1="48" y1="614" x2="1352" y2="614" stroke="#1E2B45"/>
+  <text x="48" y="582" font-size="18" fill="#6B7890">body</text>
+  <text x="308" y="582" font-size="18" fill="#6B7890">24 / 400 / 0</text>
+  <text x="548" y="590" font-size="24" font-weight="400" letter-spacing="0" fill="#F2F5FA" style="font-variant-numeric: tabular-nums">Choose your server and sign in to get started.</text>
+  <line x1="48" y1="710" x2="1352" y2="710" stroke="#1E2B45"/>
+  <text x="48" y="678" font-size="18" fill="#6B7890">body.secondary</text>
+  <text x="308" y="678" font-size="18" fill="#6B7890">20 / 400 / 0</text>
+  <text x="548" y="686" font-size="20" font-weight="400" letter-spacing="0" fill="#F2F5FA" style="font-variant-numeric: tabular-nums">7:00 PM – 7:30 PM</text>
+  <line x1="48" y1="806" x2="1352" y2="806" stroke="#1E2B45"/>
+  <text x="48" y="774" font-size="18" fill="#6B7890">caption</text>
+  <text x="308" y="774" font-size="18" fill="#6B7890">18 / 400 / 0.1</text>
+  <text x="548" y="782" font-size="18" font-weight="400" letter-spacing="0.1" fill="#F2F5FA" style="font-variant-numeric: tabular-nums">Synced 2 minutes ago</text>
+  <line x1="48" y1="902" x2="1352" y2="902" stroke="#1E2B45"/>
+  <text x="48" y="870" font-size="18" fill="#6B7890">label.allcaps</text>
+  <text x="308" y="870" font-size="18" fill="#6B7890">18 / 600 / 1</text>
+  <text x="548" y="878" font-size="18" font-weight="600" letter-spacing="1" fill="#F2F5FA" style="font-variant-numeric: tabular-nums">SITCOMS</text>
+</svg>

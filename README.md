@@ -105,7 +105,7 @@ Pre-alpha. The architecture is approved and Phase 0 is underway: project scaffol
 - [Architecture overview](docs/architecture.md)
 - [Architecture proposal](docs/architecture-proposal.md) (the approved original, with every option and tradeoff)
 - [Architecture decision records](docs/adr/README.md)
-- [Design reference and mockups](docs/design/README.md)
+- [Design language](docs/design/design-language.md) and [mockups](docs/design/README.md)
 - [Brand assets](brand/README.md)
 
 ## Contributing

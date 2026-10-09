@@ -1,5 +1,7 @@
 # Clickarr design reference
 
+**The specification is [design-language.md](design-language.md)**: principles, tokens, focus model, elements, components, screen templates, voice, accessibility, and governance. Rendered sheets: [palette.png](palette.png), [type-specimen.png](type-specimen.png) (regenerate with `tools/sheets.js`). This file is the shorter companion: where the mockups came from, what was extracted from them, and the decisions log.
+
 Source mockups live in `mockups/`. `interface-showcase.png` is the original five-screen composite; the `screen-*.png` files are crops of it for easier reference. `logo-neon.png` is the logo concept.
 
 This document records what the mockups establish, the tokens extracted from them, how they map onto the architecture proposal, and the gaps that still need a decision. It is the design input for Phase 1.

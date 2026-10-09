@@ -49,3 +49,13 @@ object ClickarrDimens {
     val GuideHalfHourWidth = 220.dp
     val FocusRingWidth = 2.dp
 }
+
+/** Durations from docs/design/design-language.md section 2.7. Focus movement itself never animates. */
+object ClickarrMotion {
+    const val FAST_MS = 120
+    const val ENTER_MS = 200
+    const val EXIT_MS = 150
+    const val SCROLL_MS = 180
+    /** Overlay auto-hide default; user adjustable 2 to 10 s under Appearance. */
+    const val OVERLAY_TIMEOUT_MS = 5_000
+}
