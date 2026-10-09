@@ -1,19 +1,117 @@
-# Clickarr
+<p align="center">
+  <img src="brand/png/logo-stacked-transparent-1024.png" alt="Clickarr" width="320">
+</p>
 
-Clickarr turns your own media library into channel-surfing television.
+<h3 align="center">Turn your media library into TV.</h3>
 
-Instead of *open app → browse → pick → play*, Clickarr gives you
-*open app → something is already on → change channels → watch*.
-It is a single Android TV / Google TV / Fire TV app that connects directly to
-Plex, Jellyfin, or Emby, lets you build virtual channels with schedules and a
-program guide, and tunes into whatever is airing right now, at the right offset.
-No extra server, container, or cloud service is required.
+<p align="center">
+  An open-source Android TV app that gives your Plex, Jellyfin, or Emby library a channel lineup, a program guide, and a remote-control experience. Something is always on. Just change the channel.
+</p>
+
+<p align="center">
+  <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-1479FD"></a>
+  <img alt="Status: pre-alpha" src="https://img.shields.io/badge/status-pre--alpha-7E4DFD">
+  <img alt="Platforms" src="https://img.shields.io/badge/platforms-Android%20TV%20%7C%20Google%20TV%20%7C%20Fire%20TV-0CE568">
+  <img alt="Servers" src="https://img.shields.io/badge/servers-Plex%20%7C%20Jellyfin%20%7C%20Emby-00ACFF">
+</p>
+
+---
+
+## The idea
+
+Media servers all work the same way: open the app, browse, pick a show, pick an episode, press play. That is a video store, not television.
+
+Clickarr flips it:
+
+**Open the app. Something is already playing. Change channels. Watch.**
+
+You build virtual channels out of your own library. Channel 10 is sitcoms, channel 20 is Star Trek, channel 50 is Christmas movies in December. Each channel runs a schedule. Tune to channel 10 at 7:17 PM and you land seventeen minutes into whatever is airing, exactly like turning on a TV. Leave and come back later and the channel has kept going without you.
+
+<p align="center">
+  <img src="docs/design/mockups/screen-player-overlay.png" alt="Playback with channel overlay" width="760">
+</p>
+
+## What it looks like
+
+These are the design mockups the app is being built to. They are direction, not screenshots yet.
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/design/mockups/screen-guide.png" alt="Program guide"><br><sub><b>Guide.</b> A real grid with a now-line, half-hour columns, and D-pad navigation that behaves like a cable box.</sub></td>
+    <td width="50%"><img src="docs/design/mockups/screen-channels.png" alt="Channel list with preview"><br><sub><b>Channels.</b> Your lineup with numbers, icons, and a preview of what each channel is airing right now.</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/design/mockups/screen-settings-household.png" alt="Household settings"><br><sub><b>Household.</b> Several TVs in one home share channels and agree on the schedule. No extra server required.</sub></td>
+    <td width="50%"><img src="docs/design/mockups/screen-setup-server.png" alt="First-run server picker"><br><sub><b>Setup.</b> Sign in to Plex, Jellyfin, or Emby and start building channels.</sub></td>
+  </tr>
+</table>
+
+## How it works
+
+Clickarr is a single APK. There is no Clickarr server, container, or cloud account.
+
+```text
+                    Plex / Jellyfin / Emby
+                             │
+                             │  metadata + direct video stream
+                             ▼
+                      ┌──────────────┐
+                      │ Clickarr APK │
+                      │  channels    │
+                      │  scheduler   │
+                      │  guide       │
+                      │  player      │
+                      └──────────────┘
+```
+
+A few decisions shape everything else:
+
+- **A channel is a function from time to program.** Schedules are never stored or synced. They are recomputed from a frozen lineup, a start time, and a seed, so every device gets the same answer for "what is on channel 10 at 7:17 PM" without talking to each other.
+- **Video goes straight from your server to the TV.** Clickarr never proxies media. The server still does direct play or transcoding, Clickarr just asks for the right item at the right offset.
+- **Multiple TVs form a household over the LAN.** One TV coordinates, the others cache the lineup and keep working if it is off. Pairing uses a PIN plus a pinned certificate so a random device on your Wi-Fi cannot join.
+- **Media server credentials never leave the device they were entered on.** Each TV signs in itself. A household shares channels, not tokens.
+- **Fire TV is a first-class target.** Nothing depends on Google Play Services. Sideload the APK and go.
+
+The full reasoning, with the options that were considered and rejected, is in the [architecture proposal](docs/architecture-proposal.md). The living summary is [docs/architecture.md](docs/architecture.md), and each decision has an [ADR](docs/adr/README.md).
+
+## Planned features
+
+Phase 1 and 2 (the MVP) prove the core experience. Everything else lands after.
+
+| Now | Later |
+|---|---|
+| Plex and Jellyfin sign-in | Emby |
+| Channels from shows and libraries | Collections, playlists, genres, decades, custom filters |
+| Sequential and shuffled lineups | Time blocks, day-of-week schedules, fixed-time programs |
+| Half-hour slot padding with filler cards | Marathons, holiday programming, interstitials and bumpers |
+| Grid guide, overlay, channel surfing, numeric entry | Live preview while browsing channels, favorites filter |
+| Household pairing and sync across TVs | Coordinator migration, viewing history |
+| Resume last channel on launch | Watched-state reporting to your server |
+
+## Platforms
+
+| Target | Status |
+|---|---|
+| Android TV / Google TV (Android 7.1+) | Planned for first release |
+| Amazon Fire TV (Fire OS 6+) via sideload | Planned for first release, tested on real sticks |
+| Phones, tablets, web, Apple TV | Not planned. Clickarr is a television interface. |
 
 ## Status
 
-Pre-alpha. The [architecture proposal](docs/architecture-proposal.md) is the
-current deliverable; application code starts once it is approved.
+Pre-alpha. The architecture is approved and Phase 0 is underway: project scaffold, build pipeline, and four technical spikes (Compose for TV performance on Fire sticks, playback at an offset, an embedded TLS server for household sync, and LAN discovery). No installable build yet. Watch the repo or check [the roadmap](docs/architecture-proposal.md#20-phased-mvp-roadmap).
+
+## Documentation
+
+- [Architecture overview](docs/architecture.md)
+- [Architecture proposal](docs/architecture-proposal.md) (the approved original, with every option and tradeoff)
+- [Architecture decision records](docs/adr/README.md)
+- [Design reference and mockups](docs/design/README.md)
+- [Brand assets](brand/README.md)
+
+## Contributing
+
+Clickarr is developed in the open and contributions are welcome once the Phase 1 code lands. Until then, issues and design discussion are the best way to help. Two rules that will not change: no code copied from other media clients (Clickarr is MIT and stays clean-room), and no secrets or server tokens in the repo, ever.
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE). Inter is bundled under the SIL Open Font License. Plex, Jellyfin, and Emby are trademarks of their respective owners; Clickarr is not affiliated with any of them.
