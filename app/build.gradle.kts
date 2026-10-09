@@ -62,7 +62,6 @@ dependencies {
     implementation(project(":feature:channels"))
     implementation(project(":feature:guide"))
     implementation(project(":spike"))
-    debugImplementation(project(":provider:testing"))
 
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.navigation.compose)
