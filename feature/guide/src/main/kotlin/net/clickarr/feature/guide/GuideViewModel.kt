@@ -57,7 +57,8 @@ class GuideViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            combine(repository.channels, repository.favorites) { c, f -> c to f }.collect { (c, f) -> rebuild(c, f) }
+            combine(repository.channels, repository.favorites) { c, f -> c to f }
+                .collect { (c, f) -> rebuild(c, f.map { it.value }.toSet()) }
         }
         viewModelScope.launch {
             while (true) {
@@ -67,7 +68,7 @@ class GuideViewModel @Inject constructor(
         }
     }
 
-    private suspend fun rebuild(channels: List<Channel>, favorites: Set<net.clickarr.core.model.ChannelId>) {
+    private suspend fun rebuild(channels: List<Channel>, favorites: Set<String>) {
         val now = clock.now()
         val from = floorToHalfHour(now - 30.minutes)
         val to = from + WINDOW
@@ -75,7 +76,7 @@ class GuideViewModel @Inject constructor(
             val lineup = lineups[ch.lineup] ?: repository.lineup(ch.lineup)?.also { lineups[ch.lineup] = it }
             Row(ch, lineup?.let { strategy.airingsBetween(ch, it, from, to) } ?: emptyList())
         }
-        _window.value = Window(from, to, now, rows, prefs.lastChannelId.first(), favorites.map { it.value }.toSet())
+        _window.value = Window(from, to, now, rows, prefs.lastChannelId.first(), favorites)
     }
 
     fun tune(channel: Channel, then: () -> Unit) {
