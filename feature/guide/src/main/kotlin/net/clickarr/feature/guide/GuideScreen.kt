@@ -15,10 +15,16 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.focusRequester
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -56,9 +62,11 @@ private val HEADER_HEIGHT = 40.dp
 
 /** Grid guide (design language 4, "Guide grid"). OK on a cell tunes to that channel. */
 @Composable
-fun GuideScreen(onWatch: () -> Unit, viewModel: GuideViewModel = hiltViewModel()) {
+fun GuideScreen(onWatch: () -> Unit, onlyFavorites: Boolean = false, viewModel: GuideViewModel = hiltViewModel()) {
     val window by viewModel.window.collectAsState()
-    val w = window ?: return
+    val all = window ?: return
+    val w = if (onlyFavorites) all.copy(rows = all.rows.filter { it.channel.id.value in all.favorites }) else all
+    val focus = remember(w.rows.size) { GuideFocus(w.rows.size) }
     val scroll = rememberScrollState()
     val density = LocalDensity.current
     val minutePx = with(density) { (ClickarrDimens.GuideHalfHourWidth / 30).toPx() }
@@ -67,10 +75,20 @@ fun GuideScreen(onWatch: () -> Unit, viewModel: GuideViewModel = hiltViewModel()
     Column(Modifier.fillMaxSize().background(ClickarrColors.BgBase).padding(horizontal = ClickarrDimens.SafeArea / 2)) {
         TimeHeader(w.from, w.to, scroll)
         Box(Modifier.weight(1f)) {
+            if (w.rows.isEmpty()) {
+                Text(
+                    if (onlyFavorites) "No favorites yet. Mark channels as favorites from the Channels tab." else "No channels yet.",
+                    style = ClickarrTextStyles.Secondary,
+                    color = ClickarrColors.TextSecondary,
+                    modifier = Modifier.padding(24.dp),
+                )
+            }
             LazyColumn(Modifier.fillMaxSize()) {
-                items(w.rows, key = { it.channel.id.value }) { row ->
+                itemsIndexed(w.rows, key = { _, r -> r.channel.id.value }) { rowIndex, row ->
                     GuideRow(
                         row = row,
+                        rowIndex = rowIndex,
+                        focus = focus,
                         window = w,
                         minutePx = minutePx,
                         scroll = scroll,
@@ -79,6 +97,11 @@ fun GuideScreen(onWatch: () -> Unit, viewModel: GuideViewModel = hiltViewModel()
                         onTune = { viewModel.tune(row.channel, onWatch) },
                     )
                 }
+            }
+            // Initial focus: the program airing now on the current channel, else the first row's current program.
+            LaunchedEffect(w.rows.size, w.currentChannelId) {
+                val rowIndex = w.rows.indexOfFirst { it.channel.id.value == w.currentChannelId }.takeIf { it >= 0 } ?: 0
+                focus.requestAt(rowIndex, w.now)
             }
             NowLine(w, minutePx, scroll.value)
         }
@@ -104,9 +127,34 @@ private fun TimeHeader(from: Instant, to: Instant, scroll: androidx.compose.foun
     }
 }
 
+/**
+ * Per-cell focus requesters so Up/Down land on the program overlapping the focused time
+ * (design language 2.8), instead of wherever Compose's default spatial search lands.
+ */
+private class GuideFocus(rowCount: Int) {
+    val rows = List(rowCount) { HashMap<Int, FocusRequester>() }
+    val airings = List(rowCount) { ArrayList<Airing>() }
+
+    fun requester(row: Int, cell: Int): FocusRequester = rows[row].getOrPut(cell) { FocusRequester() }
+
+    /** The cell in [row] that contains [at], or the first cell that starts after it. */
+    fun cellAt(row: Int, at: Instant): Int? {
+        val list = airings.getOrNull(row) ?: return null
+        val i = list.indexOfFirst { at >= it.start && at < it.end }
+        return if (i >= 0) i else list.indexOfFirst { it.start >= at }.takeIf { it >= 0 }
+    }
+
+    fun requestAt(row: Int, at: Instant) {
+        val cell = cellAt(row, at) ?: return
+        runCatching { requester(row, cell).requestFocus() }
+    }
+}
+
 @Composable
 private fun GuideRow(
     row: GuideViewModel.Row,
+    rowIndex: Int,
+    focus: GuideFocus,
     window: GuideViewModel.Window,
     minutePx: Float,
     scroll: androidx.compose.foundation.ScrollState,
@@ -114,13 +162,37 @@ private fun GuideRow(
     onFocusAiring: (Airing) -> Unit,
     onTune: () -> Unit,
 ) {
+    focus.airings[rowIndex].let { it.clear(); it.addAll(row.airings) }
+    val scope = rememberCoroutineScope()
+    val density = LocalDensity.current
     Row(Modifier.fillMaxWidth().height(ROW_HEIGHT).padding(vertical = ClickarrDimens.GuideCellGutter / 2)) {
         ChannelCell(row.channel, isCurrent)
         Box(Modifier.fillMaxSize().clipToBounds().horizontalScroll(scroll)) {
             Layout(
                 content = {
-                    row.airings.forEach { airing ->
-                        ProgramCell(airing, window, onFocus = { onFocusAiring(airing) }, onTune = onTune)
+                    row.airings.forEachIndexed { i, airing ->
+                        val focusTime = maxOf(airing.start, window.from)
+                        ProgramCell(
+                            airing = airing,
+                            window = window,
+                            modifier = Modifier
+                                .focusRequester(focus.requester(rowIndex, i))
+                                .focusProperties {
+                                    focus.cellAt(rowIndex - 1, focusTime)?.let { c -> up = focus.requester(rowIndex - 1, c) }
+                                    focus.cellAt(rowIndex + 1, focusTime)?.let { c -> down = focus.requester(rowIndex + 1, c) }
+                                },
+                            onFocus = {
+                                onFocusAiring(airing)
+                                // Keep the focused cell inside the visible window.
+                                val leftPx = ((focusTime - window.from).inWholeMinutes * minutePx).toInt()
+                                val margin = with(density) { ClickarrDimens.GuideHalfHourWidth.toPx() }.toInt()
+                                val target = (leftPx - margin).coerceAtLeast(0)
+                                if (leftPx < scroll.value || leftPx > scroll.value + scroll.viewportSize - margin) {
+                                    scope.launch { scroll.animateScrollTo(target) }
+                                }
+                            },
+                            onTune = onTune,
+                        )
                     }
                 },
             ) { measurables, constraints ->
@@ -168,11 +240,17 @@ private fun ChannelCell(channel: Channel, isCurrent: Boolean) {
 }
 
 @Composable
-private fun ProgramCell(airing: Airing, window: GuideViewModel.Window, onFocus: () -> Unit, onTune: () -> Unit) {
+private fun ProgramCell(
+    airing: Airing,
+    window: GuideViewModel.Window,
+    modifier: Modifier,
+    onFocus: () -> Unit,
+    onTune: () -> Unit,
+) {
     val interaction = remember { MutableInteractionSource() }
     val past = airing.end <= window.now
     Box(
-        Modifier
+        modifier
             .fillMaxSize()
             .padding(horizontal = ClickarrDimens.GuideCellGutter / 2)
             .clickarrFocusable(interaction)

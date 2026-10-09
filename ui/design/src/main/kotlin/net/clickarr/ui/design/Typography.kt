@@ -33,10 +33,34 @@ object ClickarrTextStyles {
         lineHeight = 40.sp,
         letterSpacing = (-0.25).sp,
     )
-    val ScreenTitle = TextStyle(color = ClickarrColors.TextPrimary, fontFamily = InterFamily, fontWeight = FontWeight.SemiBold, fontSize = 26.sp, lineHeight = 32.sp)
-    val RowTitle = TextStyle(color = ClickarrColors.TextPrimary, fontFamily = InterFamily, fontWeight = FontWeight.Medium, fontSize = 24.sp, lineHeight = 30.sp)
-    val Body = TextStyle(color = ClickarrColors.TextPrimary, fontFamily = InterFamily, fontWeight = FontWeight.Normal, fontSize = 24.sp, lineHeight = 32.sp)
-    val Secondary = TextStyle(color = ClickarrColors.TextPrimary, fontFamily = InterFamily, fontWeight = FontWeight.Normal, fontSize = 20.sp, lineHeight = 26.sp)
+    val ScreenTitle = TextStyle(
+        color = ClickarrColors.TextPrimary,
+        fontFamily = InterFamily,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 26.sp,
+        lineHeight = 32.sp,
+    )
+    val RowTitle = TextStyle(
+        color = ClickarrColors.TextPrimary,
+        fontFamily = InterFamily,
+        fontWeight = FontWeight.Medium,
+        fontSize = 24.sp,
+        lineHeight = 30.sp,
+    )
+    val Body = TextStyle(
+        color = ClickarrColors.TextPrimary,
+        fontFamily = InterFamily,
+        fontWeight = FontWeight.Normal,
+        fontSize = 24.sp,
+        lineHeight = 32.sp,
+    )
+    val Secondary = TextStyle(
+        color = ClickarrColors.TextPrimary,
+        fontFamily = InterFamily,
+        fontWeight = FontWeight.Normal,
+        fontSize = 20.sp,
+        lineHeight = 26.sp,
+    )
     val Caption = TextStyle(
         color = ClickarrColors.TextPrimary,
         fontFamily = InterFamily,

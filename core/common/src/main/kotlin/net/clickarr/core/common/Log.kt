@@ -18,6 +18,12 @@ object Log {
     @Volatile
     var minLevel: Level = Level.DEBUG
 
+    private const val HISTORY = 300
+    private val history = ArrayDeque<String>(HISTORY)
+
+    /** The most recent lines, oldest first, already redacted. Backs the Diagnostics screen. */
+    fun recent(): List<String> = synchronized(history) { history.toList() }
+
     fun v(tag: String, message: () -> String) = emit(Level.VERBOSE, tag, null, message)
     fun d(tag: String, message: () -> String) = emit(Level.DEBUG, tag, null, message)
     fun i(tag: String, message: () -> String) = emit(Level.INFO, tag, null, message)
@@ -26,6 +32,11 @@ object Log {
 
     private inline fun emit(level: Level, tag: String, throwable: Throwable?, message: () -> String) {
         if (level.ordinal < minLevel.ordinal) return
-        sink.log(level, tag, Redact.apply(message()), throwable)
+        val text = Redact.apply(message())
+        synchronized(history) {
+            if (history.size >= HISTORY) history.removeFirst()
+            history.addLast("${level.name.first()}/$tag: $text" + (throwable?.let { " (${it::class.simpleName}: ${it.message})" } ?: ""))
+        }
+        sink.log(level, tag, text, throwable)
     }
 }

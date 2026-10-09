@@ -61,6 +61,7 @@ dependencies {
     implementation(project(":feature:player"))
     implementation(project(":feature:channels"))
     implementation(project(":feature:guide"))
+    implementation(project(":feature:settings"))
     implementation(project(":spike"))
 
     implementation(libs.androidx.datastore.preferences)

@@ -36,6 +36,7 @@ fun ChannelsScreen(
 ) {
     val channels by viewModel.channels.collectAsState()
     val preview by viewModel.preview.collectAsState()
+    val favorites by viewModel.favorites.collectAsState()
 
     Row(Modifier.fillMaxSize()) {
         Column(
@@ -51,6 +52,9 @@ fun ChannelsScreen(
                         onClick = { viewModel.tune(ch, onWatch) },
                         headlineContent = { Text(ch.name, style = ClickarrTextStyles.RowTitle) },
                         leadingContent = { Text(ch.number.toString(), style = ClickarrTextStyles.RowTitle) },
+                        trailingContent = {
+                            if (ch.id in favorites) Text("★", style = ClickarrTextStyles.RowTitle, color = ClickarrColors.AccentGlow)
+                        },
                         modifier = Modifier.onFocusChanged { if (it.isFocused) viewModel.focus(ch) },
                     )
                 }
@@ -64,13 +68,20 @@ fun ChannelsScreen(
             }
         }
         Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.BottomStart) {
-            preview?.let { PreviewCard(it, onDelete = { viewModel.delete(it.channel.id) }) }
+            preview?.let { p ->
+                PreviewCard(
+                    p,
+                    isFavorite = p.channel.id in favorites,
+                    onToggleFavorite = { viewModel.toggleFavorite(p.channel.id) },
+                    onDelete = { viewModel.delete(p.channel.id) },
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun PreviewCard(p: ChannelsViewModel.Preview, onDelete: () -> Unit) {
+private fun PreviewCard(p: ChannelsViewModel.Preview, isFavorite: Boolean, onToggleFavorite: () -> Unit, onDelete: () -> Unit) {
     Column(
         Modifier
             .width(560.dp)
@@ -87,6 +98,7 @@ private fun PreviewCard(p: ChannelsViewModel.Preview, onDelete: () -> Unit) {
         p.now?.entry?.subtitle?.let { Text(it, style = ClickarrTextStyles.Secondary, color = ClickarrColors.TextSecondary) }
         p.next?.let { Text("Up next: ${it.entry.title}", style = ClickarrTextStyles.Caption, color = ClickarrColors.TextMuted) }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(top = 8.dp)) {
+            Button(onClick = onToggleFavorite) { Text(if (isFavorite) "Remove from favorites" else "Add to favorites") }
             Button(onClick = onDelete) { Text("Delete channel") }
         }
     }

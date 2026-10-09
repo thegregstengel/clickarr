@@ -29,6 +29,13 @@ class ChannelsViewModel @Inject constructor(
     val channels: StateFlow<List<Channel>> =
         repository.channels.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    val favorites: StateFlow<Set<ChannelId>> =
+        repository.favorites.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptySet())
+
+    fun toggleFavorite(id: ChannelId) {
+        viewModelScope.launch { repository.setFavorite(id, id !in favorites.value) }
+    }
+
     data class Preview(val channel: Channel, val now: Airing?, val next: Airing?)
 
     private val _preview = MutableStateFlow<Preview?>(null)

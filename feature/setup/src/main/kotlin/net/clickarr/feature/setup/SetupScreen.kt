@@ -32,6 +32,7 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import net.clickarr.ui.design.ClickarrColors
 import net.clickarr.ui.design.ClickarrDimens
+import net.clickarr.ui.design.ClickarrLogoStacked
 import net.clickarr.ui.design.ClickarrTextStyles
 
 /** First-run flow (design language section 5, "Setup"). Centered column, one card per step. */
@@ -46,7 +47,7 @@ fun SetupScreen(onDone: () -> Unit, viewModel: SetupViewModel = hiltViewModel())
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
-            Text("Clickarr", style = ClickarrTextStyles.ProgramTitle)
+            ClickarrLogoStacked(markSize = 140.dp)
             Text("Turn your media library into TV", style = ClickarrTextStyles.ScreenTitle, color = ClickarrColors.TextSecondary)
             Spacer(Modifier.height(8.dp))
             Card {

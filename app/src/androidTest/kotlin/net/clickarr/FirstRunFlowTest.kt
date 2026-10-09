@@ -100,6 +100,19 @@ class FirstRunFlowTest {
         device.pressKeyCode(KeyEvent.KEYCODE_DPAD_RIGHT)
         waitForText("Today")
         shot("08-guide")
+
+        click("Settings")
+        waitForText("This TV")
+        shot("09-settings-general")
+        click("Media Server")
+        waitForText("Disconnect and sign in again")
+        shot("10-settings-server")
+        click("Diagnostics")
+        waitForText("scheduler version")
+        shot("11-settings-diagnostics")
+        click("About")
+        waitForText("MIT licensed")
+        shot("12-settings-about")
     }
 
     companion object {

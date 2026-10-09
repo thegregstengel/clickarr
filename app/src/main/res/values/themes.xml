@@ -2,7 +2,7 @@
 <resources>
     <!-- Window background matches the Compose theme so launch shows no white flash on slow devices. -->
     <style name="Theme.Clickarr" parent="android:Theme.Material.NoActionBar">
-        <item name="android:windowBackground">@color/bg_base</item>
+        <item name="android:windowBackground">@drawable/launch_window</item>
         <item name="android:colorBackground">@color/bg_base</item>
         <item name="android:windowAnimationStyle">@null</item>
     </style>

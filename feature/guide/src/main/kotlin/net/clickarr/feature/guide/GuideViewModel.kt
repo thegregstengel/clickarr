@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
@@ -40,7 +41,14 @@ class GuideViewModel @Inject constructor(
 ) : ViewModel() {
     data class Row(val channel: Channel, val airings: List<Airing>)
 
-    data class Window(val from: Instant, val to: Instant, val now: Instant, val rows: List<Row>, val currentChannelId: String?)
+    data class Window(
+        val from: Instant,
+        val to: Instant,
+        val now: Instant,
+        val rows: List<Row>,
+        val currentChannelId: String?,
+        val favorites: Set<String>,
+    )
 
     private val _window = MutableStateFlow<Window?>(null)
     val window: StateFlow<Window?> = _window.asStateFlow()
@@ -49,17 +57,17 @@ class GuideViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            repository.channels.collect { channels -> rebuild(channels) }
+            combine(repository.channels, repository.favorites) { c, f -> c to f }.collect { (c, f) -> rebuild(c, f) }
         }
         viewModelScope.launch {
             while (true) {
                 delay(60_000)
-                _window.value?.let { w -> rebuild(w.rows.map { it.channel }) }
+                _window.value?.let { w -> rebuild(w.rows.map { it.channel }, w.favorites) }
             }
         }
     }
 
-    private suspend fun rebuild(channels: List<Channel>) {
+    private suspend fun rebuild(channels: List<Channel>, favorites: Set<net.clickarr.core.model.ChannelId>) {
         val now = clock.now()
         val from = floorToHalfHour(now - 30.minutes)
         val to = from + WINDOW
@@ -67,7 +75,7 @@ class GuideViewModel @Inject constructor(
             val lineup = lineups[ch.lineup] ?: repository.lineup(ch.lineup)?.also { lineups[ch.lineup] = it }
             Row(ch, lineup?.let { strategy.airingsBetween(ch, it, from, to) } ?: emptyList())
         }
-        _window.value = Window(from, to, now, rows, prefs.lastChannelId.first())
+        _window.value = Window(from, to, now, rows, prefs.lastChannelId.first(), favorites.map { it.value }.toSet())
     }
 
     fun tune(channel: Channel, then: () -> Unit) {

@@ -49,6 +49,7 @@ fun ClickarrApp(onExit: () -> Unit, viewModel: AppViewModel = hiltViewModel()) {
                 initialTab = entry.arguments?.getString("tab") ?: "channels",
                 onWatch = { nav.navigate(Routes.PLAYER) { popUpTo(Routes.PLAYER) { inclusive = true } } },
                 onCreateChannel = { nav.navigate(Routes.EDITOR) },
+                onDisconnected = { nav.navigate(Routes.SETUP) { popUpTo(0) { inclusive = true } } },
                 onExit = onExit,
             )
         }

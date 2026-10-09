@@ -22,18 +22,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.tv.material3.Button
 import androidx.tv.material3.Text
 import net.clickarr.feature.channels.ChannelsScreen
 import net.clickarr.feature.guide.GuideScreen
+import net.clickarr.feature.settings.SettingsScreen
 import net.clickarr.spike.SpikeApp
 import net.clickarr.spike.SpikeArgs
 import net.clickarr.ui.design.ClickarrColors
 import net.clickarr.ui.design.ClickarrDimens
+import net.clickarr.ui.design.ClickarrLogoHorizontal
 import net.clickarr.ui.design.ClickarrTextStyles
 import net.clickarr.ui.design.clickarrFocusable
 
-private enum class ShellTab(val label: String) { GUIDE("Guide"), CHANNELS("Channels"), SETTINGS("Settings") }
+private enum class ShellTab(val label: String) { GUIDE("Guide"), CHANNELS("Channels"), FAVORITES("Favorites"), SETTINGS("Settings") }
 
 /**
  * The tabbed shell behind Back from the player (design language 4, "Shell"). Guide lands in the next
@@ -44,6 +45,7 @@ fun ShellScreen(
     initialTab: String,
     onWatch: () -> Unit,
     onCreateChannel: () -> Unit,
+    onDisconnected: () -> Unit,
     onExit: () -> Unit,
     viewModel: AppViewModel = hiltViewModel(),
 ) {
@@ -66,7 +68,7 @@ fun ShellScreen(
             Modifier.fillMaxWidth().padding(horizontal = ClickarrDimens.SafeArea, vertical = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(32.dp),
         ) {
-            Text("Clickarr", style = ClickarrTextStyles.ScreenTitle)
+            ClickarrLogoHorizontal(markSize = 40.dp)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 ShellTab.entries.forEach { t -> ShellTabPill(t, selected = tab == t, onFocus = { tab = t }) }
             }
@@ -75,11 +77,13 @@ fun ShellScreen(
             when (tab) {
                 ShellTab.GUIDE -> GuideScreen(onWatch = onWatch)
                 ShellTab.CHANNELS -> ChannelsScreen(onCreate = onCreateChannel, onWatch = onWatch)
-                ShellTab.SETTINGS -> Column(Modifier.padding(ClickarrDimens.SafeArea), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("Settings", style = ClickarrTextStyles.ScreenTitle)
-                    Button(onClick = { spikes = true }) { Text("Phase 0 spikes") }
-                    Button(onClick = onExit) { Text("Exit Clickarr") }
-                }
+                ShellTab.FAVORITES -> GuideScreen(onWatch = onWatch, onlyFavorites = true)
+                ShellTab.SETTINGS -> SettingsScreen(
+                    appVersion = BuildConfig.VERSION_NAME,
+                    onDisconnected = onDisconnected,
+                    onOpenSpikes = { spikes = true },
+                    onExit = onExit,
+                )
             }
         }
     }

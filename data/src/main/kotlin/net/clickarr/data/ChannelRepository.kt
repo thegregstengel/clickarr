@@ -16,6 +16,7 @@ import net.clickarr.core.common.ClickarrError
 import net.clickarr.core.common.Clock
 import net.clickarr.core.common.Outcome
 import net.clickarr.core.database.ClickarrDatabase
+import net.clickarr.core.database.FavoriteEntity
 import net.clickarr.core.database.toEntities
 import net.clickarr.core.database.toEntity
 import net.clickarr.core.database.toLineup
@@ -51,6 +52,15 @@ class ChannelRepository @Inject constructor(
     val channels: Flow<List<Channel>> = db.channels().observeAll().map { list -> list.map { it.toModel() } }
 
     suspend fun all(): List<Channel> = db.channels().all().map { it.toModel() }
+
+    val favorites: Flow<Set<ChannelId>> = db.favorites().observeAll().map { ids -> ids.map(::ChannelId).toSet() }
+
+    suspend fun setFavorite(id: ChannelId, favorite: Boolean) {
+        if (favorite) db.favorites().add(FavoriteEntity(id.value)) else db.favorites().remove(FavoriteEntity(id.value))
+    }
+
+    /** Re-resolve every channel's source; changes cut over at each channel's next program boundary. */
+    suspend fun refreshAll(): Int = all().count { refreshLineup(it.id, applyNow = false) is Outcome.Success }
 
     suspend fun byId(id: ChannelId): Channel? = db.channels().byId(id.value)?.toModel()
 

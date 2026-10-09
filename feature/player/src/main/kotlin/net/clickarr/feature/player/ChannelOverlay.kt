@@ -29,6 +29,7 @@ import net.clickarr.playback.core.TuneState
 import net.clickarr.playback.core.TuneStatus
 import net.clickarr.ui.design.ClickarrColors
 import net.clickarr.ui.design.ClickarrDimens
+import net.clickarr.ui.design.ClickarrLogoPill
 import net.clickarr.ui.design.ClickarrTextStyles
 
 /** Bottom overlay: channel badge, name, program, slot time, progress, Up Next (design language 4). */
@@ -41,12 +42,7 @@ fun ChannelOverlay(state: TuneState, now: Instant, digits: String) {
             .fillMaxSize()
             .background(Brush.verticalGradient(0.45f to Color.Transparent, 1f to ClickarrColors.BgBase.copy(alpha = 0.85f))),
     ) {
-        Row(
-            Modifier.align(Alignment.TopStart).padding(ClickarrDimens.SafeArea),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text("Clickarr", style = ClickarrTextStyles.ScreenTitle)
-        }
+        ClickarrLogoPill(Modifier.align(Alignment.TopStart).padding(ClickarrDimens.SafeArea))
         Text(
             clock(now),
             style = ClickarrTextStyles.ScreenTitle.tabular(),

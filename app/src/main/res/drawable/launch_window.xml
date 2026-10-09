@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@color/bg_base" />
+    <item android:gravity="center" android:width="160dp" android:height="160dp" android:drawable="@drawable/ic_clickarr_mark" />
+</layer-list>
