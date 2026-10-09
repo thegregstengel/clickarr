@@ -34,15 +34,21 @@ class DevicePrefs(context: Context) {
 
     suspend fun deviceNameNow(): String = deviceName.first()
 
-    suspend fun setDeviceName(name: String) = store.edit { it[DEVICE_NAME] = name }
+    suspend fun setDeviceName(name: String) {
+        store.edit { it[DEVICE_NAME] = name }
+    }
 
     val lastChannelId: Flow<String?> = store.data.map { it[LAST_CHANNEL] }
 
-    suspend fun setLastChannelId(id: String?) = store.edit { if (id == null) it.remove(LAST_CHANNEL) else it[LAST_CHANNEL] = id }
+    suspend fun setLastChannelId(id: String?) {
+        store.edit { if (id == null) it.remove(LAST_CHANNEL) else it[LAST_CHANNEL] = id }
+    }
 
     val overlayTimeoutMs: Flow<Int> = store.data.map { it[OVERLAY_TIMEOUT] ?: DEFAULT_OVERLAY_TIMEOUT_MS }
 
-    suspend fun setOverlayTimeoutMs(ms: Int) = store.edit { it[OVERLAY_TIMEOUT] = ms.coerceIn(2_000, 10_000) }
+    suspend fun setOverlayTimeoutMs(ms: Int) {
+        store.edit { it[OVERLAY_TIMEOUT] = ms.coerceIn(2_000, 10_000) }
+    }
 
     companion object {
         private val DEVICE_ID = stringPreferencesKey("device_id")
