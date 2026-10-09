@@ -7,7 +7,7 @@ Get the APK one of two ways:
 - **On the TV, no computer:** install the Downloader app, enter `clickarr.net/nightly`, install. (That short link redirects to the latest debug build from `main`.)
 - **With ADB:** download `clickarr-nightly-debug.apk` from the [nightly pre-release](https://github.com/thegregstengel/clickarr/releases/tag/nightly), then `adb install -r clickarr-nightly-debug.apk`.
 
-Then either pick a spike from the menu or launch one directly:
+Then open Settings, choose "Phase 0 spikes", or launch one directly:
 
 ```bash
 adb shell am start -n net.clickarr.debug/net.clickarr.MainActivity --es spike guide

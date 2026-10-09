@@ -29,9 +29,13 @@ The debug build has application id `net.clickarr.debug`, so it installs beside a
 
 See [architecture.md](architecture.md#module-map). Pure-Kotlin modules (`core:*`) have no Android dependency and their tests run on the JVM in seconds.
 
+## App flow (Phase 1)
+
+Launch goes to Plex sign-in when no server is connected, otherwise straight to the player on the last channel. Back from the player opens the shell (Guide, Channels, Settings). Channels has the create-channel wizard. Settings holds the Phase 0 spikes.
+
 ## Phase 0 spikes
 
-Until Phase 1 lands, the app launches into a spike menu. [spikes.md](spikes.md) explains each spike, how to drive it, and where to record results.
+[spikes.md](spikes.md) explains each spike, how to drive it, and where to record results. They are reachable from Settings or with the `--es spike <name>` launch extra.
 
 ## Logging
 

@@ -102,7 +102,7 @@ Phase 1 and 2 (the MVP) prove the core experience. Everything else lands after.
 
 ## Status
 
-Pre-alpha. The architecture is approved and Phase 0 is underway: project scaffold, build pipeline, and four technical spikes (Compose for TV performance on Fire sticks, playback at an offset, an embedded TLS server for household sync, and LAN discovery). No installable build yet. Watch the repo or check [the roadmap](docs/architecture-proposal.md#20-phased-mvp-roadmap).
+Pre-alpha, Phase 1 in progress. A nightly debug build exists and already does the core loop: sign in to Plex, create a channel from shows, a library with filters, a collection, or a playlist, and watch it with the overlay and a program guide. It is rough, untested on real hardware beyond CI, and changes daily. Get it from the [nightly pre-release](https://github.com/thegregstengel/clickarr/releases/tag/nightly) or `clickarr.net/nightly` in the Fire TV Downloader app. Phase 0 spikes (device measurements) still need to be run; they live under Settings in the app. Roadmap: [proposal section 20](docs/architecture-proposal.md#20-phased-mvp-roadmap).
 
 ## Documentation
 
