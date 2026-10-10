@@ -4,7 +4,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Typography
 
@@ -15,10 +14,12 @@ val InterFamily = FontFamily(
     Font(R.font.inter_bold, FontWeight.Bold),
 )
 
-/** TV type scale from docs/design/README.md. Nothing below 18 sp. */
+/**
+ * TV type scale from docs/design/README.md. Nothing below 18 sp. Styles carry no color: text takes the content
+ * color of whatever contains it, so a focused Button or ListItem (light container) shows dark text.
+ */
 object ClickarrTextStyles {
     val ChannelNumber = TextStyle(
-        color = ClickarrColors.TextPrimary,
         fontFamily = InterFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 40.sp,
@@ -26,7 +27,6 @@ object ClickarrTextStyles {
         letterSpacing = (-0.5).sp,
     )
     val ProgramTitle = TextStyle(
-        color = ClickarrColors.TextPrimary,
         fontFamily = InterFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 34.sp,
@@ -34,35 +34,30 @@ object ClickarrTextStyles {
         letterSpacing = (-0.25).sp,
     )
     val ScreenTitle = TextStyle(
-        color = ClickarrColors.TextPrimary,
         fontFamily = InterFamily,
         fontWeight = FontWeight.SemiBold,
         fontSize = 26.sp,
         lineHeight = 32.sp,
     )
     val RowTitle = TextStyle(
-        color = ClickarrColors.TextPrimary,
         fontFamily = InterFamily,
         fontWeight = FontWeight.Medium,
         fontSize = 24.sp,
         lineHeight = 30.sp,
     )
     val Body = TextStyle(
-        color = ClickarrColors.TextPrimary,
         fontFamily = InterFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 24.sp,
         lineHeight = 32.sp,
     )
     val Secondary = TextStyle(
-        color = ClickarrColors.TextPrimary,
         fontFamily = InterFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 20.sp,
         lineHeight = 26.sp,
     )
     val Caption = TextStyle(
-        color = ClickarrColors.TextPrimary,
         fontFamily = InterFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 18.sp,
@@ -70,7 +65,6 @@ object ClickarrTextStyles {
         letterSpacing = 0.1.sp,
     )
     val LabelAllCaps = TextStyle(
-        color = ClickarrColors.TextPrimary,
         fontFamily = InterFamily,
         fontWeight = FontWeight.SemiBold,
         fontSize = 18.sp,
