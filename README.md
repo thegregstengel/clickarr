@@ -114,9 +114,19 @@ Pre-alpha, Phase 1 in progress. A nightly debug build exists and already does th
 - [Design language](docs/design/design-language.md) and [mockups](docs/design/README.md)
 - [Brand assets](brand/README.md)
 
-## Contributing
+## How to help develop Clickarr
 
-Clickarr is developed in the open and contributions are welcome once the Phase 1 code lands. Until then, issues and design discussion are the best way to help. Two rules that will not change: no code copied from other media clients (Clickarr is MIT and stays clean-room), and no secrets or server tokens in the repo, ever.
+Clickarr is developed in the open and help is welcome. The most useful things right now, in order:
+
+1. **Run the nightly on a real TV and report what breaks.** Fire TV sticks, Chromecast with Google TV, Shield, Sony and TCL sets: each one is a little different, and CI only has an emulator. Open an issue with the device, the Plex server version, and the lines from Settings, Diagnostics.
+2. **Try your library against Suggest channels and the channel editor.** Odd metadata (specials, multi-part episodes, mixed libraries) is where schedulers go wrong.
+3. **Send a pull request** for a bug you can reproduce or a small, well-scoped feature. Open an issue first for anything bigger than an afternoon so we agree on the shape before you write it.
+
+How a change gets in:
+
+- Fork the repo and work on a branch in your fork. Nobody but the maintainer can push to `main`, and `main` only takes squash-merged pull requests that pass CI and have been reviewed and merged by the maintainer. That is deliberate: one person is paying attention to every line, and there is no second remote to drift.
+- CI (detekt, unit tests, lint, a debug build) runs on your pull request after the maintainer approves the run; the emulator suite and the nightly publish run only on `main`. Please run `./gradlew detekt test` yourself first.
+- Read [CONTRIBUTING.md](CONTRIBUTING.md) for the rules that will not change: no code copied from other media clients (Clickarr is MIT and stays clean-room), no secrets or server tokens in the repo, Plex only, and tests alongside scheduler and protocol changes. [docs/development.md](docs/development.md) has the toolchain.
 
 ## License
 
