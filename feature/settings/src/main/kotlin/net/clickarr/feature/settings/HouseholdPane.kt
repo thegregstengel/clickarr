@@ -59,6 +59,7 @@ fun HouseholdPane(viewModel: HouseholdViewModel = hiltViewModel()) {
         HouseholdService.Role.None -> if (joining) JoinSection(viewModel, primary, swap) else NoneSection(viewModel, primary, swap)
         is HouseholdService.Role.Coordinator -> CoordinatorSection(r, household?.name, devices, viewModel, primary, swap)
         is HouseholdService.Role.Member -> MemberSection(r, household?.name, devices, viewModel, primary, swap)
+        HouseholdService.Role.Drive -> Unit // the Sync pane shows the Drive section instead
     }
     message?.let { Text(it, style = ClickarrTextStyles.Secondary, color = ClickarrColors.StatusError) }
 }
@@ -88,6 +89,7 @@ private fun sectionKey(role: HouseholdService.Role, joining: Boolean): String = 
     HouseholdService.Role.None -> if (joining) "join" else "none"
     is HouseholdService.Role.Coordinator -> if (role.pin != null) "coordinator-pin" else "coordinator"
     is HouseholdService.Role.Member -> "member"
+    HouseholdService.Role.Drive -> "drive"
 }
 
 @Composable

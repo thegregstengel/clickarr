@@ -83,13 +83,14 @@ private fun DriveSection(vm: SyncViewModel) {
         }
         is DriveSync.Status.SignedIn -> {
             Text("Signed in as ${s.email ?: "your Google account"}", style = ClickarrTextStyles.RowTitle)
+            val problem = s.message
             val line = when {
                 s.syncing -> "Syncing…"
-                s.message != null -> s.message
+                problem != null -> problem
                 s.lastSync != null -> "Synced. Every TV on this account and Plex server shows the same lineup."
                 else -> "Not synced yet."
             }
-            val color = if (s.message != null) ClickarrColors.StatusError else ClickarrColors.TextSecondary
+            val color = if (problem != null) ClickarrColors.StatusError else ClickarrColors.TextSecondary
             Text(line, style = ClickarrTextStyles.Secondary, color = color)
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Button(onClick = vm::syncNow) { Text("Sync now") }
