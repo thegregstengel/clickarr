@@ -96,3 +96,9 @@ To try it with two devices on one LAN: on TV A open Settings, Household, Create 
 read the code. On TV B open Settings, Household, Join a household, pick TV A from the list (or type its address),
 enter the code, Join. Both TVs now show the same channels and the same program at the same offset.
 
+The emulator test also exercises the member side without a second device: `app/src/androidTest/.../TestCoordinator.kt`
+runs a coordinator with one movie channel inside the test process on a loopback port, and `FirstRunFlowTest` dissolves
+the emulator's own household, joins that coordinator by address and PIN, and checks the synced channel shows up on the
+Channels tab (screens 15 to 17). Joining by a typed address trusts the fingerprint the coordinator states on first
+use; joining from the discovery list checks the stated fingerprint against the one that was advertised.
+

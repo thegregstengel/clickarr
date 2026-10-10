@@ -139,11 +139,28 @@ class FirstRunFlowTest {
         click("Add a device")
         waitForText("enter this code")
         shot("14-household-pin")
+
+        // Dissolve, then join the test process's coordinator as a member by address and PIN.
+        click("Stop")
+        click("Dissolve household")
+        waitForText("Create a household")
+        click("Join a household")
+        waitForText("Households found")
+        compose.onNodeWithTag("household.address").performTextInput(otherTv.baseUrl)
+        compose.onNodeWithTag("household.pin").performTextInput(otherTv.pin())
+        shot("15-household-join")
+        click("Join")
+        waitForText("Connected to household Test Home", timeoutMs = 30_000)
+        shot("16-household-member")
+        click("Channels")
+        waitForText("Movies")
+        shot("17-channels-synced")
     }
 
     companion object {
         private const val SHOT_SETTLE_MS = 700L
         lateinit var plex: PlexFixtureServer
+        lateinit var otherTv: TestCoordinator
 
         @JvmStatic
         @BeforeClass
@@ -153,10 +170,14 @@ class FirstRunFlowTest {
             ctx.noBackupFilesDir.listFiles()?.forEach { it.deleteRecursively() }
             File(ctx.filesDir, "datastore").deleteRecursively()
             plex = PlexFixtureServer()
+            otherTv = TestCoordinator()
         }
 
         @JvmStatic
         @AfterClass
-        fun stopServer() = plex.close()
+        fun stopServer() {
+            plex.close()
+            otherTv.close()
+        }
     }
 }

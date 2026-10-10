@@ -42,6 +42,8 @@ data class InfoResponse(
     val now: Instant,
     /** Whether the coordinator is currently accepting pairing attempts (user turned it on in Settings). */
     val acceptingJoins: Boolean = false,
+    /** The coordinator's certificate fingerprint, pinned by joiners on first use (ADR 0013). */
+    val fingerprint: String = "",
 )
 
 // Pairing (proposal 13.4)

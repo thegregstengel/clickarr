@@ -81,4 +81,6 @@ dependencies {
     androidTestImplementation(libs.androidx.test.uiautomator)
     androidTestImplementation(libs.okhttp.mockwebserver)
     androidTestImplementation(project(":provider:plex-fixtures"))
+    androidTestImplementation(project(":household:coordinator"))
+    androidTestImplementation(libs.ktor.server.cio)
 }

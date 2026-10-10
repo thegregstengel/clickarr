@@ -247,7 +247,13 @@ class HouseholdService @Inject constructor(
             is Outcome.Failure -> return r
         }
         if (info.protocolVersion > PROTOCOL_VERSION) return Outcome.Failure(ClickarrError.Unsupported("Update Clickarr on this TV to join"))
-        return HouseholdJoin.join(probe, selfId, prefs.deviceNameNow(), DeviceIdentity.fingerprint(), coordinatorFingerprint ?: "", pin)
+        // Discovery may have supplied the fingerprint; otherwise trust the one the coordinator states, on first use.
+        val advertised = coordinatorFingerprint?.takeIf { it.isNotBlank() }
+        val expected = advertised ?: info.fingerprint
+        if (advertised != null && info.fingerprint.isNotBlank() && advertised != info.fingerprint) {
+            return Outcome.Failure(ClickarrError.Unauthorized("That TV's identity does not match what was advertised"))
+        }
+        return HouseholdJoin.join(probe, selfId, prefs.deviceNameNow(), DeviceIdentity.fingerprint(), expected, pin)
     }
 
     private suspend fun startMember(h: HouseholdEntity) {

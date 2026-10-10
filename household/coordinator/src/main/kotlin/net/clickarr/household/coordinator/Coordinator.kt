@@ -81,6 +81,7 @@ class Coordinator(
             revision = s.revision,
             now = clock.now(),
             acceptingJoins = activePin?.let { it.expiresAt > clock.now() } == true,
+            fingerprint = fingerprint(),
         )
     }
 
