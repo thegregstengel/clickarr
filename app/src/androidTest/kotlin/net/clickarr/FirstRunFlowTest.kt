@@ -194,6 +194,8 @@ class FirstRunFlowTest {
         click("Clickarr") // back to the default palette for the rest of the run
 
         click("Sync")
+        waitForText("Local household")
+        click("Local household")
         waitForText("Create a household")
         shot("13-household-none")
         click("Create a household")

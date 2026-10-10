@@ -14,7 +14,7 @@ import net.clickarr.data.HouseholdService
 
 /** Settings, Sync: the mode choice (ADR 0020) and the Google Drive side of it. The LAN side is HouseholdViewModel. */
 @HiltViewModel
-class SyncViewModel @Inject constructor(private val service: HouseholdService, prefs: DevicePrefs) : ViewModel() {
+class SyncViewModel @Inject constructor(private val service: HouseholdService, private val prefs: DevicePrefs) : ViewModel() {
     val role: StateFlow<HouseholdService.Role> = service.role
     val driveConfigured: Boolean = service.driveConfigured
     val syncMode: StateFlow<String> = prefs.syncMode.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DevicePrefs.SYNC_OFF)
@@ -22,6 +22,7 @@ class SyncViewModel @Inject constructor(private val service: HouseholdService, p
 
     fun chooseLocal() = viewModelScope.launch {
         if (service.role.value is HouseholdService.Role.Drive) service.leave()
+        prefs.setSyncMode(DevicePrefs.SYNC_LOCAL)
     }
 
     fun chooseDrive() = viewModelScope.launch {
@@ -29,7 +30,10 @@ class SyncViewModel @Inject constructor(private val service: HouseholdService, p
         service.startDrive()
     }
 
-    fun chooseOff() = viewModelScope.launch { service.leave() }
+    fun chooseOff() = viewModelScope.launch {
+        service.leave()
+        prefs.setSyncMode(DevicePrefs.SYNC_OFF)
+    }
 
     fun signIn() = service.drive.beginSignIn()
 
