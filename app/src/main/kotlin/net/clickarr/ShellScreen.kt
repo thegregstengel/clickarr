@@ -35,6 +35,7 @@ import net.clickarr.feature.settings.SettingsActions
 import androidx.tv.material3.Icon
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
@@ -107,26 +108,7 @@ fun ShellScreen(
             .background(ClickarrColors.BgBase)
             .onPreviewKeyEvent { lastKeyAt[0] = SystemClock.uptimeMillis(); false },
     ) {
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = ClickarrDimens.SafeArea, vertical = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(32.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            ClickarrLogoHorizontal(markSize = 40.dp)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf(ShellTab.GUIDE, ShellTab.FAVORITES).forEach { t ->
-                    ShellTabPill(t, selected = tab == t, onFocus = { select(t) }, onSelect = { switched = switched || t != tab; tab = t })
-                }
-            }
-            Spacer(Modifier.weight(1f))
-            ShellTabPill(
-                ShellTab.SETTINGS,
-                selected = tab == ShellTab.SETTINGS,
-                onFocus = { select(ShellTab.SETTINGS) },
-                onSelect = { switched = switched || tab != ShellTab.SETTINGS; tab = ShellTab.SETTINGS },
-                modifier = Modifier.testTag("shell.settings"),
-            )
-        }
+        ShellTopRow(tab, onFocusTab = ::select, onSelectTab = { t -> switched = switched || t != tab; tab = t })
         Box(Modifier.fillMaxSize()) {
             when (tab) {
                 ShellTab.GUIDE -> GuideScreen(onWatch = callbacks.onWatch, takeFocus = !switched)
@@ -147,6 +129,31 @@ fun ShellScreen(
     }
 }
 
+/** Logo, Guide and Favorites, and the settings cog at the far right. */
+@Composable
+private fun ShellTopRow(tab: ShellTab, onFocusTab: (ShellTab) -> Unit, onSelectTab: (ShellTab) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = ClickarrDimens.SafeArea, vertical = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(32.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        ClickarrLogoHorizontal(markSize = 40.dp)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf(ShellTab.GUIDE, ShellTab.FAVORITES).forEach { t ->
+                ShellTabPill(t, selected = tab == t, onFocus = { onFocusTab(t) }, onSelect = { onSelectTab(t) })
+            }
+        }
+        Spacer(Modifier.weight(1f))
+        ShellTabPill(
+            ShellTab.SETTINGS,
+            selected = tab == ShellTab.SETTINGS,
+            onFocus = { onFocusTab(ShellTab.SETTINGS) },
+            onSelect = { onSelectTab(ShellTab.SETTINGS) },
+            modifier = Modifier.testTag("shell.settings"),
+        )
+    }
+}
+
 /** Tab per design language 3, "Tab": rest muted, selected deep accent, focused accent, both with a ring. */
 @Composable
 private fun ShellTabPill(t: ShellTab, selected: Boolean, onFocus: () -> Unit, onSelect: () -> Unit, modifier: Modifier = Modifier) {
@@ -154,6 +161,7 @@ private fun ShellTabPill(t: ShellTab, selected: Boolean, onFocus: () -> Unit, on
     val color = if (selected) ClickarrColors.TextPrimary else ClickarrColors.TextSecondary
     Box(
         modifier
+            .semantics(mergeDescendants = true) {}
             .clickarrFocusable(interaction, radius = ClickarrDimens.RadiusCell, idleColor = ClickarrColors.BgBase, selected = selected)
             .onFocusChanged { if (it.isFocused) onFocus() }
             .onKeyEvent { e ->

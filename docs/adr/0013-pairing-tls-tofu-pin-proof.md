@@ -41,3 +41,9 @@ coordinator pairing state machine with the three-attempt rule (`household:coordi
 the TLS acceptor in front of the CIO engine and certificate pinning in the member's OkHttp client. Both wait on spike C;
 the current build speaks plain HTTP on the LAN.
 
+**Implementation note (2026-10-10).** Landed as `TlsFrontDoor`: the platform `SSLServerSocket` terminates TLS on the
+LAN port with the Keystore certificate and copies bytes to a loopback-only CIO engine, which keeps HTTP and WebSocket
+handling in Ktor and avoids Netty (spike C, finding C1). The member pins with `TrustOnFirstUse` in OkHttp; the proof
+uses the fingerprint seen on the wire. Plain HTTP remains only as an explicit fallback when the device cannot start
+TLS, advertised as `tls=0` and named in the Household pane.
+

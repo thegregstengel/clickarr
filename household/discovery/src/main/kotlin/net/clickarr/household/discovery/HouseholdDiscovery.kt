@@ -20,8 +20,9 @@ data class DiscoveredCoordinator(
     val deviceId: String?,
     val fingerprint: String?,
     val protocolVersion: Int?,
+    val tls: Boolean = true,
 ) {
-    val baseUrl: String get() = "http://$host:$port"
+    val baseUrl: String get() = (if (tls) "https" else "http") + "://$host:$port"
 }
 
 /**
@@ -44,6 +45,7 @@ class HouseholdDiscovery(context: Context) {
         val deviceId: String,
         val fingerprint: String,
         val role: String,
+        val tls: Boolean = true,
     )
 
     fun advertise(ad: Advertisement) {
@@ -58,6 +60,7 @@ class HouseholdDiscovery(context: Context) {
             setAttribute("did", ad.deviceId)
             setAttribute("role", ad.role)
             setAttribute("pk", ad.fingerprint.take(MAX_TXT_VALUE))
+            setAttribute("tls", if (ad.tls) "1" else "0")
         }
         val listener = object : NsdManager.RegistrationListener {
             override fun onServiceRegistered(i: NsdServiceInfo) = Log.i(TAG) { "advertising as '${i.serviceName}' on ${ad.port}" }
@@ -113,6 +116,7 @@ class HouseholdDiscovery(context: Context) {
                                 deviceId = txt["did"],
                                 fingerprint = txt["pk"],
                                 protocolVersion = txt["v"]?.toIntOrNull(),
+                                tls = txt["tls"] != "0",
                             )
                             publish()
                         }

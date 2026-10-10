@@ -27,5 +27,5 @@ the household protocol and database may still change between minor versions.
 
 ### Security
 - Plex tokens stay in the Android Keystore on each device and are never synchronized between devices.
-- Pairing proof binds the PIN to both devices' certificate fingerprints. Household transport is plain LAN HTTP until
-  the TLS acceptor lands; do not pair across untrusted networks.
+- Household transport is TLS from each device's Keystore certificate, with trust-on-first-use pinning, and the
+  pairing proof binds the PIN to both certificate fingerprints. Plain HTTP only as a loudly labelled fallback.

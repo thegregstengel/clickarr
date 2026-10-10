@@ -38,15 +38,6 @@ import net.clickarr.ui.design.ClickarrPalettes
 import net.clickarr.ui.design.ClickarrDimens
 import net.clickarr.ui.design.ClickarrTextStyles
 
-/** What Settings asks the app to do. */
-class SettingsActions(
-    val onDisconnected: () -> Unit,
-    val onOpenSpikes: () -> Unit,
-    val onExit: () -> Unit,
-    val onCreateChannel: () -> Unit,
-    val onEditChannel: (ChannelId) -> Unit,
-)
-
 /** Settings: left nav, right pane (design language 4, "Settings"). */
 @Composable
 fun SettingsScreen(

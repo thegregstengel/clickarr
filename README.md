@@ -90,7 +90,7 @@ Phase 1 and 2 (the MVP) prove the core experience. Everything else lands after.
 | Sequential and shuffled lineups | Time blocks, day-of-week schedules, fixed-time programs |
 | Half-hour slot padding with filler cards | Marathons, holiday programming, interstitials and bumpers |
 | Grid guide, overlay, channel surfing, numeric entry | Live preview while browsing channels, favorites filter |
-| Household pairing and sync across TVs (plain LAN HTTP until the TLS spike reports) | Google Drive sync as the alternative to a LAN household: backup, restore, and TVs in different homes on one lineup |
+| Household pairing over TLS with pinned device certificates, sync across TVs | Google Drive sync as the alternative to a LAN household: backup, restore, and TVs in different homes on one lineup |
 | Edit channels, icons, 1 hour slots, themes and UI size | Coordinator migration, viewing history |
 | Resume last channel on launch | Watched-state reporting to your server |
 

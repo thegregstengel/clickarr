@@ -164,7 +164,8 @@ private fun CoordinatorSection(
     primary: Modifier,
     swap: (() -> Unit) -> Unit,
 ) {
-    Caption("This TV coordinates household ${name ?: ""}. Other TVs find it on your network on port ${r.port}.")
+    val transport = if (r.tls) "over TLS" else "without TLS; this TV could not start a secure server, so pair only on a trusted network"
+    Caption("This TV coordinates household ${name ?: ""}. Other TVs find it on your network on port ${r.port}, $transport.")
     val pin = r.pin
     if (pin != null) {
         Label("On the new TV, enter this code")

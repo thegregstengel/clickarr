@@ -88,9 +88,13 @@ NSD), and the glue in `data` (`HouseholdService`, `RoomCoordinatorStore`). The c
 on port 47831 (or a free port, advertised over mDNS) and the member keeps a cached copy of the household document
 in the same Room tables the player reads.
 
-Transport in this build is plain LAN HTTP. ADR 0013's TLS design (Keystore certificate, trust-on-first-use pinning)
-is implemented as far as the pairing proof, which already binds both certificate fingerprints; the TLS acceptor is
-added once spike C reports which path works on Fire OS. Until then, do not pair across untrusted networks.
+Transport is TLS (ADR 0013). The coordinator's Ktor CIO engine listens on the loopback interface only; a
+`TlsFrontDoor` (household:coordinator) accepts TLS on the LAN port with the device's Keystore certificate and
+copies bytes to the engine, so HTTP and WebSocket both pass through. Members pin the coordinator's certificate
+fingerprint on first use (`TrustOnFirstUse` in household:client); the pairing proof binds that fingerprint, so a
+device in the middle presenting its own certificate cannot finish pairing. If a device cannot start TLS at all,
+the coordinator falls back to plain HTTP, says so in the Household pane, and advertises `tls=0`; joiners that type
+an address try TLS first and plain HTTP second.
 
 To try it with two devices on one LAN: on TV A open Settings, Household, Create a household, then Add a device and
 read the code. On TV B open Settings, Household, Join a household, pick TV A from the list (or type its address),
@@ -99,6 +103,6 @@ enter the code, Join. Both TVs now show the same channels and the same program a
 The emulator test also exercises the member side without a second device: `app/src/androidTest/.../TestCoordinator.kt`
 runs a coordinator with one movie channel inside the test process on a loopback port, and `FirstRunFlowTest` dissolves
 the emulator's own household, joins that coordinator by address and PIN, and checks the synced channel shows up on the
-Channels tab (screens 15 to 17). Joining by a typed address trusts the fingerprint the coordinator states on first
+Channels list under Settings (screens 15 to 17). Joining by a typed address trusts the fingerprint the coordinator states on first
 use; joining from the discovery list checks the stated fingerprint against the one that was advertised.
 

@@ -17,7 +17,7 @@ import javax.security.auth.x500.X500Principal
  * pinning. The key never leaves the device.
  */
 object DeviceIdentity {
-    private const val ALIAS = "clickarr-device"
+    const val ALIAS = "clickarr-device"
     private const val KEYSTORE = "AndroidKeyStore"
     private const val VALID_YEARS = 20L
 

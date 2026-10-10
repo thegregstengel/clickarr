@@ -41,6 +41,9 @@ import net.clickarr.core.model.HouseholdState
 import net.clickarr.core.scheduling.SCHEDULER_VERSION
 import net.clickarr.core.secrets.SecretStore
 import net.clickarr.household.client.HouseholdClient
+import net.clickarr.household.coordinator.TlsFrontDoor
+import net.clickarr.household.client.pinnedTo
+import net.clickarr.household.client.TrustOnFirstUse
 import net.clickarr.household.client.HouseholdJoin
 import net.clickarr.household.coordinator.Coordinator
 import net.clickarr.household.coordinator.coordinatorRoutes
@@ -62,7 +65,9 @@ import okhttp3.OkHttpClient
  *  - Coordinator: runs the HTTP server, owns the canonical state, advertises on the LAN.
  *  - Member: keeps a cached copy, follows the coordinator's events, sends edits as commands.
  *
- * Transport is plain LAN HTTP in this build; the TLS acceptor lands once spike C has a verdict (ADR 0013).
+ * Transport is TLS from the device certificate (ADR 0013): a TlsFrontDoor on the LAN port in front of a
+ * loopback-only engine. Members pin the coordinator's certificate fingerprint on first use. Plain HTTP is
+ * the fallback only when the device cannot start TLS, and it is advertised as such.
  */
 @Singleton
 class HouseholdService @Inject constructor(
@@ -75,7 +80,11 @@ class HouseholdService @Inject constructor(
 ) {
     sealed interface Role {
         data object None : Role
-        data class Coordinator(val port: Int, val pin: net.clickarr.household.coordinator.Coordinator.ActivePin?) : Role
+        data class Coordinator(
+            val port: Int,
+            val pin: net.clickarr.household.coordinator.Coordinator.ActivePin?,
+            val tls: Boolean = true,
+        ) : Role
         data class Member(val baseUrl: String, val connected: Boolean, val lastSync: Instant?) : Role
     }
 
@@ -91,6 +100,7 @@ class HouseholdService @Inject constructor(
 
     private var coordinator: Coordinator? = null
     private var server: EmbeddedServer<*, *>? = null
+    private var frontDoor: TlsFrontDoor? = null
     private var tickJob: Job? = null
     private var memberJob: Job? = null
     private var client: HouseholdClient? = null
@@ -138,30 +148,13 @@ class HouseholdService @Inject constructor(
         val c = Coordinator(initial, store, systemClock, fingerprint = { DeviceIdentity.fingerprint() })
         c.start()
         coordinator = c
-        var port = DEFAULT_PORT
-        val s = try {
-            startServer(c, DEFAULT_PORT)
-        } catch (e: Exception) {
-            Log.w(TAG, e) { "port $DEFAULT_PORT unavailable, picking a free one" }
-            port = 0
-            try {
-                startServer(c, 0)
-            } catch (e2: Exception) {
-                return Outcome.Failure(ClickarrError.Unknown("Could not start the household server", e2))
-            }
-        }
-        server = s
-        Log.d(TAG) { "server started" }
+        val listening = startListening(c) ?: return Outcome.Failure(ClickarrError.Unknown("Could not start the household server"))
+        server = listening.server
+        frontDoor = listening.door
+        val port = listening.port
         HouseholdClockOffset.reset()
-        // Show the role immediately; the exact port only matters when the default was taken.
-        _role.value = Role.Coordinator(port, null)
-        if (port == 0) {
-            port = withTimeoutOrNull(CONNECTOR_TIMEOUT_MS) {
-                withContext(Dispatchers.IO) { s.engine.resolvedConnectors().firstOrNull()?.port }
-            } ?: DEFAULT_PORT
-            _role.value = Role.Coordinator(port, null)
-        }
-        Log.d(TAG) { "coordinator listening on $port" }
+        _role.value = Role.Coordinator(port, null, listening.tls)
+        Log.d(TAG) { "coordinator listening on $port, tls=${listening.tls}" }
         val fingerprint = runCatching { DeviceIdentity.fingerprint() }.getOrElse {
             Log.w(TAG, it) { "device identity unavailable" }
             ""
@@ -175,6 +168,7 @@ class HouseholdService @Inject constructor(
                 deviceId = selfId.value,
                 fingerprint = fingerprint,
                 role = "coordinator",
+                tls = listening.tls,
             ),
         )
         tickJob?.cancel()
@@ -189,10 +183,36 @@ class HouseholdService @Inject constructor(
         return Outcome.Success(Unit)
     }
 
+    private class Listening(val server: EmbeddedServer<*, *>, val door: TlsFrontDoor?, val port: Int, val tls: Boolean)
+
+    /**
+     * TLS on the LAN port in front of a loopback-only engine. Plain HTTP on the LAN port only if the device
+     * cannot start TLS at all, which spike C is meant to rule out; the role and the advertisement say which.
+     */
+    private suspend fun startListening(c: Coordinator): Listening? {
+        val secure = runCatching {
+            val engine = startServer(c, "127.0.0.1", 0)
+            val backendPort = enginePort(engine) ?: run { engine.stop(0, 0); error("engine port unknown") }
+            val ssl = TlsFrontDoor.sslContext(DeviceIdentity.keyStore().also { DeviceIdentity.certificate() }, DeviceIdentity.ALIAS, null)
+            val door = TlsFrontDoor(ssl, backendPort)
+            val port = runCatching { door.start(DEFAULT_PORT) }.getOrElse { door.start(0) }
+            Listening(engine, door, port, tls = true)
+        }.onFailure { Log.w(TAG, it) { "TLS front door failed; falling back to plain HTTP on the LAN (insecure)" } }.getOrNull()
+        if (secure != null) return secure
+        return runCatching {
+            val engine = runCatching { startServer(c, "0.0.0.0", DEFAULT_PORT) }.getOrElse { startServer(c, "0.0.0.0", 0) }
+            Listening(engine, null, enginePort(engine) ?: DEFAULT_PORT, tls = false)
+        }.onFailure { Log.w(TAG, it) { "household server failed to start" } }.getOrNull()
+    }
+
+    private suspend fun enginePort(engine: EmbeddedServer<*, *>): Int? = withTimeoutOrNull(CONNECTOR_TIMEOUT_MS) {
+        withContext(Dispatchers.IO) { engine.engine.resolvedConnectors().firstOrNull()?.port }
+    }
+
     /** Suspending start so no thread blocks inside a coroutine; returns once the engine is accepting. */
-    private suspend fun startServer(c: Coordinator, port: Int): EmbeddedServer<*, *> {
-        val s = embeddedServer(CIO, port = port, host = "0.0.0.0") { coordinatorRoutes(c) }
-        Log.d(TAG) { "starting engine on $port" }
+    private suspend fun startServer(c: Coordinator, host: String, port: Int): EmbeddedServer<*, *> {
+        val s = embeddedServer(CIO, port = port, host = host) { coordinatorRoutes(c) }
+        Log.d(TAG) { "starting engine on $host:$port" }
         withContext(Dispatchers.IO) { s.startSuspend(wait = false) }
         Log.d(TAG) { "engine up" }
         return s
@@ -217,12 +237,15 @@ class HouseholdService @Inject constructor(
 
     suspend fun join(baseUrl: String, coordinatorFingerprint: String?, pin: String): Outcome<Unit> {
         if (_role.value !is Role.None) return Outcome.Failure(ClickarrError.Invalid("Already in a household"))
-        val url = baseUrl.trimEnd('/')
-        val paired = when (val r = pairWith(url, coordinatorFingerprint, pin)) {
+        val typed = baseUrl.trim().trimEnd('/')
+        // A typed address has no scheme: try TLS first, then plain HTTP for a coordinator that could not start it.
+        val candidates = if ("://" in typed) listOf(typed) else listOf("https://$typed", "http://$typed")
+        val p = when (val r = pairAny(candidates, coordinatorFingerprint, pin)) {
             is Outcome.Success -> r.value
             is Outcome.Failure -> return r
         }
-        Log.i(TAG) { "paired with ${paired.householdId.value} (rev ${paired.state.revision})" }
+        val paired = p.response
+        Log.i(TAG) { "paired with ${paired.householdId.value} (rev ${paired.state.revision}) at ${p.url}" }
         secrets.put(MEMBER_TOKEN, paired.deviceToken)
         store.saveState(paired.state)
         Log.d(TAG) { "member state saved" }
@@ -231,8 +254,8 @@ class HouseholdService @Inject constructor(
             db.household().upsert(
                 it.copy(
                     role = RoomCoordinatorStore.ROLE_MEMBER,
-                    coordinatorBaseUrl = url,
-                    coordinatorFingerprint = paired.coordinatorFingerprint,
+                    coordinatorBaseUrl = p.url,
+                    coordinatorFingerprint = p.fingerprint,
                     lastSyncEpochMs = now,
                 ),
             )
@@ -242,26 +265,44 @@ class HouseholdService @Inject constructor(
         return Outcome.Success(Unit)
     }
 
-    /** Probe the coordinator, check versions, and run the pairing exchange. */
-    private suspend fun pairWith(url: String, coordinatorFingerprint: String?, pin: String): Outcome<PairCompleteResponse> {
-        val probe = HouseholdClient(okHttp, url) { null }
+    private class Paired(val response: PairCompleteResponse, val url: String, val fingerprint: String)
+
+    /** Tries each address in turn, moving on only when the coordinator was unreachable there. */
+    private suspend fun pairAny(urls: List<String>, coordinatorFingerprint: String?, pin: String): Outcome<Paired> {
+        var last: Outcome<Paired> = Outcome.Failure(ClickarrError.Unreachable("No address to try"))
+        for (url in urls) {
+            last = pairWith(url, coordinatorFingerprint, pin)
+            if (last is Outcome.Success || (last as Outcome.Failure).error !is ClickarrError.Unreachable) break
+        }
+        return last
+    }
+
+    /**
+     * Probe the coordinator, check versions, and run the pairing exchange. Over TLS the certificate seen on the
+     * wire is the coordinator's identity and the pairing proof binds it; a device in the middle presenting its
+     * own certificate cannot finish pairing. Over plain HTTP the only identity is what the coordinator states.
+     */
+    private suspend fun pairWith(url: String, coordinatorFingerprint: String?, pin: String): Outcome<Paired> {
+        val advertised = coordinatorFingerprint?.takeIf { it.isNotBlank() }
+        val trust = TrustOnFirstUse(advertised)
+        val probe = HouseholdClient(okHttp.pinnedTo(trust), url) { null }
         val info = when (val r = probe.info()) {
             is Outcome.Success -> r.value
             is Outcome.Failure -> return r
         }
         if (info.protocolVersion > PROTOCOL_VERSION) return Outcome.Failure(ClickarrError.Unsupported("Update Clickarr on this TV to join"))
-        // Discovery may have supplied the fingerprint; otherwise trust the one the coordinator states, on first use.
-        val advertised = coordinatorFingerprint?.takeIf { it.isNotBlank() }
-        val expected = advertised ?: info.fingerprint
+        val expected = trust.observed ?: advertised ?: info.fingerprint
         if (advertised != null && info.fingerprint.isNotBlank() && advertised != info.fingerprint) {
             return Outcome.Failure(ClickarrError.Unauthorized("That TV's identity does not match what was advertised"))
         }
         return HouseholdJoin.join(probe, selfId, prefs.deviceNameNow(), DeviceIdentity.fingerprint(), expected, pin)
+            .map { Paired(it, url, expected) }
     }
 
     private suspend fun startMember(h: HouseholdEntity) {
         val url = h.coordinatorBaseUrl ?: return
-        val c = HouseholdClient(okHttp, url) { kotlinx.coroutines.runBlocking { secrets.get(MEMBER_TOKEN) } }
+        val pinned = okHttp.pinnedTo(TrustOnFirstUse(h.coordinatorFingerprint?.takeIf { it.isNotBlank() }))
+        val c = HouseholdClient(pinned, url) { kotlinx.coroutines.runBlocking { secrets.get(MEMBER_TOKEN) } }
         client = c
         _role.value = Role.Member(url, connected = false, lastSync = h.lastSyncEpochMs?.let(Instant::fromEpochMilliseconds))
         Log.d(TAG) { "member of ${h.name} via $url" }
@@ -355,6 +396,8 @@ class HouseholdService @Inject constructor(
         memberJob?.cancel(); memberJob = null
         tickJob?.cancel(); tickJob = null
         discovery.stopAdvertising()
+        frontDoor?.stop()
+        frontDoor = null
         withContext(Dispatchers.IO) { server?.stop(200, 1000) }
         server = null
         coordinator = null
