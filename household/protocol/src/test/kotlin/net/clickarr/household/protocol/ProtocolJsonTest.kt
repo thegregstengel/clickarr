@@ -28,7 +28,9 @@ class ProtocolJsonTest {
         val id = ChannelId("ch-10")
         val lineup = Lineups.create(
             LineupSnapshotId("lineup-1"), id,
-            listOf(LineupEntry(MediaRef(ProviderId("plex-1"), NativeItemId("2011")), 22.minutes, "The Office (US)", "S1E1 Pilot")),
+            listOf(
+                LineupEntry(MediaRef(ProviderId("plex-1"), NativeItemId("2011")), 22.minutes, "The Office (US)", "S1E1 Pilot"),
+            ),
             now,
         )
         val channel = Channel(

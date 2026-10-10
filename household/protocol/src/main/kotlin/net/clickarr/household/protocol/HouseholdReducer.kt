@@ -41,25 +41,32 @@ class HouseholdReducer {
     }
 
     private fun createChannel(state: HouseholdState, c: Command.CreateChannel): Outcome<HouseholdState> {
-        if (state.channels.any { it.id == c.channel.id }) return invalid("Channel ${c.channel.id.value} already exists")
-        if (state.channels.any { it.number == c.channel.number }) return invalid("Channel number ${c.channel.number} is taken")
-        if (c.lineup.id != c.channel.lineup) return invalid("Channel does not reference the supplied lineup")
-        if (c.lineup.entries.isEmpty()) return invalid("Lineup is empty")
-        return Outcome.Success(state.copy(channels = state.channels + c.channel, lineups = state.lineups + c.lineup))
+        val problem = firstProblem(
+            "Channel ${c.channel.id.value} already exists" to state.channels.any { it.id == c.channel.id },
+            "Channel number ${c.channel.number} is taken" to state.channels.any { it.number == c.channel.number },
+            "Channel does not reference the supplied lineup" to (c.lineup.id != c.channel.lineup),
+            "Lineup is empty" to c.lineup.entries.isEmpty(),
+        )
+        return problem?.let(::invalid)
+            ?: Outcome.Success(state.copy(channels = state.channels + c.channel, lineups = state.lineups + c.lineup))
     }
 
     private fun updateChannel(state: HouseholdState, c: Command.UpdateChannel): Outcome<HouseholdState> {
         val existing = state.channels.firstOrNull { it.id == c.channel.id } ?: return notFound(c.channel.id.value)
-        if (state.channels.any { it.id != c.channel.id && it.number == c.channel.number }) {
-            return invalid("Channel number ${c.channel.number} is taken")
-        }
         val lineups = if (c.lineup != null) state.lineups.filter { it.id != c.lineup.id } + c.lineup else state.lineups
         val known = lineups.map { it.id }.toSet()
-        if (c.channel.lineup !in known) return invalid("Unknown lineup ${c.channel.lineup.value}")
-        if (c.channel.pendingLineup != null && c.channel.pendingLineup !in known) return invalid("Unknown pending lineup")
+        val problem = firstProblem(
+            "Channel number ${c.channel.number} is taken" to state.channels.any { it.id != c.channel.id && it.number == c.channel.number },
+            "Unknown lineup ${c.channel.lineup.value}" to (c.channel.lineup !in known),
+            "Unknown pending lineup" to (c.channel.pendingLineup != null && c.channel.pendingLineup !in known),
+        )
+        if (problem != null) return invalid(problem)
         val channels = state.channels.map { if (it.id == existing.id) c.channel else it }
         return Outcome.Success(state.copy(channels = channels, lineups = lineups))
     }
+
+    /** The message of the first failed check, or null when all pass. */
+    private fun firstProblem(vararg checks: Pair<String, Boolean>): String? = checks.firstOrNull { it.second }?.first
 
     private fun deleteChannel(state: HouseholdState, c: Command.DeleteChannel): Outcome<HouseholdState> {
         if (state.channels.none { it.id == c.channelId }) return notFound(c.channelId.value)
