@@ -8,8 +8,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
@@ -144,11 +142,12 @@ private fun DiagnosticsPane(vm: SettingsViewModel) {
     val d by vm.diagnostics.collectAsState()
     Caption("Everything a bug report needs. Tokens are never included.")
     Button(onClick = vm::loadDiagnostics) { Text("Refresh") }
+    // Plain column: the pane already scrolls vertically, and a lazy list cannot live inside that.
     val mono = TextStyle(fontFamily = FontFamily.Monospace, fontSize = 18.sp, color = ClickarrColors.TextPrimary)
-    LazyColumn(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        items(d.lines) { Text(it, style = mono) }
-        item { Label("Recent log") }
-        items(d.log) { Text(it, style = mono.copy(color = ClickarrColors.TextSecondary)) }
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        d.lines.forEach { Text(it, style = mono) }
+        Label("Recent log")
+        d.log.forEach { Text(it, style = mono.copy(color = ClickarrColors.TextSecondary)) }
     }
 }
 
