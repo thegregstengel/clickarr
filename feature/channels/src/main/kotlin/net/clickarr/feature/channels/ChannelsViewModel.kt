@@ -41,6 +41,17 @@ class ChannelsViewModel @Inject constructor(
     private val _preview = MutableStateFlow<Preview?>(null)
     val preview: StateFlow<Preview?> = _preview.asStateFlow()
 
+    init {
+        // An edit or a household sync can change the channel on the preview card; rebuild it from the new row.
+        viewModelScope.launch {
+            channels.collect { list ->
+                val shown = _preview.value?.channel ?: return@collect
+                val fresh = list.firstOrNull { it.id == shown.id }
+                if (fresh == null) _preview.value = null else if (fresh != shown) focus(fresh)
+            }
+        }
+    }
+
     fun focus(channel: Channel) {
         viewModelScope.launch {
             val lineup = repository.lineup(channel.lineup)

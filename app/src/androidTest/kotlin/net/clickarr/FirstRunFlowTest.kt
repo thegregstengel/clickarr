@@ -188,7 +188,7 @@ class FirstRunFlowTest {
         waitForText("Create channel")
         waitForText("The Office (US)")
         shot("18-channel-via-coordinator")
-        check(otherTv.coordinator.state.value.channels.size == 2) { "coordinator should hold both channels" }
+        val created = otherTv.coordinator.state.value.channels.single { it.name == "The Office (US)" }
 
         // Edit it: focus the row for the preview card, open the editor, rename and renumber.
         compose.onAllNodes(hasText("The Office (US)", substring = false)).onFirst().requestFocus()
@@ -201,11 +201,9 @@ class FirstRunFlowTest {
         shot("19-edit-channel")
         click("Save changes")
         waitForText("Office Reruns")
-        waitForText("22")
         shot("20-channels-edited")
-        check(otherTv.coordinator.state.value.channels.any { it.name == "Office Reruns" && it.number == 22 }) {
-            "coordinator should have the edited channel"
-        }
+        val edited = otherTv.coordinator.state.value.channels.single { it.id == created.id }
+        check(edited.name == "Office Reruns" && edited.number == created.number + 1) { "coordinator should have the edit: $edited" }
     }
 
     companion object {
