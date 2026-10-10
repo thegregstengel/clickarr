@@ -1,5 +1,6 @@
 package net.clickarr.feature.guide
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.BringIntoViewSpec
@@ -9,6 +10,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -39,6 +41,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
@@ -48,7 +51,10 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.tv.material3.Button
 import androidx.tv.material3.Text
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
@@ -63,6 +69,8 @@ import net.clickarr.ui.design.clickarrFocusable
 private val CHANNEL_COLUMN = 200.dp
 private val ROW_HEIGHT = 64.dp
 private val HEADER_HEIGHT = 40.dp
+private const val ROW_JUMP = 5
+private val TIME_JUMP = 3.hours
 
 /**
  * Grid guide (design language 4, "Guide grid"). OK on a cell tunes to that channel.
@@ -82,10 +90,11 @@ fun GuideScreen(onWatch: () -> Unit, onlyFavorites: Boolean = false, viewModel: 
     val density = LocalDensity.current
     val minutePx = with(density) { (ClickarrDimens.GuideHalfHourWidth / 30).toPx() }
     var focused by remember { mutableStateOf<Airing?>(null) }
+    var details by remember { mutableStateOf<Pair<Channel, Airing>?>(null) }
 
     val grid = GuideGrid(w, minutePx, scroll, focus)
     CompositionLocalProvider(LocalBringIntoViewSpec provides PlainBringIntoViewSpec) {
-        GuideBody(grid, onlyFavorites, focused, { focused = it }) { ch -> viewModel.tune(ch, onWatch) }
+        GuideBody(grid, onlyFavorites, focused, { focused = it }, details, { details = it }) { ch -> viewModel.tune(ch, onWatch) }
     }
 }
 
@@ -95,6 +104,8 @@ private fun GuideBody(
     onlyFavorites: Boolean,
     focused: Airing?,
     onFocusAiring: (Airing) -> Unit,
+    details: Pair<Channel, Airing>?,
+    onDetails: (Pair<Channel, Airing>?) -> Unit,
     onTune: (Channel) -> Unit,
 ) {
     val w = grid.window
@@ -120,6 +131,7 @@ private fun GuideBody(
                         grid = grid,
                         isCurrent = row.channel.id.value == w.currentChannelId,
                         onFocusAiring = onFocusAiring,
+                        onDetails = { a -> onDetails(row.channel to a) },
                         onTune = { onTune(row.channel) },
                     )
                 }
@@ -130,6 +142,20 @@ private fun GuideBody(
                 focus.requestAt(rowIndex, w.now)
             }
             NowLine(w, minutePx, scroll.value)
+            details?.let { (ch, a) ->
+                Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.BottomEnd) {
+                    DetailsCard(
+                        channel = ch,
+                        airing = a,
+                        onTune = { onTune(ch) },
+                        onClose = {
+                            onDetails(null)
+                            val rowIndex = w.rows.indexOfFirst { it.channel.id == ch.id }
+                            if (rowIndex >= 0) focus.requestAt(rowIndex, maxOf(a.start, w.from))
+                        },
+                    )
+                }
+            }
         }
         FocusedDetail(focused)
     }
@@ -208,6 +234,7 @@ private fun GuideRow(
     grid: GuideGrid,
     isCurrent: Boolean,
     onFocusAiring: (Airing) -> Unit,
+    onDetails: (Airing) -> Unit,
     onTune: () -> Unit,
 ) {
     val window = grid.window
@@ -243,7 +270,12 @@ private fun GuideRow(
                                     scope.launch { scroll.animateScrollTo(target) }
                                 }
                             },
-                            onTune = onTune,
+                            actions = CellActions(
+                                tune = onTune,
+                                details = { onDetails(airing) },
+                                jumpRows = { d -> focus.requestAt((rowIndex + d).coerceIn(0, maxOf(0, focus.rows.lastIndex)), focusTime) },
+                                jumpTime = { d -> focus.requestAt(rowIndex, (focusTime + d).coerceIn(window.from, window.to - 1.minutes)) },
+                            ),
                         )
                     }
                 },
@@ -297,10 +329,11 @@ private fun ProgramCell(
     window: GuideViewModel.Window,
     modifier: Modifier,
     onFocus: () -> Unit,
-    onTune: () -> Unit,
+    actions: CellActions,
 ) {
     val interaction = remember { MutableInteractionSource() }
     val past = airing.end <= window.now
+    val current = airing.start <= window.now && window.now < airing.end
     Box(
         modifier
             .fillMaxSize()
@@ -308,14 +341,7 @@ private fun ProgramCell(
             .clickarrFocusable(interaction)
             .border(1.dp, ClickarrColors.BgCellBorder, RoundedCornerShape(ClickarrDimens.RadiusCell))
             .onFocusChanged { if (it.isFocused) onFocus() }
-            .onKeyEvent { e ->
-                if (e.type == KeyEventType.KeyDown && (e.key == Key.DirectionCenter || e.key == Key.Enter)) {
-                    onTune()
-                    true
-                } else {
-                    false
-                }
-            }
+            .onKeyEvent { e -> handleCellKey(e, current, actions) }
             .focusable(interactionSource = interaction)
             .padding(horizontal = 12.dp),
         contentAlignment = Alignment.CenterStart,
@@ -326,6 +352,72 @@ private fun ProgramCell(
             color = if (past) ClickarrColors.TextMuted else ClickarrColors.TextPrimary,
             maxLines = 1,
         )
+        if (current) {
+            // Thin progress along the bottom edge of the program airing now (design language, "Cells").
+            val elapsed = (window.now - airing.start).inWholeSeconds.toFloat()
+            val length = (airing.end - airing.start).inWholeSeconds.coerceAtLeast(1).toFloat()
+            Box(
+                Modifier
+                    .align(Alignment.BottomStart)
+                    .fillMaxWidth((elapsed / length).coerceIn(0f, 1f))
+                    .height(3.dp)
+                    .background(ClickarrColors.AccentGlow),
+            )
+        }
+    }
+}
+
+/** What a cell can do; the key map lives in [handleCellKey] (design language, key map). */
+private class CellActions(
+    val tune: () -> Unit,
+    val details: () -> Unit,
+    val jumpRows: (Int) -> Unit,
+    val jumpTime: (Duration) -> Unit,
+)
+
+private fun handleCellKey(e: KeyEvent, current: Boolean, a: CellActions): Boolean {
+    if (e.type != KeyEventType.KeyDown) return false
+    when (e.key) {
+        Key.DirectionCenter, Key.Enter -> if (current) a.tune() else a.details()
+        Key.MediaPlayPause, Key.MediaPlay -> a.tune()
+        Key.ChannelUp -> a.jumpRows(-ROW_JUMP)
+        Key.ChannelDown -> a.jumpRows(ROW_JUMP)
+        Key.MediaFastForward -> a.jumpTime(TIME_JUMP)
+        Key.MediaRewind -> a.jumpTime(-TIME_JUMP)
+        else -> return false
+    }
+    return true
+}
+
+/** Details for a program that is not on now: OK on a future cell (design language, "Details"). */
+@Composable
+private fun DetailsCard(channel: Channel, airing: Airing, onTune: () -> Unit, onClose: () -> Unit) {
+    val tuneFocus = remember { FocusRequester() }
+    LaunchedEffect(airing) { runCatching { tuneFocus.requestFocus() } }
+    BackHandler(onBack = onClose)
+    Column(
+        Modifier
+            .width(560.dp)
+            .background(ClickarrColors.BgSurface.copy(alpha = 0.95f), RoundedCornerShape(ClickarrDimens.RadiusCard))
+            .padding(ClickarrDimens.CardPadding),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            "${channel.number}  ${channel.name.uppercase()}",
+            style = ClickarrTextStyles.LabelAllCaps,
+            color = ClickarrColors.TextSecondary,
+        )
+        Text(airing.entry.title, style = ClickarrTextStyles.ProgramTitle, maxLines = 2)
+        airing.entry.subtitle?.let { Text(it, style = ClickarrTextStyles.Secondary, color = ClickarrColors.TextSecondary) }
+        Text(
+            "${timeOfDay(airing.start)} – ${timeOfDay(airing.end)}",
+            style = ClickarrTextStyles.Secondary,
+            color = ClickarrColors.TextSecondary,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Button(onClick = onTune, modifier = Modifier.focusRequester(tuneFocus)) { Text("Tune to channel") }
+            Button(onClick = onClose) { Text("Close") }
+        }
     }
 }
 

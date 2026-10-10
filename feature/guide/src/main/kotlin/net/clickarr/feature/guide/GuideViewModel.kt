@@ -94,6 +94,7 @@ class GuideViewModel @Inject constructor(
     }
 
     companion object {
-        val WINDOW = 3.hours + 30.minutes
+        /** How far ahead the grid reaches; fast-forward jumps through it three hours at a time. */
+        val WINDOW = 6.hours
     }
 }

@@ -130,6 +130,13 @@ class FirstRunFlowTest {
         compose.waitForIdle()
         Thread.sleep(SHOT_SETTLE_MS)
         shot("08b-guide-down")
+        // Right moves to the next program, which is in the future; OK on it opens the details card.
+        device.pressKeyCode(KeyEvent.KEYCODE_DPAD_RIGHT)
+        compose.waitForIdle()
+        device.pressDPadCenter()
+        waitForText("Tune to channel")
+        shot("08c-guide-details")
+        click("Close")
 
         click("Settings")
         waitForText("This TV")

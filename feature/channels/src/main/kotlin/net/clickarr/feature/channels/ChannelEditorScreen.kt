@@ -43,22 +43,27 @@ fun ChannelEditorScreen(channelId: String?, onDone: () -> Unit, viewModel: Edito
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(if (channelId == null) "New channel" else "Edit channel", style = ClickarrTextStyles.ScreenTitle)
-        when (val s = step) {
-            Step.ChooseKind -> ChooseKind(viewModel)
-            Step.Loading -> Text("Loading…", style = ClickarrTextStyles.Secondary, color = ClickarrColors.TextSecondary)
-            is Step.ChooseLibrary -> Picker("Which library?", s.libraries, { it.name }) { viewModel.chooseLibrary(it) }
-            is Step.PickShows -> PickShows(s, viewModel)
-            is Step.PickFilters -> PickFilters(s, viewModel)
-            is Step.PickCollection -> Picker("Which collection?", s.collections, { it.name }) { viewModel.confirmCollection(it) }
-            is Step.PickPlaylist -> Picker("Which playlist?", s.playlists, { it.name }) { viewModel.confirmPlaylist(it) }
-            is Step.Details -> Details(s.draft, viewModel)
-            is Step.Saving -> Text("Building the schedule for ${s.name}…", style = ClickarrTextStyles.Secondary)
-            is Step.Saved -> Text("Channel ${s.number} saved", style = ClickarrTextStyles.Secondary)
-            Step.Closed -> Unit
-            is Step.Failed -> {
-                Text(s.message, style = ClickarrTextStyles.Secondary, color = ClickarrColors.StatusError)
-                Button(onClick = viewModel::restart) { Text("Start over") }
-            }
+        StepContent(step, viewModel)
+    }
+}
+
+@Composable
+private fun StepContent(step: Step, viewModel: EditorViewModel) {
+    when (val s = step) {
+        Step.ChooseKind -> ChooseKind(viewModel)
+        Step.Loading -> Text("Loading…", style = ClickarrTextStyles.Secondary, color = ClickarrColors.TextSecondary)
+        is Step.ChooseLibrary -> Picker("Which library?", s.libraries, { it.name }) { viewModel.chooseLibrary(it) }
+        is Step.PickShows -> PickShows(s, viewModel)
+        is Step.PickFilters -> PickFilters(s, viewModel)
+        is Step.PickCollection -> Picker("Which collection?", s.collections, { it.name }) { viewModel.confirmCollection(it) }
+        is Step.PickPlaylist -> Picker("Which playlist?", s.playlists, { it.name }) { viewModel.confirmPlaylist(it) }
+        is Step.Details -> Details(s.draft, viewModel)
+        is Step.Saving -> Text("Building the schedule for ${s.name}…", style = ClickarrTextStyles.Secondary)
+        is Step.Saved -> Text("Channel ${s.number} saved", style = ClickarrTextStyles.Secondary)
+        Step.Closed -> Unit
+        is Step.Failed -> {
+            Text(s.message, style = ClickarrTextStyles.Secondary, color = ClickarrColors.StatusError)
+            Button(onClick = viewModel::restart) { Text("Start over") }
         }
     }
 }
