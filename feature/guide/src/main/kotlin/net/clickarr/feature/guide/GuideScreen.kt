@@ -80,8 +80,10 @@ import net.clickarr.ui.design.clickarrFocusable
 private val CHANNEL_COLUMN = 248.dp
 private val ROW_HEIGHT = 64.dp
 private val HEADER_HEIGHT = 40.dp
-private val PREVIEW_HEIGHT = 104.dp
-private val PREVIEW_THUMB_WIDTH = 170.dp
+// Doubled from the first cut at Greg's request: the thumbnail stays 16:9 and the synopsis gets room to read.
+private val PREVIEW_HEIGHT = 208.dp
+private val PREVIEW_THUMB_WIDTH = 368.dp
+private const val PREVIEW_SYNOPSIS_LINES = 5
 private const val ROW_JUMP = 5
 private const val VISIBLE_HALF_HOURS = 4
 private val TIME_JUMP = 3.hours
@@ -542,8 +544,8 @@ private fun PreviewCard(airing: Airing?, preview: GuideViewModel.Preview?) {
                 AsyncImage(model = it, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
             }
         }
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(airing.entry.title, style = ClickarrTextStyles.RowTitle, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(airing.entry.title, style = ClickarrTextStyles.ProgramTitle, maxLines = 1, overflow = TextOverflow.Ellipsis)
             val slot = "${timeOfDay(airing.start)} – ${timeOfDay(airing.end)}"
             Text(
                 listOfNotNull(airing.entry.subtitle, slot).joinToString("   "),
@@ -554,9 +556,9 @@ private fun PreviewCard(airing: Airing?, preview: GuideViewModel.Preview?) {
             preview?.summary?.let {
                 Text(
                     it,
-                    style = ClickarrTextStyles.Caption,
+                    style = ClickarrTextStyles.Secondary,
                     color = ClickarrColors.TextMuted,
-                    maxLines = 2,
+                    maxLines = PREVIEW_SYNOPSIS_LINES,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
