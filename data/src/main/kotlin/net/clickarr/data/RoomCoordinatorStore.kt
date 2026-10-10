@@ -1,5 +1,6 @@
 package net.clickarr.data
 
+import androidx.room.withTransaction
 import kotlinx.datetime.Instant
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
@@ -111,4 +112,3 @@ class RoomCoordinatorStore(
     }
 }
 
-private suspend fun <T> ClickarrDatabase.withTransaction(block: suspend () -> T): T = androidx.room.withTransaction(this, block)

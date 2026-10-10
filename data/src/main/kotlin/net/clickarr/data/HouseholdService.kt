@@ -50,6 +50,7 @@ import net.clickarr.household.protocol.Command
 import net.clickarr.household.protocol.DEFAULT_PORT
 import net.clickarr.household.protocol.Event
 import net.clickarr.household.protocol.PROTOCOL_VERSION
+import net.clickarr.household.protocol.PairCompleteResponse
 import net.clickarr.household.protocol.Pairing
 import okhttp3.OkHttpClient
 
@@ -190,32 +191,33 @@ class HouseholdService @Inject constructor(
     suspend fun join(baseUrl: String, coordinatorFingerprint: String?, pin: String): Outcome<Unit> {
         if (_role.value !is Role.None) return Outcome.Failure(ClickarrError.Invalid("Already in a household"))
         val url = baseUrl.trimEnd('/')
+        return pairWith(url, coordinatorFingerprint, pin).map { paired ->
+            secrets.put(MEMBER_TOKEN, paired.deviceToken)
+            store.saveState(paired.state)
+            val now = systemClock.now().toEpochMilliseconds()
+            db.household().get()?.let {
+                db.household().upsert(
+                    it.copy(
+                        role = RoomCoordinatorStore.ROLE_MEMBER,
+                        coordinatorBaseUrl = url,
+                        coordinatorFingerprint = paired.coordinatorFingerprint,
+                        lastSyncEpochMs = now,
+                    ),
+                )
+            }
+            db.household().get()?.let { startMember(it) }
+        }
+    }
+
+    /** Probe the coordinator, check versions, and run the pairing exchange. */
+    private suspend fun pairWith(url: String, coordinatorFingerprint: String?, pin: String): Outcome<PairCompleteResponse> {
         val probe = HouseholdClient(okHttp, url) { null }
         val info = when (val r = probe.info()) {
             is Outcome.Success -> r.value
             is Outcome.Failure -> return r
         }
         if (info.protocolVersion > PROTOCOL_VERSION) return Outcome.Failure(ClickarrError.Unsupported("Update Clickarr on this TV to join"))
-        val fp = coordinatorFingerprint ?: ""
-        val paired = when (val r = HouseholdJoin.join(probe, selfId, prefs.deviceNameNow(), DeviceIdentity.fingerprint(), fp, pin)) {
-            is Outcome.Success -> r.value
-            is Outcome.Failure -> return r
-        }
-        secrets.put(MEMBER_TOKEN, paired.deviceToken)
-        store.saveState(paired.state)
-        val now = systemClock.now().toEpochMilliseconds()
-        db.household().get()?.let {
-            db.household().upsert(
-                it.copy(
-                    role = RoomCoordinatorStore.ROLE_MEMBER,
-                    coordinatorBaseUrl = url,
-                    coordinatorFingerprint = paired.coordinatorFingerprint,
-                    lastSyncEpochMs = now,
-                ),
-            )
-        }
-        startMember(db.household().get()!!)
-        return Outcome.Success(Unit)
+        return HouseholdJoin.join(probe, selfId, prefs.deviceNameNow(), DeviceIdentity.fingerprint(), coordinatorFingerprint ?: "", pin)
     }
 
     private suspend fun startMember(h: HouseholdEntity) {

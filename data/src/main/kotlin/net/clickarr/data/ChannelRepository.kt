@@ -15,6 +15,7 @@ import kotlinx.datetime.toInstant
 import net.clickarr.core.common.ClickarrError
 import net.clickarr.core.common.Clock
 import net.clickarr.core.common.Outcome
+import net.clickarr.core.common.flatMap
 import net.clickarr.core.database.ClickarrDatabase
 import net.clickarr.core.database.FavoriteEntity
 import net.clickarr.core.database.toEntities
@@ -92,27 +93,30 @@ class ChannelRepository @Inject constructor(
         icon: ChannelIcon? = null,
     ): Outcome<Channel> {
         if (db.channels().byNumber(number) != null) return Outcome.Failure(ClickarrError.Invalid("Channel $number already exists"))
-        val entries = when (val r = resolveEntries(source)) {
-            is Outcome.Success -> r.value
-            is Outcome.Failure -> return r
+        return resolveEntries(source).flatMap { entries ->
+            if (entries.isEmpty()) return@flatMap Outcome.Failure(ClickarrError.Invalid("Nothing to schedule for that source"))
+            val channelId = ChannelId(UUID.randomUUID().toString())
+            val now = clock.now()
+            val snapshot = Lineups.create(LineupSnapshotId(UUID.randomUUID().toString()), channelId, entries, now)
+            val channel = Channel(
+                id = channelId, number = number, name = name, icon = icon, source = source, order = order,
+                slotRounding = slotRounding, seed = Random.nextLong(), lineup = snapshot.id,
+                anchor = alignedAnchor(now, slotRounding),
+            )
+            persist(channel, snapshot, now)
         }
-        if (entries.isEmpty()) return Outcome.Failure(ClickarrError.Invalid("Nothing to schedule for that source"))
-        val channelId = ChannelId(UUID.randomUUID().toString())
-        val now = clock.now()
-        val snapshot = Lineups.create(LineupSnapshotId(UUID.randomUUID().toString()), channelId, entries, now)
-        val channel = Channel(
-            id = channelId, number = number, name = name, icon = icon, source = source, order = order,
-            slotRounding = slotRounding, seed = Random.nextLong(), lineup = snapshot.id, anchor = alignedAnchor(now, slotRounding),
-        )
-        when (val r = household.apply(Command.CreateChannel(channel, snapshot))) {
-            is Outcome.Success -> if (r.value) return Outcome.Success(channel)
-            is Outcome.Failure -> return r
-        }
-        val (snapEntity, entryEntities) = snapshot.toEntities()
-        db.lineups().insert(snapEntity, entryEntities)
-        db.channels().upsert(channel.toEntity(now))
-        return Outcome.Success(channel)
     }
+
+    /** Through the household when in one, otherwise straight into the database. */
+    private suspend fun persist(channel: Channel, snapshot: LineupSnapshot, now: Instant): Outcome<Channel> =
+        household.apply(Command.CreateChannel(channel, snapshot)).flatMap { handled ->
+            if (!handled) {
+                val (snapEntity, entryEntities) = snapshot.toEntities()
+                db.lineups().insert(snapEntity, entryEntities)
+                db.channels().upsert(channel.toEntity(now))
+            }
+            Outcome.Success(channel)
+        }
 
     suspend fun update(channel: Channel) {
         if (routed(Command.UpdateChannel(channel))) return
@@ -131,28 +135,26 @@ class ChannelRepository @Inject constructor(
      */
     suspend fun refreshLineup(id: ChannelId, applyNow: Boolean): Outcome<Channel> {
         val channel = byId(id) ?: return Outcome.Failure(ClickarrError.NotFound("Channel not found"))
-        val entries = when (val r = resolveEntries(channel.source)) {
-            is Outcome.Success -> r.value
-            is Outcome.Failure -> return r
+        return resolveEntries(channel.source).flatMap { entries ->
+            val now = clock.now()
+            val snapshot = Lineups.create(LineupSnapshotId(UUID.randomUUID().toString()), id, entries, now)
+            val current = lineup(channel.lineup)
+            if (current?.contentHash == snapshot.contentHash) return@flatMap Outcome.Success(channel)
+            val cutover = if (applyNow || current == null) null else strategy.airingAt(channel, current, now)?.end
+            val updated = if (cutover == null) {
+                channel.copy(lineup = snapshot.id, anchor = alignedAnchor(now, channel.slotRounding), pendingLineup = null, pendingAt = null)
+            } else {
+                channel.copy(pendingLineup = snapshot.id, pendingAt = cutover)
+            }
+            household.apply(Command.UpdateChannel(updated, snapshot)).flatMap { handled ->
+                if (!handled) {
+                    val (snapEntity, entryEntities) = snapshot.toEntities()
+                    db.lineups().insert(snapEntity, entryEntities)
+                    db.channels().upsert(updated.toEntity(now))
+                }
+                Outcome.Success(updated)
+            }
         }
-        val now = clock.now()
-        val snapshot = Lineups.create(LineupSnapshotId(UUID.randomUUID().toString()), id, entries, now)
-        val current = lineup(channel.lineup)
-        if (current?.contentHash == snapshot.contentHash) return Outcome.Success(channel)
-        val cutover = if (applyNow || current == null) null else strategy.airingAt(channel, current, now)?.end
-        val updated = if (cutover == null) {
-            channel.copy(lineup = snapshot.id, anchor = alignedAnchor(now, channel.slotRounding), pendingLineup = null, pendingAt = null)
-        } else {
-            channel.copy(pendingLineup = snapshot.id, pendingAt = cutover)
-        }
-        when (val r = household.apply(Command.UpdateChannel(updated, snapshot))) {
-            is Outcome.Success -> if (r.value) return Outcome.Success(updated)
-            is Outcome.Failure -> return r
-        }
-        val (snapEntity, entryEntities) = snapshot.toEntities()
-        db.lineups().insert(snapEntity, entryEntities)
-        db.channels().upsert(updated.toEntity(now))
-        return Outcome.Success(updated)
     }
 
     /** Promote any pending lineup whose time has come. Cheap; called on each tune and on startup. */

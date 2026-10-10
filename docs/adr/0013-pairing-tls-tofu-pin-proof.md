@@ -33,3 +33,11 @@ Afterwards every member request carries `Authorization: Bearer <deviceToken>` ov
 - **Fallback if the Phase 0 Netty TLS spike fails on Fire OS 6:** option B over plain HTTP, with an explicit note in the security docs. B's protocol messages are identical to C's, so no second pairing migration is needed. A and B were not chosen for the MVP because swapping transports later would force every household to re-pair.
 - Requires the Netty server engine ([ADR-0004](0004-http-ktor-client-and-server.md)). Device token and coordinator fingerprint are stored encrypted on the device; the private key never leaves the Keystore; the PIN lives in memory for at most 120 s.
 - Pairing tests on the Ktor test host cover success, wrong PIN, expired PIN, attempt limit, replayed proof against a different fingerprint, and revoked token.
+
+## Status note (2026-10-10)
+
+Implemented: Keystore EC identity and fingerprint (`household:discovery`), PIN-bound HKDF/HMAC proof (`household:protocol`),
+coordinator pairing state machine with the three-attempt rule (`household:coordinator`), bearer tokens. Not yet implemented:
+the TLS acceptor in front of the CIO engine and certificate pinning in the member's OkHttp client. Both wait on spike C;
+the current build speaks plain HTTP on the LAN.
+

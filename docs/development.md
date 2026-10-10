@@ -45,7 +45,7 @@ See [architecture.md](architecture.md#module-map). Pure-Kotlin modules (`core:*`
 
 ## App flow (Phase 1)
 
-Launch goes to Plex sign-in when no server is connected, otherwise straight to the player on the last channel. Back from the player opens the shell (Guide, Channels, Favorites, Settings). Channels has the create-channel wizard and the favorite toggle; Favorites is the guide filtered to favorites. Settings has General, Media Server (disconnect), Channels (refresh lineups), Appearance (overlay timeout), Playback (profile), Household (Phase 2 placeholder), Diagnostics (schedule math and recent redacted log, the thing to quote in bug reports), and About (version, Phase 0 spikes).
+Launch goes to Plex sign-in when no server is connected, otherwise straight to the player on the last channel. Back from the player opens the shell (Guide, Channels, Favorites, Settings). Channels has the create-channel wizard and the favorite toggle; Favorites is the guide filtered to favorites. Settings has General, Media Server (disconnect), Channels (refresh lineups), Appearance (overlay timeout), Playback (profile), Household (create, add a device with a PIN, join by discovery or address, member status, leave), Diagnostics (schedule math and recent redacted log, the thing to quote in bug reports), and About (version, Phase 0 spikes).
 
 ## Phase 0 spikes
 
@@ -79,4 +79,20 @@ Run it locally with any Android TV emulator or device attached:
 ./gradlew :app:connectedDebugAndroidTest
 adb pull /sdcard/Pictures/clickarr ./screenshots
 ```
+
+## Households (Phase 2)
+
+Modules: `household:protocol` (wire types, pairing proof, state reducer), `household:coordinator` (state machine
+and Ktor routes), `household:client` (OkHttp member client), `household:discovery` (Android Keystore identity and
+NSD), and the glue in `data` (`HouseholdService`, `RoomCoordinatorStore`). The coordinator runs Ktor's CIO engine
+on port 47831 (or a free port, advertised over mDNS) and the member keeps a cached copy of the household document
+in the same Room tables the player reads.
+
+Transport in this build is plain LAN HTTP. ADR 0013's TLS design (Keystore certificate, trust-on-first-use pinning)
+is implemented as far as the pairing proof, which already binds both certificate fingerprints; the TLS acceptor is
+added once spike C reports which path works on Fire OS. Until then, do not pair across untrusted networks.
+
+To try it with two devices on one LAN: on TV A open Settings, Household, Create a household, then Add a device and
+read the code. On TV B open Settings, Household, Join a household, pick TV A from the list (or type its address),
+enter the code, Join. Both TVs now show the same channels and the same program at the same offset.
 
