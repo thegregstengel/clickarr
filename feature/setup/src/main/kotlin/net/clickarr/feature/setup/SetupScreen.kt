@@ -5,11 +5,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.runtime.Composable
@@ -43,13 +43,12 @@ fun SetupScreen(onDone: () -> Unit, viewModel: SetupViewModel = hiltViewModel())
 
     Box(Modifier.fillMaxSize().background(ClickarrColors.BgBase), contentAlignment = Alignment.Center) {
         Column(
-            Modifier.width(880.dp).padding(ClickarrDimens.SafeArea),
+            Modifier.width(880.dp).padding(horizontal = ClickarrDimens.SafeArea, vertical = 24.dp).verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(24.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-            ClickarrLogoStacked(markSize = 140.dp)
+            ClickarrLogoStacked(markSize = 88.dp)
             Text("Turn your media library into TV", style = ClickarrTextStyles.ScreenTitle, color = ClickarrColors.TextSecondary)
-            Spacer(Modifier.height(8.dp))
             Card {
                 when (val s = step) {
                     SetupViewModel.Step.Welcome -> Welcome(viewModel)
