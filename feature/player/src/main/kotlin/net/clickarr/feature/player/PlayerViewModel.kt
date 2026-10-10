@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import net.clickarr.core.model.Airing
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
@@ -22,6 +23,7 @@ import net.clickarr.core.model.Channel
 import net.clickarr.data.PlayerDeps
 import net.clickarr.playback.core.TuneController
 import net.clickarr.playback.core.TuneState
+import net.clickarr.playback.core.WatchReporter
 import net.clickarr.playback.media3.Media3PlayerEngine
 
 /**
@@ -47,6 +49,22 @@ class PlayerViewModel @Inject constructor(
     )
 
     val tune: StateFlow<TuneState> = controller.state
+
+    private val watchMode: StateFlow<WatchReporter.Mode> = deps.prefs.watchReporting
+        .map { name -> WatchReporter.Mode.entries.firstOrNull { it.name.equals(name, ignoreCase = true) } ?: WatchReporter.Mode.WATCHED }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, WatchReporter.Mode.WATCHED)
+
+    /** Settings, Playback, "Tell Plex what you watched". */
+    private val reporter = WatchReporter(
+        providers = { deps.provider(it) },
+        engine = engine,
+        scope = viewModelScope,
+        mode = { watchMode.value },
+    )
+
+    init {
+        reporter.start(controller.state)
+    }
 
     val channels: StateFlow<List<Channel>> =
         deps.channels.channels.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
@@ -175,6 +193,7 @@ class PlayerViewModel @Inject constructor(
     fun onPause() = engine.pause()
 
     override fun onCleared() {
+        reporter.stop()
         controller.stop()
         engine.release()
     }

@@ -102,6 +102,13 @@ class DevicePrefs(context: Context) {
         }
     }
 
+    /** Settings, Playback: off, watched (mark whole episodes), or progress (also the running position). */
+    val watchReporting: Flow<String> = store.data.map { it[WATCH_REPORTING] ?: DEFAULT_WATCH_REPORTING }
+
+    suspend fun setWatchReporting(mode: String) {
+        store.edit { it[WATCH_REPORTING] = mode }
+    }
+
     /** How far ahead the guide reaches, in hours (Settings, Channels). */
     val guideHours: Flow<Int> = store.data.map { it[GUIDE_HOURS] ?: DEFAULT_GUIDE_HOURS }
 
@@ -134,6 +141,11 @@ class DevicePrefs(context: Context) {
         private val AUTO_REFRESH = booleanPreferencesKey("auto_refresh")
         private val LAST_REFRESH_AT = longPreferencesKey("last_auto_refresh_at")
         private val LAST_REFRESH_NOTE = stringPreferencesKey("last_auto_refresh_note")
+        private val WATCH_REPORTING = stringPreferencesKey("watch_reporting")
+        const val WATCH_OFF = "off"
+        const val WATCH_WATCHED = "watched"
+        const val WATCH_PROGRESS = "progress"
+        const val DEFAULT_WATCH_REPORTING = WATCH_WATCHED
         const val SYNC_OFF = "off"
         const val SYNC_LOCAL = "local"
         const val SYNC_DRIVE = "drive"

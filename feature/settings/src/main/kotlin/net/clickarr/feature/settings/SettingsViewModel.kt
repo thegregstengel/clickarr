@@ -203,6 +203,11 @@ class SettingsViewModel @Inject constructor(
 
     fun setAutoRefresh(on: Boolean) = viewModelScope.launch { prefs.setAutoRefresh(on) }
 
+    val watchReporting: StateFlow<String> =
+        prefs.watchReporting.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DevicePrefs.DEFAULT_WATCH_REPORTING)
+
+    fun setWatchReporting(mode: String) = viewModelScope.launch { prefs.setWatchReporting(mode) }
+
     fun disconnect(onDone: () -> Unit) {
         viewModelScope.launch {
             servers.value.forEach { registry.remove(it.providerId) }

@@ -190,6 +190,10 @@ class PlexProvider(
         ),
     )
 
+    override suspend fun markPlayed(item: MediaRef): Outcome<Unit> = http.touch(
+        url("/:/scrobble", "key" to item.id.value, "identifier" to "com.plexapp.plugins.library"),
+    )
+
 }
 
 /** Client-side evaluation of a MediaFilter against normalized items (proposal 6.2: no tag-id round trips in the MVP). */

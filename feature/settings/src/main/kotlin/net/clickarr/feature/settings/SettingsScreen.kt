@@ -36,6 +36,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.tv.material3.Button
 import androidx.tv.material3.ListItem
 import androidx.tv.material3.Text
+import net.clickarr.data.DevicePrefs
 import net.clickarr.data.UpdateChecker
 import net.clickarr.ui.design.ClickarrColors
 import net.clickarr.ui.design.GlyphIcon
@@ -240,6 +241,22 @@ private fun PlaybackPane(vm: SettingsViewModel) {
     Label("Direct play profile")
     Caption("Up to ${p.maxWidth}×${p.maxHeight}, video ${p.videoCodecs.joinToString()}, audio ${p.audioCodecs.joinToString()}.")
     Caption("Probed from this TV's decoders and display at startup. Anything outside it is transcoded by Plex.")
+    val watch by vm.watchReporting.collectAsState()
+    Label("Tell Plex what you watched")
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Chip("Off", selected = watch == DevicePrefs.WATCH_OFF) { vm.setWatchReporting(DevicePrefs.WATCH_OFF) }
+        Chip("Mark watched", selected = watch == DevicePrefs.WATCH_WATCHED) { vm.setWatchReporting(DevicePrefs.WATCH_WATCHED) }
+        Chip("Progress too", selected = watch == DevicePrefs.WATCH_PROGRESS) { vm.setWatchReporting(DevicePrefs.WATCH_PROGRESS) }
+    }
+    Caption(
+        when (watch) {
+            DevicePrefs.WATCH_OFF -> "Plex never hears about what plays here."
+            DevicePrefs.WATCH_PROGRESS ->
+                "Episodes you sit through are marked watched, and the running position is sent too, so they appear in Continue Watching."
+            else -> "An episode is marked watched once this TV has played most of it in one sitting. Tuning in for the last five minutes " +
+                "does not count, and nothing lands in Continue Watching."
+        },
+    )
 }
 
 @Composable

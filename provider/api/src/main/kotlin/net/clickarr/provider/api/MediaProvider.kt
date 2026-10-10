@@ -63,6 +63,9 @@ interface MediaProvider {
 
     /** Optional. Providers that cannot report progress return success without doing anything. */
     suspend fun reportProgress(item: MediaRef, position: Duration, state: PlaybackState): Outcome<Unit>
+
+    /** Mark the item watched on the server, as if played to the end. Optional, like [reportProgress]. */
+    suspend fun markPlayed(item: MediaRef): Outcome<Unit>
 }
 
 data class Page(val offset: Int, val size: Int) {

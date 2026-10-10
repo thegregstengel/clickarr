@@ -124,6 +124,13 @@ class FakeMediaProvider(
         progressReports += Triple(item, position, state)
         return Outcome.Success(Unit)
     }
+
+    val playedItems = mutableListOf<MediaRef>()
+
+    override suspend fun markPlayed(item: MediaRef): Outcome<Unit> {
+        playedItems += item
+        return Outcome.Success(Unit)
+    }
 }
 
 /** A tiny library shaped like a real one: two shows with seasons, a few movies, a collection, a playlist. */
