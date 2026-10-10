@@ -63,16 +63,19 @@ object ClickarrPalettes {
         textPrimary = Color(0xFFF4F4F5), textSecondary = Color(0xFFA6A8B1), textMuted = Color(0xFF6E7079),
     )
 
-    /** For bright rooms: off-white and light grays, never pure white, with darker accents for contrast. */
+    /**
+     * For bright rooms: a cool slate, the darkest set that still reads as a light theme on a TV, chosen from six
+     * candidates on a real Fire Stick (2026-10-10). Never white; darker accents for contrast.
+     */
     val Light = ClickarrPalette(
         name = "light", label = "Light", isLight = true,
-        bgBase = Color(0xFFCDD2DA), bgPanel = Color(0xFFDADFE6), bgSurface = Color(0xFFC3C9D3), bgCell = Color(0xFFB6BDC9),
-        bgCellBorder = Color(0xFFA0A9B8), bgElevated = Color(0xFFAEB6C3),
-        accentPrimary = Color(0xFF1479FD), accentPrimaryDeep = Color(0xFFBFD6FA), accentGlow = Color(0xFF0A6ED8),
+        bgBase = Color(0xFFA9B4C4), bgPanel = Color(0xFFB7C1CF), bgSurface = Color(0xFF9CA8B9), bgCell = Color(0xFF909DAF),
+        bgCellBorder = Color(0xFF7C8A9E), bgElevated = Color(0xFF8794A6),
+        accentPrimary = Color(0xFF0E5FCF), accentPrimaryDeep = Color(0xFFB3C8EA), accentGlow = Color(0xFF0A5BC4),
         accentCyan = Color(0xFF00A7C4), accentViolet = Color(0xFF6A3FE0), accentMagenta = Color(0xFF9A22E0),
         statusOk = Color(0xFF0B9A4A), statusWarn = Color(0xFFB36B00), statusError = Color(0xFFD12F3F),
-        textPrimary = Color(0xFF0B1220), textSecondary = Color(0xFF4A5568), textMuted = Color(0xFF7B8794),
-        focusRing = Color(0xFF0B1220).copy(alpha = 0.7f),
+        textPrimary = Color(0xFF0B1220), textSecondary = Color(0xFF2E3A4D), textMuted = Color(0xFF52607A),
+        focusRing = Color(0xFF0B1220).copy(alpha = 0.8f),
     )
 
     /** draculatheme.com: background #282A36, current line #44475A, comment #6272A4, purple #BD93F9, cyan #8BE9FD. */
