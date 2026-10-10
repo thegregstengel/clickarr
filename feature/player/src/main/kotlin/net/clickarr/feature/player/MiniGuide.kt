@@ -39,7 +39,9 @@ fun MiniGuide(guide: PlayerViewModel.MiniGuide, now: Instant, modifier: Modifier
                         if (selected) ClickarrColors.AccentPrimary else ClickarrColors.BgSurface.copy(alpha = CARD_ALPHA),
                         RoundedCornerShape(ClickarrDimens.RadiusCell),
                     )
-                    .then(if (selected) Modifier.border(2.dp, ClickarrColors.FocusRing, RoundedCornerShape(ClickarrDimens.RadiusCell)) else Modifier)
+                    .then(
+                        if (selected) Modifier.border(2.dp, ClickarrColors.FocusRing, RoundedCornerShape(ClickarrDimens.RadiusCell)) else Modifier,
+                    )
                     .padding(14.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
@@ -50,7 +52,13 @@ fun MiniGuide(guide: PlayerViewModel.MiniGuide, now: Instant, modifier: Modifier
                 )
                 Text(airing.entry.title, style = ClickarrTextStyles.RowTitle, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 airing.entry.subtitle?.let {
-                    Text(it, style = ClickarrTextStyles.Caption, color = ClickarrColors.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(
+                        it,
+                        style = ClickarrTextStyles.Caption,
+                        color = ClickarrColors.TextSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
                 if (live) Text(slotRange(airing), style = ClickarrTextStyles.Caption, color = ClickarrColors.TextMuted)
             }

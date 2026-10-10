@@ -157,12 +157,12 @@ Parks and Rec is 22 minutes in.</pre>
   <section id="screens" style="background: var(--bg-panel)">
     <div class="wrap">
       <h2>What it looks like</h2>
-      <p class="lead">Design mockups the app is being built to. A real program guide, a channel list, and a household view for homes with more than one TV.</p>
+      <p class="lead">Screens from the app as it stands, taken on the Android TV emulator by the test suite on every push. The design mockups it grew from are in the repo.</p>
       <div class="grid">
-        <div class="tile"><img src="assets/screen-guide.png" alt="Program guide grid with a now-line" loading="lazy"><div><h3>Guide</h3><p>A real grid with half-hour columns and a now-line. Up and down move between channels, left and right through time, OK tunes in.</p></div></div>
-        <div class="tile"><img src="assets/screen-channels.png" alt="Channel list with a preview of the selected channel" loading="lazy"><div><h3>Channels</h3><p>Your lineup with numbers and icons, and a preview of what each channel is airing right now.</p></div></div>
-        <div class="tile"><img src="assets/screen-settings-household.png" alt="Household settings showing four synced TVs" loading="lazy"><div><h3>Household</h3><p>Several TVs share one lineup and agree on the schedule, over your own Wi-Fi. No extra server, no cloud account.</p></div></div>
-        <div class="tile"><img src="assets/screen-setup-server.png" alt="First-run screen to connect a media server" loading="lazy"><div><h3>Setup</h3><p>Sign in to Plex and start building channels.</p></div></div>
+        <div class="tile"><img src="assets/screens/guide.png" alt="Program guide grid with a now-line and a preview card" loading="lazy"><div><h3>Guide</h3><p>Half-hour columns, a now-line, a preview card for the focused program, and stars on the channel column for favorites. Up and down follow the time column, OK tunes in.</p></div></div>
+        <div class="tile"><img src="assets/screens/editor.png" alt="Channel editor with name, number, icon palette, order, and time slots" loading="lazy"><div><h3>Channels</h3><p>Build a channel from shows, a whole library with genre and decade filters, a collection, or a playlist. Or let Clickarr suggest a starting lineup from what you own.</p></div></div>
+        <div class="tile"><img src="assets/screens/household.png" alt="Household settings showing a member connected to a coordinator" loading="lazy"><div><h3>Household</h3><p>Several TVs share one lineup and agree on the schedule over your own Wi-Fi, paired with a PIN over TLS. No extra server, no cloud account.</p></div></div>
+        <div class="tile"><img src="assets/screens/player.png" alt="Player overlay with channel number, program, episode, and Up Next" loading="lazy"><div><h3>Player</h3><p>Tune in and you are mid-episode, like television. The overlay shows the channel, the program, where you are in the slot, and what is up next.</p></div></div>
       </div>
     </div>
   </section>
@@ -182,6 +182,13 @@ Parks and Rec is 22 minutes in.</pre>
     </div>
   </section>
 
+  <section id="arr">
+    <div class="wrap">
+      <h2>In the spirit of the *arr apps</h2>
+      <p class="lead">The name is a nod to Sonarr, Radarr, and the rest, and so is the attitude: self-hosted, open source, opinionated, and built to automate the tedious part so you can stop tending your library and start watching it. Clickarr suggests channels from what you own, keeps every TV on the same schedule without a server in the middle, and writes its decisions down in public. It is an independent project, not affiliated with or endorsed by the Servarr team.</p>
+    </div>
+  </section>
+
   <section id="status">
     <div class="wrap">
       <div class="status">
@@ -191,7 +198,8 @@ Parks and Rec is 22 minutes in.</pre>
           <li>Phase 0, technical spikes on real Fire TV and Android TV hardware: <b>awaiting device runs</b></li>
           <li>Phase 1, one TV, sign in to Plex, build channels, watch with a guide: <b>done, in the nightly</b></li>
           <li>Phase 2, two TVs that agree on what's on: <b>done on the emulator, awaiting a two-TV test on real hardware</b></li>
-          <li class="now">Phase 3, the channel editor, guide polish, and the first public release: <b>in progress</b></li>
+          <li class="now">Phase 3, the channel editor, guide polish, themes, in-app updates, and the first public release: <b>in progress, running on real Fire TV sticks</b></li>
+          <li>Phase 4, Google Drive sync as the alternative to a LAN household, coordinator migration, F-Droid</li>
         </ol>
         <p style="margin:24px 0 0;color:var(--text-2)">Follow along on <a href="https://github.com/thegregstengel/clickarr">GitHub</a>. Releases appear there as sideloadable APKs; <code>clickarr.net/apk</code> will always point at the latest.</p>
       </div>

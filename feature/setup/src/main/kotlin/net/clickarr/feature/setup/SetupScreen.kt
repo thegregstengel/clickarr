@@ -101,7 +101,11 @@ private fun Welcome(vm: SetupViewModel) {
     Text("Choose your server and sign in to get started.", style = ClickarrTextStyles.Secondary, color = ClickarrColors.TextSecondary)
     ConnectRow("Plex", "Sign in with your Plex account", DesignR.drawable.ic_ui_server, ClickarrColors.StatusWarn, vm::startPlexLink)
     ConnectRow(
-        "Enter address manually", "A server address and token", DesignR.drawable.ic_ui_settings, ClickarrColors.AccentPrimary, vm::startManual,
+        title = "Enter address manually",
+        subtitle = "A server address and token",
+        icon = DesignR.drawable.ic_ui_settings,
+        tint = ClickarrColors.AccentPrimary,
+        onClick = vm::startManual,
     )
 }
 
