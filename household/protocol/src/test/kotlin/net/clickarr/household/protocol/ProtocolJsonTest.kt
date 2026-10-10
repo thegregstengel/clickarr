@@ -50,7 +50,12 @@ class ProtocolJsonTest {
     @Test
     fun `events and info round-trip`() {
         val info = InfoResponse(
-            schedulerVersion = 1, householdId = HouseholdId("h"), householdName = "Home", coordinator = DeviceId("d"), revision = 7, now = now,
+            schedulerVersion = 1,
+            householdId = HouseholdId("h"),
+            householdName = "Home",
+            coordinator = DeviceId("d"),
+            revision = 7,
+            now = now,
         )
         val encoded = ProtocolJson.encodeToString(InfoResponse.serializer(), info)
         ProtocolJson.decodeFromString(InfoResponse.serializer(), encoded) shouldBe info

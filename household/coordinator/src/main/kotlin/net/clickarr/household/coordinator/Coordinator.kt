@@ -168,25 +168,26 @@ class Coordinator(
 
     /** Window open, session known and fresh, proof correct (with the three-attempt rule). */
     private fun validatePairing(req: PairCompleteRequest): Outcome<PairSession> {
-        val pin = activePin?.takeIf { it.expiresAt > clock.now() }
-            ?: return Outcome.Failure(ClickarrError.Unauthorized("Pairing window closed"))
-        val session = sessions[req.sessionId] ?: return Outcome.Failure(ClickarrError.NotFound("Unknown pairing session"))
-        if (session.expiresAt <= clock.now()) {
-            sessions.remove(req.sessionId)
-            return Outcome.Failure(ClickarrError.Unauthorized("Pairing session expired"))
+        val now = clock.now()
+        val pin = activePin?.takeIf { it.expiresAt > now }
+        val session = sessions[req.sessionId]
+        val failure: String? = when {
+            pin == null -> "Pairing window closed"
+            session == null -> "Unknown pairing session"
+            session.expiresAt <= now -> "Pairing session expired".also { sessions.remove(req.sessionId) }
+            Pairing.verify(Pairing.proof(pin.pin, session.nonce, req.sessionId, session.joinerFingerprint, fingerprint()), req.proof) -> null
+            else -> wrongPin(req.sessionId, session)
         }
-        val expected = Pairing.proof(pin.pin, session.nonce, req.sessionId, session.joinerFingerprint, fingerprint())
-        if (Pairing.verify(expected, req.proof)) return Outcome.Success(session)
+        return if (failure == null) Outcome.Success(session!!) else Outcome.Failure(ClickarrError.Unauthorized(failure))
+    }
+
+    private fun wrongPin(sessionId: String, session: PairSession): String {
         session.attempts++
-        val message = if (session.attempts >= Pairing.MAX_ATTEMPTS) {
-            sessions.remove(req.sessionId)
-            activePin = null
-            Log.w(TAG) { "pairing aborted after ${Pairing.MAX_ATTEMPTS} wrong PINs" }
-            "Too many wrong PINs; start again from the other TV"
-        } else {
-            "Wrong PIN"
-        }
-        return Outcome.Failure(ClickarrError.Unauthorized(message))
+        if (session.attempts < Pairing.MAX_ATTEMPTS) return "Wrong PIN"
+        sessions.remove(sessionId)
+        activePin = null
+        Log.w(TAG) { "pairing aborted after ${Pairing.MAX_ATTEMPTS} wrong PINs" }
+        return "Too many wrong PINs; start again from the other TV"
     }
 
     private suspend fun commit(next: HouseholdState) {
