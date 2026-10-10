@@ -7,6 +7,8 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.printToLog
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
@@ -62,8 +64,19 @@ class FirstRunFlowTest {
         compose.waitForIdle()
     }
 
+    /** Runs the flow; on failure, screenshots the live screen and logs the semantics tree before teardown. */
+    private fun flow(block: () -> Unit) {
+        try {
+            block()
+        } catch (t: Throwable) {
+            runCatching { device.takeScreenshot(File(shots, "99-failure.png")) }
+            runCatching { compose.onRoot(useUnmergedTree = true).printToLog("Clickarr/Test") }
+            throw t
+        }
+    }
+
     @Test
-    fun connectCreateChannelTuneAndOpenGuide() {
+    fun connectCreateChannelTuneAndOpenGuide() = flow {
         // Cold start on a software-rendered emulator: Hilt graph, Room, DataStore, first Compose frame.
         waitForText("Connect to your Plex server", timeoutMs = 90_000)
         shot("01-setup")

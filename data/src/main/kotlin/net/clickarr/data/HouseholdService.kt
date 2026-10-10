@@ -222,8 +222,10 @@ class HouseholdService @Inject constructor(
             is Outcome.Success -> r.value
             is Outcome.Failure -> return r
         }
+        Log.i(TAG) { "paired with ${paired.householdId.value} (rev ${paired.state.revision})" }
         secrets.put(MEMBER_TOKEN, paired.deviceToken)
         store.saveState(paired.state)
+        Log.d(TAG) { "member state saved" }
         val now = systemClock.now().toEpochMilliseconds()
         db.household().get()?.let {
             db.household().upsert(
@@ -236,6 +238,7 @@ class HouseholdService @Inject constructor(
             )
         }
         db.household().get()?.let { startMember(it) }
+        Log.i(TAG) { "joined as member; role=${_role.value::class.simpleName}" }
         return Outcome.Success(Unit)
     }
 
@@ -261,6 +264,7 @@ class HouseholdService @Inject constructor(
         val c = HouseholdClient(okHttp, url) { kotlinx.coroutines.runBlocking { secrets.get(MEMBER_TOKEN) } }
         client = c
         _role.value = Role.Member(url, connected = false, lastSync = h.lastSyncEpochMs?.let(Instant::fromEpochMilliseconds))
+        Log.d(TAG) { "member of ${h.name} via $url" }
         memberJob?.cancel()
         memberJob = scope.launch { memberLoop(c) }
     }
@@ -289,7 +293,10 @@ class HouseholdService @Inject constructor(
             is Outcome.Success -> {
                 HouseholdClockOffset.observe(info.value.now.toEpochMilliseconds(), systemClock.now().toEpochMilliseconds())
             }
-            is Outcome.Failure -> return false
+            is Outcome.Failure -> {
+                Log.w(TAG) { "sync: info failed: ${info.error.message}" }
+                return false
+            }
         }
         return when (val r = c.state(known)) {
             is Outcome.Success -> {
