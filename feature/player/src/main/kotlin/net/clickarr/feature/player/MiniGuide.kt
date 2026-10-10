@@ -32,16 +32,12 @@ fun MiniGuide(guide: PlayerViewModel.MiniGuide, now: Instant, modifier: Modifier
         guide.items.forEachIndexed { i, airing ->
             val selected = i == guide.index
             val live = airing.start <= now && now < airing.end
+            val shape = RoundedCornerShape(ClickarrDimens.RadiusCell)
             Column(
                 Modifier
                     .width(CARD_WIDTH)
-                    .background(
-                        if (selected) ClickarrColors.AccentPrimary else ClickarrColors.BgSurface.copy(alpha = CARD_ALPHA),
-                        RoundedCornerShape(ClickarrDimens.RadiusCell),
-                    )
-                    .then(
-                        if (selected) Modifier.border(2.dp, ClickarrColors.FocusRing, RoundedCornerShape(ClickarrDimens.RadiusCell)) else Modifier,
-                    )
+                    .background(if (selected) ClickarrColors.AccentPrimary else ClickarrColors.BgSurface.copy(alpha = CARD_ALPHA), shape)
+                    .then(if (selected) Modifier.border(2.dp, ClickarrColors.FocusRing, shape) else Modifier)
                     .padding(14.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
