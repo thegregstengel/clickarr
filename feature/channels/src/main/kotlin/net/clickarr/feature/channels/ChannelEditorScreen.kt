@@ -106,25 +106,36 @@ private fun <T> Picker(title: String, items: List<T>, label: (T) -> String, onPi
     }
 }
 
+/** Shows on the left; the picked list and Continue on the right, one Right press away from any row. */
 @Composable
 private fun PickShows(s: Step.PickShows, vm: EditorViewModel) {
-    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-        Text("${s.selected.size} selected", style = ClickarrTextStyles.Body, color = ClickarrColors.TextSecondary)
-        Button(onClick = vm::confirmShows) { Text("Continue") }
-    }
-    LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        items(s.shows, key = { it.ref.id.value }) { show ->
-            val picked = show.ref in s.selected
-            ListItem(
-                selected = picked,
-                onClick = { vm.toggleShow(show.ref) },
-                headlineContent = { Text(show.title, style = ClickarrTextStyles.RowTitle) },
-                supportingContent = {
-                    val detail = "${show.episodeCount} episodes" + (show.year?.let { " · $it" } ?: "")
-                    Text(detail, style = ClickarrTextStyles.Caption, color = ClickarrColors.TextSecondary)
-                },
-                trailingContent = { if (picked) Text("✓", style = ClickarrTextStyles.RowTitle) },
-            )
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(32.dp)) {
+        LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            items(s.shows, key = { it.ref.id.value }) { show ->
+                val picked = show.ref in s.selected
+                ListItem(
+                    selected = picked,
+                    onClick = { vm.toggleShow(show.ref) },
+                    headlineContent = { Text(show.title, style = ClickarrTextStyles.RowTitle) },
+                    supportingContent = {
+                        val detail = "${show.episodeCount} episodes" + (show.year?.let { " · $it" } ?: "")
+                        Text(detail, style = ClickarrTextStyles.Caption, color = ClickarrColors.TextSecondary)
+                    },
+                    trailingContent = { if (picked) Text("✓", style = ClickarrTextStyles.RowTitle) },
+                )
+            }
+        }
+        Column(Modifier.width(360.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text("${s.selected.size} selected", style = ClickarrTextStyles.Body, color = ClickarrColors.TextSecondary)
+            val picked = s.shows.filter { it.ref in s.selected }
+            picked.take(PICKED_PREVIEW).forEach {
+                Text(it.title, style = ClickarrTextStyles.Caption, color = ClickarrColors.TextSecondary, maxLines = 1)
+            }
+            if (picked.size > PICKED_PREVIEW) {
+                Text("and ${picked.size - PICKED_PREVIEW} more", style = ClickarrTextStyles.Caption, color = ClickarrColors.TextMuted)
+            }
+            Button(onClick = vm::confirmShows) { Text("Continue") }
+            Text("Press Right from any show to get here.", style = ClickarrTextStyles.Caption, color = ClickarrColors.TextMuted)
         }
     }
 }
@@ -234,6 +245,7 @@ private fun DetailsFields(d: EditorViewModel.Draft, vm: EditorViewModel) {
         Chip("Back to back", d.rounding == null) { vm.updateDraft { it.copy(rounding = null) } }
         Chip("15 min", d.rounding == 15.minutes) { vm.updateDraft { it.copy(rounding = 15.minutes) } }
         Chip("30 min", d.rounding == 30.minutes) { vm.updateDraft { it.copy(rounding = 30.minutes) } }
+        Chip("1 hour", d.rounding == 60.minutes) { vm.updateDraft { it.copy(rounding = 60.minutes) } }
     }
     val editing = d.editing
     if (editing == null) {
@@ -251,3 +263,5 @@ private fun DetailsFields(d: EditorViewModel.Draft, vm: EditorViewModel) {
         )
     }
 }
+
+private const val PICKED_PREVIEW = 8

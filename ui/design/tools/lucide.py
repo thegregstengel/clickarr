@@ -21,7 +21,8 @@ GLYPHS = [
     ("car", "Cars"), ("gamepad-2", "Games"), ("mic", "Talk"), ("palette", "Art"), ("book-open", "Stories"),
     ("camera", "Camera"), ("radio", "Radio"), ("zap", "Zap"), ("skull", "Skull"), ("wand-sparkles", "Wand"),
     ("sun", "Day"), ("moon", "Night"), ("history", "Retro"), ("tent", "Outdoors"), ("compass", "Travel"),
-    ("mountain", "Nature"),
+    ("mountain", "Nature"), ("users", "Reality"), ("chef-hat", "Cooking"), ("video", "Documentary"),
+    ("party-popper", "Party"), ("dumbbell", "Fitness"),
 ]
 ROOT = Path(__file__).resolve().parents[3]
 OUT = ROOT / "ui/design/src/main/res/drawable"

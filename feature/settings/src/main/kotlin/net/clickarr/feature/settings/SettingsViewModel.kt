@@ -38,11 +38,15 @@ class SettingsViewModel @Inject constructor(
     val profile: DeviceProfile,
     private val updates: UpdateChecker,
 ) : ViewModel() {
-    data class General(val deviceName: String, val deviceId: String, val overlayTimeoutMs: Int)
+    data class General(val deviceName: String, val deviceId: String, val overlayTimeoutMs: Int, val uiScale: Float)
 
-    val general: StateFlow<General> = combine(prefs.deviceName, prefs.overlayTimeoutMs) { name, timeout ->
-        General(name, prefs.deviceId, timeout)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), General("", prefs.deviceId, DevicePrefs.DEFAULT_OVERLAY_TIMEOUT_MS))
+    val general: StateFlow<General> = combine(prefs.deviceName, prefs.overlayTimeoutMs, prefs.uiScale) { name, timeout, scale ->
+        General(name, prefs.deviceId, timeout, scale)
+    }.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5_000),
+        General("", prefs.deviceId, DevicePrefs.DEFAULT_OVERLAY_TIMEOUT_MS, DevicePrefs.DEFAULT_UI_SCALE),
+    )
 
     val servers: StateFlow<List<ServerInfo>> = registry.providers.map { it.values.map { p -> p.server } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -72,6 +76,8 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun setOverlayTimeout(ms: Int) = viewModelScope.launch { prefs.setOverlayTimeoutMs(ms) }
+
+    fun setUiScale(scale: Float) = viewModelScope.launch { prefs.setUiScale(scale) }
 
     fun disconnect(onDone: () -> Unit) {
         viewModelScope.launch {

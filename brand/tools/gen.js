@@ -246,7 +246,7 @@ function tileIconSvg(W) {
     `<rect width="${W}" height="${H}" rx="${Math.round(H * 0.09)}" fill="url(#bn-bg)"/>`);
 }
 const densities = { mdpi: 160, hdpi: 240, xhdpi: 320, xxhdpi: 480, xxxhdpi: 640 };
-for (const [d, px] of Object.entries(densities)) png(`android/mipmap-${d}/ic_launcher.png`, tileIconSvg(px), px);
+for (const [d, px] of Object.entries(densities)) png(`android/drawable-${d}/ic_launcher.png`, tileIconSvg(px), px); // drawable, not mipmap: Fire TV's launcher misses mipmap icons
 png('android/ic_launcher-512.png', legacyIconSvg(512), 512);               // Play/Amazon listing icon
 write('android/banner.svg', bannerSvg(320, 180));
 png('android/drawable-xhdpi/banner.png', bannerSvg(320, 180), 320);        // Android TV banner spec: 320x180 @ xhdpi

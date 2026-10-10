@@ -118,6 +118,17 @@ private fun ChannelsPane(vm: SettingsViewModel) {
 @Composable
 private fun AppearancePane(vm: SettingsViewModel) {
     val g by vm.general.collectAsState()
+    Label("Size")
+    Caption("How large everything is drawn. Small fits more of the guide on screen; Large is the original design scale.")
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        listOf("Small" to 0.75f, "Medium" to 0.85f, "Large" to 1f).forEach { (label, scale) ->
+            ListItem(
+                selected = g.uiScale == scale,
+                onClick = { vm.setUiScale(scale) },
+                headlineContent = { Text(label, style = ClickarrTextStyles.Caption) },
+            )
+        }
+    }
     Label("Overlay stays for")
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         listOf(3, 5, 8).forEach { s ->

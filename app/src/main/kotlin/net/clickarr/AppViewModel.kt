@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import net.clickarr.data.ChannelRepository
+import net.clickarr.data.DevicePrefs
 import net.clickarr.data.HouseholdService
 import net.clickarr.data.ProviderRegistry
 
@@ -22,6 +23,7 @@ class AppViewModel @Inject constructor(
     private val registry: ProviderRegistry,
     private val household: HouseholdService,
     channels: ChannelRepository,
+    prefs: DevicePrefs,
 ) : ViewModel() {
     private val _ready = MutableStateFlow(false)
     val ready: StateFlow<Boolean> = _ready.asStateFlow()
@@ -31,6 +33,8 @@ class AppViewModel @Inject constructor(
 
     val channelCount: StateFlow<Int> = channels.channels.map { it.size }
         .stateIn(viewModelScope, SharingStarted.Eagerly, 0)
+
+    val uiScale: StateFlow<Float> = prefs.uiScale.stateIn(viewModelScope, SharingStarted.Eagerly, DevicePrefs.DEFAULT_UI_SCALE)
 
     /** Whether any channel existed when the app came up; decides the first screen. */
     private val _hadChannelsAtStart = MutableStateFlow(false)

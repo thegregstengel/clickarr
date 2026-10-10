@@ -5,6 +5,7 @@ import android.os.Build
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -50,12 +51,22 @@ class DevicePrefs(context: Context) {
         store.edit { it[OVERLAY_TIMEOUT] = ms.coerceIn(2_000, 10_000) }
     }
 
+    /** Multiplies the display density for the whole UI (Settings, Appearance, Size). 1.0 is the design's 1080p scale. */
+    val uiScale: Flow<Float> = store.data.map { it[UI_SCALE] ?: DEFAULT_UI_SCALE }
+
+    suspend fun setUiScale(scale: Float) {
+        store.edit { it[UI_SCALE] = scale.coerceIn(MIN_UI_SCALE, 1f) }
+    }
+
     companion object {
         private val DEVICE_ID = stringPreferencesKey("device_id")
         private val DEVICE_NAME = stringPreferencesKey("device_name")
         private val LAST_CHANNEL = stringPreferencesKey("last_channel")
         private val OVERLAY_TIMEOUT = intPreferencesKey("overlay_timeout_ms")
         const val DEFAULT_OVERLAY_TIMEOUT_MS = 5_000
+        private val UI_SCALE = floatPreferencesKey("ui_scale")
+        const val DEFAULT_UI_SCALE = 0.85f
+        const val MIN_UI_SCALE = 0.7f
 
         fun defaultDeviceName(): String = Build.MODEL.ifBlank { "Clickarr TV" }
     }
