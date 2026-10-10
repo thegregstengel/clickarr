@@ -1,5 +1,6 @@
 package net.clickarr.feature.player
 
+import androidx.activity.compose.BackHandler
 import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -51,6 +52,15 @@ fun PlayerScreen(
     val overlayVisible by viewModel.overlayVisible.collectAsState()
     val digits by viewModel.digits.collectAsState()
     val miniGuide by viewModel.miniGuide.collectAsState()
+    // Back arrives as a key on Fire OS but through the back dispatcher on newer Android (predictive back),
+    // so it is handled here rather than in the key map: close the mini-guide, then the overlay, then leave.
+    BackHandler {
+        when {
+            miniGuide != null -> viewModel.closeMiniGuide()
+            overlayVisible -> viewModel.hideOverlay()
+            else -> onOpenShell()
+        }
+    }
     val focus = remember { FocusRequester() }
     val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -76,7 +86,7 @@ fun PlayerScreen(
                 event.type == KeyEventType.KeyDown && if (miniGuide != null) {
                     handleMiniGuideKey(event.key, viewModel)
                 } else {
-                    handleKey(event.key, viewModel, overlayVisible, onOpenGuide, onOpenShell)
+                    handleKey(event.key, viewModel, onOpenGuide)
                 }
             },
     ) {
@@ -110,13 +120,7 @@ fun PlayerScreen(
 }
 
 /** Remote mapping from design language 2.8. Returns true when the key was consumed. */
-private fun handleKey(
-    key: Key,
-    vm: PlayerViewModel,
-    overlayVisible: Boolean,
-    onOpenGuide: () -> Unit,
-    onOpenShell: () -> Unit,
-): Boolean {
+private fun handleKey(key: Key, vm: PlayerViewModel, onOpenGuide: () -> Unit): Boolean {
     val action: (() -> Unit)? = when (key) {
         Key.DirectionUp, Key.ChannelUp -> vm::channelUp
         Key.DirectionDown, Key.ChannelDown -> vm::channelDown
@@ -124,7 +128,6 @@ private fun handleKey(
         Key.Menu -> onOpenGuide
         Key.DirectionLeft, Key.DirectionRight -> vm::openMiniGuide
         Key.MediaPlayPause, Key.MediaPlay, Key.MediaPause -> vm::playPause
-        Key.Back -> if (overlayVisible) vm::hideOverlay else onOpenShell
         in DIGIT_KEYS -> ({ vm.enterDigit(DIGIT_KEYS.indexOf(key)) })
         else -> null
     }
@@ -132,12 +135,12 @@ private fun handleKey(
     return action != null
 }
 
-/** Inside the mini-guide: Left and Right move, OK and Back close. Everything else is ignored while it is up. */
+/** Inside the mini-guide: Left and Right move, OK closes (Back closes through the BackHandler). */
 private fun handleMiniGuideKey(key: Key, vm: PlayerViewModel): Boolean {
     when (key) {
         Key.DirectionLeft -> vm.moveMiniGuide(-1)
         Key.DirectionRight -> vm.moveMiniGuide(+1)
-        Key.DirectionCenter, Key.Enter, Key.Back -> vm.closeMiniGuide()
+        Key.DirectionCenter, Key.Enter -> vm.closeMiniGuide()
         else -> return false
     }
     return true
