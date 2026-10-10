@@ -72,7 +72,7 @@ jobs:
           SIGNER=""
           if [ -n "$APKSIGNER" ]; then
             "$APKSIGNER" verify --print-certs "$APK" | tee certs.txt
-            SIGNER="$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' certs.txt | head -1)"
+            SIGNER="$(sed -n 's/^.*certificate SHA-256 digest: //p' certs.txt | head -1)"
           fi
           test -n "$SIGNER" || echo "::warning::could not read the APK's signer; version.json will not carry one"
           printf '{"versionCode":%s,"versionName":"%s","apk":"clickarr-nightly-debug.apk","sha256":"%s","signer":"%s","channel":"nightly"}\n' \
