@@ -22,6 +22,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
@@ -54,13 +55,7 @@ fun PlayerScreen(
     val miniGuide by viewModel.miniGuide.collectAsState()
     // Back arrives as a key on Fire OS but through the back dispatcher on newer Android (predictive back),
     // so it is handled here rather than in the key map: close the mini-guide, then the overlay, then leave.
-    BackHandler {
-        when {
-            miniGuide != null -> viewModel.closeMiniGuide()
-            overlayVisible -> viewModel.hideOverlay()
-            else -> onOpenShell()
-        }
-    }
+    BackHandler { if (!viewModel.handleBack()) onOpenShell() }
     val focus = remember { FocusRequester() }
     val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -82,13 +77,7 @@ fun PlayerScreen(
             .background(Color.Black)
             .focusRequester(focus)
             .focusable()
-            .onPreviewKeyEvent { event ->
-                event.type == KeyEventType.KeyDown && if (miniGuide != null) {
-                    handleMiniGuideKey(event.key, viewModel)
-                } else {
-                    handleKey(event.key, viewModel, onOpenGuide)
-                }
-            },
+            .onPreviewKeyEvent { event -> playerKey(event, viewModel, miniOpen = miniGuide != null, onOpenGuide) },
     ) {
         AndroidView(
             factory = { ctx ->
@@ -117,6 +106,12 @@ fun PlayerScreen(
         if (digits.isNotEmpty() && !overlayVisible) DigitBadge(digits)
         miniGuide?.let { MiniGuide(it, now = viewModel.now(), modifier = Modifier.align(Alignment.BottomCenter)) }
     }
+}
+
+/** Key-down events only; the mini-guide takes the keys while it is up. */
+private fun playerKey(event: KeyEvent, vm: PlayerViewModel, miniOpen: Boolean, onOpenGuide: () -> Unit): Boolean {
+    if (event.type != KeyEventType.KeyDown) return false
+    return if (miniOpen) handleMiniGuideKey(event.key, vm) else handleKey(event.key, vm, onOpenGuide)
 }
 
 /** Remote mapping from design language 2.8. Returns true when the key was consumed. */

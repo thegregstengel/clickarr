@@ -87,6 +87,16 @@ class PlayerViewModel @Inject constructor(
         _miniGuide.value = null
     }
 
+    /** Back closes the mini-guide, then the overlay; false means nothing was open and the caller should leave. */
+    fun handleBack(): Boolean {
+        when {
+            _miniGuide.value != null -> closeMiniGuide()
+            _overlayVisible.value -> hideOverlay()
+            else -> return false
+        }
+        return true
+    }
+
     private var hideJob: Job? = null
     private var digitJob: Job? = null
     private var overlayTimeoutMs = 5_000
