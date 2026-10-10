@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -22,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -33,6 +35,7 @@ import androidx.tv.material3.ListItem
 import androidx.tv.material3.Text
 import kotlin.time.Duration.Companion.minutes
 import kotlinx.datetime.Clock
+import net.clickarr.core.common.Log
 import net.clickarr.core.model.HouseholdDevice
 import net.clickarr.data.HouseholdService
 import net.clickarr.household.protocol.Pairing
@@ -57,36 +60,61 @@ fun HouseholdPane(viewModel: HouseholdViewModel = hiltViewModel()) {
         is HouseholdService.Role.Member -> "member"
     }
     val primaryFocus = remember { FocusRequester() }
+    val anchor = remember { FocusRequester() }
     var shownSection by remember { mutableStateOf(section) }
+    val parking = remember { booleanArrayOf(false) }
     LaunchedEffect(section) {
         if (section != shownSection) {
             shownSection = section
+            parking[0] = false
+            val ok = runCatching { primaryFocus.requestFocus() }.getOrDefault(false)
+            Log.d(TAG) { "section $section, primary focus taken: $ok" }
+        }
+    }
+    // A failed action leaves the section in place with a message; bring focus back from the anchor.
+    LaunchedEffect(message) {
+        if (message != null) {
+            parking[0] = false
             runCatching { primaryFocus.requestFocus() }
         }
     }
+    // Park focus here before an action removes the focused button, so focus never leaves the pane. If the
+    // viewer's D-pad lands here instead, pass straight through to the primary action.
+    Box(
+        Modifier
+            .size(1.dp)
+            .focusRequester(anchor)
+            .onFocusChanged { if (it.isFocused && !parking[0]) runCatching { primaryFocus.requestFocus() } }
+            .focusable(),
+    )
+    val swap: (() -> Unit) -> Unit = { action ->
+        parking[0] = true
+        runCatching { anchor.requestFocus() }
+        action()
+    }
     val primary = Modifier.focusRequester(primaryFocus)
     when (val r = role) {
-        HouseholdService.Role.None -> if (joining) JoinSection(viewModel, primary) else NoneSection(viewModel, primary)
-        is HouseholdService.Role.Coordinator -> CoordinatorSection(r, household?.name, devices, viewModel, primary)
-        is HouseholdService.Role.Member -> MemberSection(r, household?.name, devices, viewModel, primary)
+        HouseholdService.Role.None -> if (joining) JoinSection(viewModel, primary, swap) else NoneSection(viewModel, primary, swap)
+        is HouseholdService.Role.Coordinator -> CoordinatorSection(r, household?.name, devices, viewModel, primary, swap)
+        is HouseholdService.Role.Member -> MemberSection(r, household?.name, devices, viewModel, primary, swap)
     }
     message?.let { Text(it, style = ClickarrTextStyles.Secondary, color = ClickarrColors.StatusError) }
 }
 
 @Composable
-private fun NoneSection(vm: HouseholdViewModel, primary: Modifier) {
+private fun NoneSection(vm: HouseholdViewModel, primary: Modifier, swap: (() -> Unit) -> Unit) {
     Caption(
         "A household lets several TVs share one channel lineup and agree on what is on. " +
             "One TV coordinates; the others follow it over your Wi-Fi.",
     )
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Button(onClick = { vm.create("Home") }, modifier = primary) { Text("Create a household") }
-        Button(onClick = vm::startJoining) { Text("Join a household") }
+        Button(onClick = { swap { vm.create("Home") } }, modifier = primary) { Text("Create a household") }
+        Button(onClick = { swap(vm::startJoining) }) { Text("Join a household") }
     }
 }
 
 @Composable
-private fun JoinSection(vm: HouseholdViewModel, primary: Modifier) {
+private fun JoinSection(vm: HouseholdViewModel, primary: Modifier, swap: (() -> Unit) -> Unit) {
     val found by vm.discovered.collectAsState()
     var address by remember { mutableStateOf("") }
     var fingerprint by remember { mutableStateOf<String?>(null) }
@@ -109,8 +137,8 @@ private fun JoinSection(vm: HouseholdViewModel, primary: Modifier) {
     Label("PIN shown on the other TV")
     Field("482 913", pin, "household.pin") { pin = it }
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Button(onClick = { vm.join(address, fingerprint, pin) }, modifier = primary) { Text("Join") }
-        Button(onClick = vm::stopJoining) { Text("Cancel") }
+        Button(onClick = { swap { vm.join(address, fingerprint, pin) } }, modifier = primary) { Text("Join") }
+        Button(onClick = { swap(vm::stopJoining) }) { Text("Cancel") }
     }
 }
 
@@ -121,6 +149,7 @@ private fun CoordinatorSection(
     devices: List<HouseholdDevice>,
     vm: HouseholdViewModel,
     primary: Modifier,
+    swap: (() -> Unit) -> Unit,
 ) {
     Caption("This TV coordinates household ${name ?: ""}. Other TVs find it on your network on port ${r.port}.")
     val pin = r.pin
@@ -132,12 +161,12 @@ private fun CoordinatorSection(
             color = ClickarrColors.AccentGlow,
         )
         Caption("Expires in about two minutes. One code pairs one TV.")
-        Button(onClick = vm::stopAddDevice, modifier = primary) { Text("Stop") }
+        Button(onClick = { swap(vm::stopAddDevice) }, modifier = primary) { Text("Stop") }
     } else {
-        Button(onClick = vm::beginAddDevice, modifier = primary) { Text("Add a device") }
+        Button(onClick = { swap(vm::beginAddDevice) }, modifier = primary) { Text("Add a device") }
     }
     DevicesList(devices, vm, canRemove = true)
-    Button(onClick = vm::leave) { Text("Dissolve household") }
+    Button(onClick = { swap(vm::leave) }) { Text("Dissolve household") }
 }
 
 @Composable
@@ -147,6 +176,7 @@ private fun MemberSection(
     devices: List<HouseholdDevice>,
     vm: HouseholdViewModel,
     primary: Modifier,
+    swap: (() -> Unit) -> Unit,
 ) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Dot(ok = r.connected)
@@ -163,7 +193,7 @@ private fun MemberSection(
     r.lastSync?.let { Caption("Synced ${ago(it.toEpochMilliseconds())}") }
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Button(onClick = vm::syncNow, modifier = primary) { Text("Sync now") }
-        Button(onClick = vm::leave) { Text("Leave household") }
+        Button(onClick = { swap(vm::leave) }) { Text("Leave household") }
     }
     DevicesList(devices, vm, canRemove = false)
 }
@@ -229,3 +259,5 @@ private fun ago(epochMs: Long): String {
         else -> "${minutes / 60} hours ago"
     }
 }
+
+private const val TAG = "HouseholdPane"
