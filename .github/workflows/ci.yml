@@ -82,7 +82,7 @@ jobs:
         run: |
           cp apk/app-debug.apk clickarr-nightly-debug.apk
           sha256sum clickarr-nightly-debug.apk > clickarr-nightly-debug.apk.sha256
-          NOTES="Automated debug build of main at ${GITHUB_SHA::7}. Not a release. Phase 0: opens into the spike menu (docs/spikes.md)."
+          NOTES="Automated debug build of main at ${GITHUB_SHA::7}. Not a release; expect rough edges. Install with Downloader from clickarr.net/nightly."
           if gh release view nightly >/dev/null 2>&1; then
             gh release edit nightly --prerelease --title "Nightly (debug)" --notes "$NOTES"
           else

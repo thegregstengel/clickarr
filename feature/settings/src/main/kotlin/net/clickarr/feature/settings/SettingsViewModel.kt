@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import net.clickarr.core.common.Clock
+import net.clickarr.core.common.Outcome
 import net.clickarr.core.common.Log
 import net.clickarr.core.model.Channel
 import net.clickarr.core.model.ServerInfo
@@ -22,6 +23,7 @@ import net.clickarr.core.scheduling.ScheduleStrategy
 import net.clickarr.core.secrets.SecretStore
 import net.clickarr.data.ChannelRepository
 import net.clickarr.data.DevicePrefs
+import net.clickarr.data.UpdateChecker
 import net.clickarr.data.ProviderRegistry
 import net.clickarr.provider.api.DeviceProfile
 
@@ -34,6 +36,7 @@ class SettingsViewModel @Inject constructor(
     private val strategy: ScheduleStrategy,
     private val clock: Clock,
     val profile: DeviceProfile,
+    private val updates: UpdateChecker,
 ) : ViewModel() {
     data class General(val deviceName: String, val deviceId: String, val overlayTimeoutMs: Int)
 
@@ -49,6 +52,24 @@ class SettingsViewModel @Inject constructor(
 
     private val _message = MutableStateFlow<String?>(null)
     val message: StateFlow<String?> = _message.asStateFlow()
+
+    private val _updateStatus = MutableStateFlow<String?>(null)
+    val updateStatus: StateFlow<String?> = _updateStatus.asStateFlow()
+
+    /** Manual check against GitHub releases (About pane). Never automatic. */
+    fun checkForUpdates(currentVersion: String) {
+        _updateStatus.value = "Checking…"
+        viewModelScope.launch {
+            _updateStatus.value = when (val r = updates.latest()) {
+                is Outcome.Success -> if (UpdateChecker.isNewer(r.value.version, currentVersion)) {
+                    "Version ${r.value.version} is available. Install it with Downloader from clickarr.net/apk."
+                } else {
+                    "You have the latest release (${r.value.version})."
+                }
+                is Outcome.Failure -> r.error.message
+            }
+        }
+    }
 
     fun setOverlayTimeout(ms: Int) = viewModelScope.launch { prefs.setOverlayTimeoutMs(ms) }
 

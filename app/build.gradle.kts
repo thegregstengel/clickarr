@@ -9,8 +9,21 @@ android {
 
     defaultConfig {
         applicationId = "net.clickarr"
-        versionCode = 1
-        versionName = "0.0.1-phase0"
+        versionCode = 2
+        versionName = "0.1.0-dev"
+    }
+
+    // Release signing comes from the environment (docs/release.md). Without it, release builds stay unsigned.
+    val keystorePath = System.getenv("CLICKARR_KEYSTORE_PATH")
+    if (!keystorePath.isNullOrBlank()) {
+        signingConfigs {
+            create("release") {
+                storeFile = file(keystorePath)
+                storePassword = System.getenv("CLICKARR_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("CLICKARR_KEY_ALIAS")
+                keyPassword = System.getenv("CLICKARR_KEY_PASSWORD")
+            }
+        }
     }
 
     buildFeatures {
@@ -26,7 +39,7 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            // Signing is configured by CI from secrets (docs/release.md). Local release builds are unsigned.
+            if (!keystorePath.isNullOrBlank()) signingConfig = signingConfigs.getByName("release")
         }
     }
 

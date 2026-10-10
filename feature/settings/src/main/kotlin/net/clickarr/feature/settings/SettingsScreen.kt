@@ -69,7 +69,7 @@ fun SettingsScreen(
                 SettingsSection.PLAYBACK -> PlaybackPane(viewModel)
                 SettingsSection.HOUSEHOLD -> HouseholdPane()
                 SettingsSection.DIAGNOSTICS -> DiagnosticsPane(viewModel)
-                SettingsSection.ABOUT -> AboutPane(appVersion, onOpenSpikes, onExit)
+                SettingsSection.ABOUT -> AboutPane(appVersion, viewModel, onOpenSpikes, onExit)
             }
         }
     }
@@ -154,10 +154,13 @@ private fun DiagnosticsPane(vm: SettingsViewModel) {
 }
 
 @Composable
-private fun AboutPane(appVersion: String, onOpenSpikes: () -> Unit, onExit: () -> Unit) {
+private fun AboutPane(appVersion: String, vm: SettingsViewModel, onOpenSpikes: () -> Unit, onExit: () -> Unit) {
+    val updateStatus by vm.updateStatus.collectAsState()
     Text("Clickarr $appVersion", style = ClickarrTextStyles.RowTitle)
     Caption("Turn your media library into TV. Open source, MIT licensed. clickarr.net")
     Caption("Plex is a trademark of Plex, Inc. Clickarr is an independent project.")
+    Button(onClick = { vm.checkForUpdates(appVersion) }) { Text("Check for updates") }
+    updateStatus?.let { Caption(it) }
     Button(onClick = onOpenSpikes) { Text("Phase 0 spikes") }
     Button(onClick = onExit) { Text("Exit Clickarr") }
 }
