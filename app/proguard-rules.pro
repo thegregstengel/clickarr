@@ -8,3 +8,6 @@
 -keep,includedescriptorclasses class net.clickarr.**$$serializer { *; }
 -keepclassmembers class net.clickarr.** { *** Companion; }
 -keepclasseswithmembers class net.clickarr.** { kotlinx.serialization.KSerializer serializer(...); }
+
+# Ktor checks for an attached IntelliJ debugger through java.lang.management, which Android does not have.
+-dontwarn java.lang.management.**
