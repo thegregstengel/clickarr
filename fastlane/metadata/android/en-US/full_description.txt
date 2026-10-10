@@ -1,0 +1,7 @@
+Clickarr turns a Plex library into television: numbered channels, a program guide, and something always already playing when you turn it on.
+
+Build channels from shows, whole libraries with genre and decade filters, Plex collections, and playlists, or let Clickarr suggest a starting lineup from what you own. Schedules are deterministic, so every TV in the house computes the same program at the same minute without a server in the middle. Tune in at 7:17 and you land seventeen minutes into the episode, like a real channel.
+
+Several TVs can form a household over your own Wi-Fi, paired with a PIN over TLS, or sync through Google Drive for backup and for homes far apart. Your Plex sign-in stays on each TV and is never shared.
+
+Open source (MIT), built in public for Android TV, Google TV, and Fire TV. Plex is a trademark of Plex, Inc.; Clickarr is an independent project.
