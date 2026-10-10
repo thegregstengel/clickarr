@@ -3,25 +3,25 @@ package net.clickarr.data
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.minutes
+import net.clickarr.core.common.ClickarrError
 import net.clickarr.core.common.Outcome
 import net.clickarr.core.model.ChannelIcon
+import net.clickarr.core.model.Collection
 import net.clickarr.core.model.EpisodeRuns
 import net.clickarr.core.model.Library
 import net.clickarr.core.model.LibraryKind
-import net.clickarr.core.model.MediaFilter
-import net.clickarr.core.model.MediaItem
+import net.clickarr.core.model.Movie
 import net.clickarr.core.model.OrderingMode
 import net.clickarr.core.model.ProgrammingSource
+import net.clickarr.core.model.Show
 import net.clickarr.provider.api.MediaProvider
 import net.clickarr.provider.api.Page
 import net.clickarr.provider.api.PageOf
 
 /**
- * "Create channels for me": reads the library once and proposes a short, practical set of channels,
- * the kind a person would make by hand given an afternoon. Collections first (someone curated them),
- * then genres and decades with enough material to fill a day, then a movies channel and playlists.
- * Capped at [MAX] so it is a starting lineup, not a flood; nothing is created until the viewer picks.
+ * "Create channels for me": reads the library once and hands what it found to [SuggestionRules], which
+ * proposes a short, practical starting lineup. Capped at [MAX] so it is a lineup, not a flood; nothing is
+ * created until the viewer picks.
  */
 @Singleton
 class ChannelSuggester @Inject constructor(private val registry: ProviderRegistry, private val channels: ChannelRepository) {
@@ -31,96 +31,36 @@ class ChannelSuggester @Inject constructor(private val registry: ProviderRegistr
         val icon: ChannelIcon?,
         val order: OrderingMode,
         val slotRounding: Duration?,
-        /** Why it is on the list, for the picker: "14 comedies", "Your Lord of the Rings collection". */
+        /** Why it is on the list, for the picker: "212 episodes, start to finish", "Your collection: 6 movies, in order". */
         val reason: String,
         val runs: EpisodeRuns? = null,
     )
 
     suspend fun suggest(): Outcome<List<Suggestion>> {
-        val provider = registry.primary
-            ?: return Outcome.Failure(net.clickarr.core.common.ClickarrError.Invalid("No server connected"))
+        val provider = registry.primary ?: return Outcome.Failure(ClickarrError.Invalid("No server connected"))
         val libraries = when (val r = provider.libraries()) {
             is Outcome.Success -> r.value
             is Outcome.Failure -> return r
         }
+        val scan = scan(provider, libraries)
         val existing = channels.all().map { it.name.lowercase() }.toSet()
-        val out = ArrayList<Suggestion>()
+        return Outcome.Success(SuggestionRules.plan(scan, existing))
+    }
+
+    private suspend fun scan(provider: MediaProvider, libraries: List<Library>): LibraryScan {
+        val shows = LinkedHashMap<Library, List<Show>>()
+        val movies = LinkedHashMap<Library, List<Movie>>()
+        val collections = ArrayList<Pair<Library, Collection>>()
         for (lib in libraries) {
             when (lib.kind) {
-                LibraryKind.SHOWS -> out += showsLibrary(provider, lib)
-                LibraryKind.MOVIES -> out += moviesLibrary(provider, lib)
-                LibraryKind.OTHER -> Unit
+                LibraryKind.SHOWS -> shows[lib] = allPages { provider.shows(lib.ref, it) }.orEmpty()
+                LibraryKind.MOVIES -> movies[lib] = allPages { provider.movies(lib.ref, it) }.orEmpty()
+                LibraryKind.OTHER -> continue
             }
+            (provider.collections(lib.ref) as? Outcome.Success)?.value?.forEach { collections += lib to it }
         }
-        (provider.playlists() as? Outcome.Success)?.value?.take(MAX_PLAYLISTS)?.forEach { p ->
-            out += Suggestion(p.name, ProgrammingSource.Playlist(p.ref), glyph("star"), OrderingMode.SEQUENTIAL, null, "Your playlist")
-        }
-        return Outcome.Success(out.filter { it.name.lowercase() !in existing }.distinctBy { it.name.lowercase() }.take(MAX))
-    }
-
-    private suspend fun showsLibrary(provider: MediaProvider, lib: Library): List<Suggestion> {
-        val shows = allPages { provider.shows(lib.ref, it) } ?: return emptyList()
-        val out = ArrayList<Suggestion>()
-        out += collections(provider, lib)
-        out += byGenre(lib, shows, minimum = MIN_SHOWS_PER_GENRE, unit = "shows", rounding = 30.minutes)
-        out += byDecade(lib, shows, minimum = MIN_SHOWS_PER_DECADE, unit = "shows", rounding = 30.minutes)
-        return out
-    }
-
-    private suspend fun moviesLibrary(provider: MediaProvider, lib: Library): List<Suggestion> {
-        val movies = allPages { provider.movies(lib.ref, it) } ?: return emptyList()
-        val out = ArrayList<Suggestion>()
-        out += collections(provider, lib)
-        if (movies.size >= MIN_MOVIES_FOR_ALL) {
-            out += Suggestion(
-                "${lib.name}, shuffled", ProgrammingSource.Library(lib.ref), glyph("clapperboard"), OrderingMode.SHUFFLE, null,
-                "${movies.size} movies, back to back",
-            )
-        }
-        out += byGenre(lib, movies, minimum = MIN_MOVIES_PER_GENRE, unit = "movies", rounding = null)
-        out += byDecade(lib, movies, minimum = MIN_MOVIES_PER_DECADE, unit = "movies", rounding = null)
-        return out
-    }
-
-    private suspend fun collections(provider: MediaProvider, lib: Library): List<Suggestion> =
-        (provider.collections(lib.ref) as? Outcome.Success)?.value.orEmpty().take(MAX_COLLECTIONS).map { c ->
-            Suggestion(
-                c.name, ProgrammingSource.Collection(c.ref), glyph("film"), OrderingMode.SEQUENTIAL, null, "Your collection, in order",
-            )
-        }
-
-    private fun byGenre(lib: Library, items: List<MediaItem>, minimum: Int, unit: String, rounding: Duration?): List<Suggestion> =
-        items.flatMap { it.genres }.groupingBy { it }.eachCount().entries
-            .filter { it.value >= minimum }
-            .sortedByDescending { it.value }
-            .take(MAX_GENRES)
-            .map { (genre, count) ->
-                val filter = MediaFilter(genres = setOf(genre))
-                Suggestion(
-                    genreName(genre, unit), ProgrammingSource.Library(lib.ref, filter), glyph(GENRE_GLYPHS[genre.lowercase()] ?: "tv"),
-                    OrderingMode.SHUFFLE, rounding, "$count $unit tagged $genre", runs = showRuns(unit),
-                )
-            }
-
-    private fun byDecade(lib: Library, items: List<MediaItem>, minimum: Int, unit: String, rounding: Duration?): List<Suggestion> =
-        items.mapNotNull { it.year }.map { it - it % DECADE }.groupingBy { it }.eachCount().entries
-            .filter { it.value >= minimum }
-            .sortedByDescending { it.value }
-            .take(MAX_DECADES)
-            .map { (decade, count) ->
-                val name = "${decade}s ${unit.replaceFirstChar { it.uppercase() }}"
-                Suggestion(
-                    name, ProgrammingSource.Library(lib.ref, MediaFilter(decadeStart = decade)),
-                    glyph("history"), OrderingMode.SHUFFLE, rounding, "$count $unit from the ${decade}s", runs = showRuns(unit),
-                )
-            }
-
-    /** Shuffled shows play two or three episodes in a row; movies are one at a time. */
-    private fun showRuns(unit: String): EpisodeRuns? = if (unit == "shows") EpisodeRuns(2, SHOW_RUN_MAX) else null
-
-    private fun genreName(genre: String, unit: String): String = when (unit) {
-        "movies" -> "$genre Movies"
-        else -> "$genre TV"
+        val playlists = (provider.playlists() as? Outcome.Success)?.value.orEmpty()
+        return LibraryScan(shows, movies, collections, playlists)
     }
 
     private suspend fun <T> allPages(fetch: suspend (Page) -> Outcome<PageOf<T>>): List<T>? {
@@ -134,28 +74,8 @@ class ChannelSuggester @Inject constructor(private val registry: ProviderRegistr
         }
     }
 
-    private fun glyph(name: String) = ChannelIcon.Glyph(name)
-
     companion object {
         const val MAX = 12
-        private const val MAX_COLLECTIONS = 4
-        private const val MAX_PLAYLISTS = 2
-        private const val MAX_GENRES = 4
-        private const val MAX_DECADES = 2
-        private const val MIN_SHOWS_PER_GENRE = 3
-        private const val MIN_SHOWS_PER_DECADE = 3
-        private const val MIN_MOVIES_PER_GENRE = 8
-        private const val MIN_MOVIES_PER_DECADE = 8
-        private const val MIN_MOVIES_FOR_ALL = 10
         private const val MAX_ITEMS_SCANNED = 2_000
-        private const val DECADE = 10
-        private const val SHOW_RUN_MAX = 3
-        private val GENRE_GLYPHS = mapOf(
-            "comedy" to "laugh", "drama" to "drama", "horror" to "ghost", "science fiction" to "rocket", "sci-fi" to "rocket",
-            "action" to "swords", "adventure" to "compass", "romance" to "heart", "animation" to "baby", "children" to "baby",
-            "kids" to "baby", "family" to "baby", "documentary" to "video", "music" to "music", "sport" to "trophy", "sports" to "trophy",
-            "reality" to "users", "crime" to "skull", "thriller" to "zap", "fantasy" to "wand-sparkles", "war" to "swords",
-            "western" to "mountain", "history" to "history", "food" to "chef-hat", "cooking" to "chef-hat", "news" to "newspaper",
-        )
     }
 }

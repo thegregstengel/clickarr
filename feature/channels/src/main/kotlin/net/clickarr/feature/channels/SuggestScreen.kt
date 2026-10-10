@@ -54,8 +54,8 @@ fun SuggestScreen(onDone: () -> Unit, viewModel: SuggestViewModel = hiltViewMode
 @Composable
 private fun Pick(s: Step.Pick, vm: SuggestViewModel) {
     Text(
-        "Picked from your collections, the genres and decades you have plenty of, and your playlists. " +
-            "Unselect anything you do not want; nothing is created until you say so.",
+        "Rerun channels for the shows you have the most of, your collections, the genres and decades you have " +
+            "plenty of, a movie channel, and a playlist. Unselect anything you do not want; nothing is created until you say so.",
         style = ClickarrTextStyles.Secondary,
         color = ClickarrColors.TextSecondary,
     )
@@ -64,7 +64,7 @@ private fun Pick(s: Step.Pick, vm: SuggestViewModel) {
     }
     if (s.suggestions.isEmpty()) {
         Text(
-            "Nothing to suggest yet: the library has no collections, playlists, or genres with enough titles.",
+            "Nothing to suggest yet: no show with enough episodes, and no collection, playlist, genre, or decade with enough titles.",
             style = ClickarrTextStyles.Secondary,
         )
     }

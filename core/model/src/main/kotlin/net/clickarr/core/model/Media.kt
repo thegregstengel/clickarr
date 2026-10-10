@@ -120,8 +120,10 @@ data class Movie(
     val summary: String? = null,
 ) : MediaItem, Playable
 
+/** [itemCount] is how many titles the server says it holds, when it says (Plex childCount). */
 @Serializable
-data class Collection(val ref: MediaRef, val name: String)
+data class Collection(val ref: MediaRef, val name: String, val itemCount: Int? = null)
 
+/** [itemCount] is how many items the server says it holds, when it says (Plex leafCount). */
 @Serializable
-data class Playlist(val ref: MediaRef, val name: String)
+data class Playlist(val ref: MediaRef, val name: String, val itemCount: Int? = null)

@@ -87,7 +87,7 @@ class FakeMediaProvider(
             val f = source.filter
             (movies + eps).filter { p ->
                 val item = p as MediaItem
-                val genreOk = f.genres.isEmpty() || item.genres.any { it in f.genres }
+                val genreOk = f.genres.isEmpty() || item.genres.any { g -> f.genres.any { it.equals(g, ignoreCase = true) } }
                 val decade = f.decadeStart
                 val decadeOk = decade == null || (item.year ?: -1) in decade until decade + 10
                 genreOk && decadeOk

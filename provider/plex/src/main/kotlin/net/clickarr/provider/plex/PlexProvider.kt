@@ -196,7 +196,7 @@ class PlexProvider(
 internal fun MediaFilter.matches(item: MediaItem): Boolean = predicates().all { it(item) }
 
 private fun MediaFilter.predicates(): List<(MediaItem) -> Boolean> = buildList {
-    if (genres.isNotEmpty()) add { it.genres.any { g -> g in genres } }
+    if (genres.isNotEmpty()) add { it.genres.any { g -> genres.any { wanted -> wanted.equals(g, ignoreCase = true) } } }
     decadeStart?.let { d -> add { (it.year ?: -1) in d until d + 10 } }
     yearFrom?.let { from -> add { (it.year ?: Int.MIN_VALUE) >= from } }
     yearTo?.let { to -> add { (it.year ?: Int.MAX_VALUE) <= to } }

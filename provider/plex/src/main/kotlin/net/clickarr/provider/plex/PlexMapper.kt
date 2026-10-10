@@ -78,9 +78,9 @@ internal class PlexMapper(private val provider: ProviderId) {
         media = versions(m),
     )
 
-    fun collection(m: PlexMetadata) = Collection(ref(m.ratingKey), m.title)
+    fun collection(m: PlexMetadata) = Collection(ref(m.ratingKey), m.title, itemCount = m.childCount)
 
-    fun playlist(m: PlexMetadata) = Playlist(ref(m.ratingKey), m.title)
+    fun playlist(m: PlexMetadata) = Playlist(ref(m.ratingKey), m.title, itemCount = m.leafCount)
 
     /** Episodes and movies become Playable; shows stay Show. Anything else is dropped. */
     fun item(m: PlexMetadata): MediaItem? = when (m.type) {

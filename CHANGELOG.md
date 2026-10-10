@@ -21,7 +21,9 @@ the household protocol and database may still change between minor versions.
 - Shell is Guide and Favorites with a settings cog; channels are created and edited under Settings, Channels. New channels default to back-to-back slots.
 - Guide: the focused program scrolls its title and episode when they do not fit; OK on a channel cell stars it as a favorite.
 - Settings, Sync: Off, Local household, or Google Drive (ADR 0020). Drive mode signs in with a TV code, keeps the household document in Drive's app folder, replays local edits over a newer remote state, and refuses a backup from a different Plex server. Needs a Google client in the build.
-- Settings, Channels, Suggest channels: a practical starting lineup from your collections, genres, decades, and playlists.
+- Settings, Channels, Suggest channels: a practical starting lineup. Rerun channels for the shows with the most episodes,
+  collections and playlists with enough in them, genre themes (Sitcoms, Cartoons, Horror Movies) and decades with plenty of
+  titles, and one shuffled movie channel; everything back to back, thresholds relaxed for a small library.
 - Settings, About and Updates: nightly or release channel, check, download with checksum, and install.
 - Updates: nightlies are signed with one long-lived key so they install over each other; the install goes through a
   package-installer session and reports the system's verdict on the pane; one button carries check, download (with
