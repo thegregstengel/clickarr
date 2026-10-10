@@ -66,11 +66,15 @@ jobs:
           APK=app/build/outputs/apk/debug/app-debug.apk
           NAME="$(sed -n 's/.*versionName = "\(.*\)".*/\1/p' app/build.gradle.kts)-debug"
           SHA="$(sha256sum "$APK" | cut -d' ' -f1)"
-          APKSIGNER="$(ls "$ANDROID_HOME"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -1)"
+          SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          APKSIGNER="$(find "$SDK/build-tools" -name apksigner -type f 2>/dev/null | sort -V | tail -1)"
+          echo "apksigner: ${APKSIGNER:-not found under $SDK}"
           SIGNER=""
-          if [ -x "$APKSIGNER" ]; then
-            SIGNER="$("$APKSIGNER" verify --print-certs "$APK" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -1)"
+          if [ -n "$APKSIGNER" ]; then
+            "$APKSIGNER" verify --print-certs "$APK" | tee certs.txt
+            SIGNER="$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' certs.txt | head -1)"
           fi
+          test -n "$SIGNER" || echo "::warning::could not read the APK's signer; version.json will not carry one"
           printf '{"versionCode":%s,"versionName":"%s","apk":"clickarr-nightly-debug.apk","sha256":"%s","signer":"%s","channel":"nightly"}\n' \
             "$VERSION_CODE" "$NAME" "$SHA" "$SIGNER" > app/build/outputs/apk/debug/version.json
           cat app/build/outputs/apk/debug/version.json
