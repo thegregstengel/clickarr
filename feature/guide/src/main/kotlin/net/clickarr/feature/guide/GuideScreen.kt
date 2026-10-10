@@ -84,7 +84,7 @@ fun GuideScreen(onWatch: () -> Unit, onlyFavorites: Boolean = false, viewModel: 
     var focused by remember { mutableStateOf<Airing?>(null) }
 
     val grid = GuideGrid(w, minutePx, scroll, focus)
-    CompositionLocalProvider(LocalBringIntoViewSpec provides BringIntoViewSpec.DefaultBringIntoViewSpec) {
+    CompositionLocalProvider(LocalBringIntoViewSpec provides PlainBringIntoViewSpec) {
         GuideBody(grid, onlyFavorites, focused, { focused = it }) { ch -> viewModel.tune(ch, onWatch) }
     }
 }
@@ -173,6 +173,23 @@ private class GuideFocus(rowCount: Int) {
     fun requestAt(row: Int, at: Instant) {
         val cell = cellAt(row, at) ?: return
         runCatching { requester(row, cell).requestFocus() }
+    }
+}
+
+/**
+ * Minimal-distance bring-into-view (what non-TV Compose does): scroll only as far as needed to make
+ * the focused cell fully visible, never to a pivot. Compose keeps its own default internal.
+ */
+@OptIn(ExperimentalFoundationApi::class)
+private object PlainBringIntoViewSpec : BringIntoViewSpec {
+    override fun calculateScrollDistance(offset: Float, size: Float, containerSize: Float): Float {
+        val trailing = offset + size
+        return when {
+            offset >= 0f && trailing <= containerSize -> 0f
+            offset < 0f && trailing > containerSize -> 0f
+            kotlin.math.abs(offset) < kotlin.math.abs(trailing - containerSize) -> offset
+            else -> trailing - containerSize
+        }
     }
 }
 
