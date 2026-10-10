@@ -13,6 +13,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.runBlocking
 import net.clickarr.BuildConfig
+import net.clickarr.core.common.AppTime
 import net.clickarr.core.common.Clock
 import net.clickarr.core.common.OffsetClock
 import net.clickarr.data.HouseholdClockOffset
@@ -57,7 +58,10 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun clock(): Clock = OffsetClock(Clock.System) { HouseholdClockOffset.offsetMs }
+    fun clock(): Clock = OffsetClock(Clock.System) {
+        val household = HouseholdClockOffset.offsetMs
+        (if (household != 0L) household else AppTime.networkOffsetMs) + AppTime.manualOffsetMs
+    }
 
     @Provides
     @Singleton

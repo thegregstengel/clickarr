@@ -40,6 +40,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
 import net.clickarr.core.common.Log
+import net.clickarr.core.common.AppTime
+import kotlinx.datetime.Instant
+import kotlinx.coroutines.delay
+import androidx.compose.runtime.LaunchedEffect
 import net.clickarr.core.model.ChannelId
 import net.clickarr.feature.guide.GuideScreen
 import net.clickarr.feature.settings.SettingsScreen
@@ -109,7 +113,7 @@ fun ShellScreen(
             .background(ClickarrColors.BgBase)
             .onPreviewKeyEvent { lastKeyAt[0] = SystemClock.uptimeMillis(); false },
     ) {
-        ShellTopRow(tab, onFocusTab = ::select, onSelectTab = { t -> switched = switched || t != tab; tab = t })
+        ShellTopRow(tab, onFocusTab = ::select, onSelectTab = { t -> switched = switched || t != tab; tab = t }, now = viewModel::now)
         Box(Modifier.fillMaxSize()) {
             when (tab) {
                 ShellTab.GUIDE -> GuideScreen(onWatch = callbacks.onWatch, takeFocus = !switched)
@@ -134,7 +138,7 @@ fun ShellScreen(
 
 /** Logo, Guide and Favorites, and the settings cog at the far right. */
 @Composable
-private fun ShellTopRow(tab: ShellTab, onFocusTab: (ShellTab) -> Unit, onSelectTab: (ShellTab) -> Unit) {
+private fun ShellTopRow(tab: ShellTab, onFocusTab: (ShellTab) -> Unit, onSelectTab: (ShellTab) -> Unit, now: () -> Instant) {
     Row(
         Modifier.fillMaxWidth().padding(horizontal = ClickarrDimens.SafeArea, vertical = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(32.dp),
@@ -147,6 +151,7 @@ private fun ShellTopRow(tab: ShellTab, onFocusTab: (ShellTab) -> Unit, onSelectT
             }
         }
         Spacer(Modifier.weight(1f))
+        ShellClock(now)
         ShellTabPill(
             ShellTab.SETTINGS,
             selected = tab == ShellTab.SETTINGS,
@@ -155,6 +160,19 @@ private fun ShellTopRow(tab: ShellTab, onFocusTab: (ShellTab) -> Unit, onSelectT
             modifier = Modifier.testTag("shell.settings"),
         )
     }
+}
+
+/** The time, in the app's zone and with its clock corrections, ticking every few seconds. */
+@Composable
+private fun ShellClock(now: () -> Instant) {
+    var text by remember { mutableStateOf(AppTime.timeOfDay(now())) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            text = AppTime.timeOfDay(now())
+            delay(CLOCK_TICK_MS)
+        }
+    }
+    Text(text, style = ClickarrTextStyles.ScreenTitle, color = ClickarrColors.TextSecondary)
 }
 
 /** Tab per design language 3, "Tab": rest muted, selected deep accent, focused accent, both with a ring. */
@@ -186,3 +204,4 @@ private fun ShellTabPill(t: ShellTab, selected: Boolean, onFocus: () -> Unit, on
 
 private const val TAG = "Shell"
 private const val TAB_FOCUS_WINDOW_MS = 1_500L
+private const val CLOCK_TICK_MS = 5_000L

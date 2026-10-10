@@ -9,9 +9,9 @@ import kotlin.time.Duration.Companion.minutes
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.datetime.Instant
-import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.datetime.toInstant
+import net.clickarr.core.common.AppTime
 import net.clickarr.core.common.ClickarrError
 import net.clickarr.core.common.Clock
 import net.clickarr.core.common.Outcome
@@ -195,7 +195,7 @@ class ChannelRepository @Inject constructor(
      */
     private fun alignedAnchor(now: Instant, rounding: Duration?): Instant {
         if (rounding == null || rounding <= Duration.ZERO) return now
-        val tz = TimeZone.currentSystemDefault()
+        val tz = AppTime.zone
         val local = now.toLocalDateTime(tz)
         val minutesIntoDay = local.hour * 60 + local.minute
         val step = rounding.inWholeMinutes.toInt().coerceAtLeast(1)

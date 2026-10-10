@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
+import net.clickarr.core.common.AppTime
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -89,6 +91,41 @@ private fun Caption(text: String) = Text(text, style = ClickarrTextStyles.Second
 @Composable
 private fun Label(text: String) = Text(text, style = ClickarrTextStyles.LabelAllCaps, color = ClickarrColors.TextMuted)
 
+/** Zone, automatic network time, and a manual nudge for a TV whose clock is off. */
+@Composable
+private fun TimeBlock(g: SettingsViewModel.General, vm: SettingsViewModel) {
+    Label("Time")
+    val zone = g.timeZoneId ?: "${AppTime.zone.id} (device)"
+    Caption("Now ${AppTime.timeOfDay(vm.now())}, $zone. Automatic time checks a public time server; the nudge is yours.")
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Chip("Automatic time", selected = g.autoTime) { vm.setAutoTime(true) }
+        Chip("Manual", selected = !g.autoTime) { vm.setAutoTime(false) }
+    }
+    Label("Time zone")
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        item { Chip("Device", selected = g.timeZoneId == null) { vm.setTimeZone(null) } }
+        items(ZONES) { (label, id) -> Chip(label, selected = g.timeZoneId == id) { vm.setTimeZone(id) } }
+    }
+    Label("Nudge the clock")
+    val minutes = g.clockOffsetMs / MINUTE_MS
+    val resetLabel = if (minutes == 0L) "No nudge" else "Reset (${if (minutes > 0) "+" else ""}$minutes min)"
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Button(onClick = { vm.nudgeClock(-MINUTE_MS * 5) }) { Text("−5 min") }
+        Button(onClick = { vm.nudgeClock(-MINUTE_MS) }) { Text("−1 min") }
+        Button(onClick = vm::resetClock) { Text(resetLabel) }
+        Button(onClick = { vm.nudgeClock(MINUTE_MS) }) { Text("+1 min") }
+        Button(onClick = { vm.nudgeClock(MINUTE_MS * 5) }) { Text("+5 min") }
+    }
+}
+
+private const val MINUTE_MS = 60_000L
+private val ZONES = listOf(
+    "Eastern" to "America/New_York", "Central" to "America/Chicago", "Mountain" to "America/Denver",
+    "Arizona" to "America/Phoenix", "Pacific" to "America/Los_Angeles", "Alaska" to "America/Anchorage",
+    "Hawaii" to "Pacific/Honolulu", "UTC" to "UTC", "London" to "Europe/London", "Berlin" to "Europe/Berlin",
+    "Sydney" to "Australia/Sydney", "Tokyo" to "Asia/Tokyo",
+)
+
 /** A choice in a row. ListItem fills the width by default, which would push its siblings off screen. */
 @Composable
 private fun Chip(label: String, selected: Boolean, onClick: () -> Unit) {
@@ -106,6 +143,7 @@ private fun GeneralPane(vm: SettingsViewModel) {
     Label("This TV")
     Text(g.deviceName.ifBlank { "Clickarr TV" }, style = ClickarrTextStyles.RowTitle)
     Caption("Device id ${g.deviceId.take(8)}. The name is what other TVs in a household will see.")
+    TimeBlock(g, vm)
     Label("Theme")
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         ClickarrPalettes.all.forEach { p -> Chip(p.label, selected = g.theme == p.name) { vm.setTheme(p.name) } }

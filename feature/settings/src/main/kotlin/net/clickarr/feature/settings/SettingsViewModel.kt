@@ -26,6 +26,8 @@ import net.clickarr.core.secrets.SecretStore
 import net.clickarr.data.ChannelRepository
 import net.clickarr.data.DevicePrefs
 import net.clickarr.data.UpdateChecker
+import kotlinx.datetime.Instant
+import net.clickarr.data.TimeSync
 import net.clickarr.data.ProviderRegistry
 import net.clickarr.provider.api.DeviceProfile
 
@@ -39,6 +41,7 @@ class SettingsViewModel @Inject constructor(
     private val clock: Clock,
     val profile: DeviceProfile,
     private val updates: UpdateChecker,
+    private val timeSync: TimeSync,
 ) : ViewModel() {
     data class General(
         val deviceName: String,
@@ -47,19 +50,44 @@ class SettingsViewModel @Inject constructor(
         val uiScale: Float,
         val theme: String,
         val guideHours: Int,
+        val timeZoneId: String?,
+        val autoTime: Boolean,
+        val clockOffsetMs: Long,
     )
 
     val general: StateFlow<General> =
-        combine(prefs.deviceName, prefs.overlayTimeoutMs, prefs.uiScale, prefs.theme, prefs.guideHours) { name, t, scale, theme, h ->
-            General(name, prefs.deviceId, t, scale, theme, h)
+        combine(
+            combine(prefs.deviceName, prefs.overlayTimeoutMs, prefs.uiScale, prefs.theme, prefs.guideHours) { a, b, c, d, e ->
+                Base(a, b, c, d, e)
+            },
+            prefs.timeZoneId,
+            prefs.autoTime,
+            prefs.manualClockOffsetMs,
+        ) { base, zone, auto, offset ->
+            General(base.name, prefs.deviceId, base.timeout, base.scale, base.theme, base.hours, zone, auto, offset)
         }.stateIn(
             viewModelScope,
             SharingStarted.WhileSubscribed(5_000),
             General(
                 "", prefs.deviceId, DevicePrefs.DEFAULT_OVERLAY_TIMEOUT_MS, DevicePrefs.DEFAULT_UI_SCALE,
-                DevicePrefs.DEFAULT_THEME, DevicePrefs.DEFAULT_GUIDE_HOURS,
+                DevicePrefs.DEFAULT_THEME, DevicePrefs.DEFAULT_GUIDE_HOURS, null, true, 0L,
             ),
         )
+
+    private data class Base(val name: String, val timeout: Int, val scale: Float, val theme: String, val hours: Int)
+
+    fun setTimeZone(id: String?) = viewModelScope.launch { prefs.setTimeZoneId(id) }
+
+    fun setAutoTime(on: Boolean) = viewModelScope.launch {
+        prefs.setAutoTime(on)
+        if (on) timeSync.syncNow()
+    }
+
+    fun nudgeClock(deltaMs: Long) = viewModelScope.launch { prefs.setManualClockOffsetMs(general.value.clockOffsetMs + deltaMs) }
+
+    fun resetClock() = viewModelScope.launch { prefs.setManualClockOffsetMs(0L) }
+
+    fun now(): Instant = clock.now()
 
     val servers: StateFlow<List<ServerInfo>> = registry.providers.map { it.values.map { p -> p.server } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())

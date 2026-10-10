@@ -13,7 +13,10 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import net.clickarr.data.ChannelRepository
+import kotlinx.datetime.Instant
+import net.clickarr.core.common.Clock
 import net.clickarr.data.DevicePrefs
+import net.clickarr.data.TimeSync
 import net.clickarr.data.HouseholdService
 import net.clickarr.data.ProviderRegistry
 
@@ -24,6 +27,8 @@ class AppViewModel @Inject constructor(
     private val household: HouseholdService,
     channels: ChannelRepository,
     prefs: DevicePrefs,
+    timeSync: TimeSync,
+    private val clock: Clock,
 ) : ViewModel() {
     private val _ready = MutableStateFlow(false)
     val ready: StateFlow<Boolean> = _ready.asStateFlow()
@@ -41,7 +46,10 @@ class AppViewModel @Inject constructor(
     private val _hadChannelsAtStart = MutableStateFlow(false)
     val hadChannelsAtStart: StateFlow<Boolean> = _hadChannelsAtStart.asStateFlow()
 
+    fun now(): Instant = clock.now()
+
     init {
+        timeSync.start(viewModelScope)
         viewModelScope.launch {
             registry.load()
             _hadChannelsAtStart.value = channels.channels.first().isNotEmpty()

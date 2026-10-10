@@ -57,6 +57,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.tv.material3.Button
@@ -65,8 +67,7 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 import kotlinx.datetime.Instant
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
+import net.clickarr.core.common.AppTime
 import net.clickarr.core.model.Airing
 import net.clickarr.core.model.Channel
 import net.clickarr.core.model.ChannelIcon
@@ -82,6 +83,7 @@ private val HEADER_HEIGHT = 40.dp
 private val PREVIEW_HEIGHT = 104.dp
 private val PREVIEW_THUMB_WIDTH = 170.dp
 private const val ROW_JUMP = 5
+private const val VISIBLE_HALF_HOURS = 4
 private val TIME_JUMP = 3.hours
 
 /**
@@ -106,19 +108,23 @@ fun GuideScreen(
     val focus = remember(w.rows.size) { GuideFocus(w.rows.size) }
     val scroll = rememberScrollState()
     val density = LocalDensity.current
-    val minutePx = with(density) { (ClickarrDimens.GuideHalfHourWidth / 30).toPx() }
     var focused by remember { mutableStateOf<Airing?>(null) }
     var details by remember { mutableStateOf<Pair<Channel, Airing>?>(null) }
 
-    val grid = GuideGrid(w, minutePx, scroll, focus)
     val actions = GuideActions(
         onFocusAiring = { focused = it; viewModel.focus(it) },
         onDetails = { details = it },
         onTune = { ch -> viewModel.tune(ch, onWatch) },
         onToggleFavorite = { ch -> viewModel.toggleFavorite(ch.id) },
     )
-    CompositionLocalProvider(LocalBringIntoViewSpec provides PlainBringIntoViewSpec) {
-        GuideBody(grid, onlyFavorites, takeFocus, focused, preview, details, actions)
+    // Two hours fill the grid at any size setting: four half-hour columns beside the channel column.
+    BoxWithConstraints {
+        val halfHour = (maxWidth - ClickarrDimens.SafeArea - CHANNEL_COLUMN) / VISIBLE_HALF_HOURS
+        val minutePx = with(density) { (halfHour / 30).toPx() }
+        val grid = GuideGrid(w, minutePx, halfHour, scroll, focus)
+        CompositionLocalProvider(LocalBringIntoViewSpec provides PlainBringIntoViewSpec) {
+            GuideBody(grid, onlyFavorites, takeFocus, focused, preview, details, actions)
+        }
     }
 }
 
@@ -161,7 +167,7 @@ private fun GuideBody(
             .padding(horizontal = ClickarrDimens.SafeArea / 2)
             .onFocusChanged { if (!it.hasFocus) entered[0] = false },
     ) {
-        TimeHeader(w.from, w.to, scroll)
+        TimeHeader(w.from, w.to, grid.halfHourWidth, scroll)
         Box(Modifier.weight(1f)) {
             if (w.rows.isEmpty()) {
                 Text(
@@ -212,7 +218,7 @@ private fun GuideBody(
 }
 
 @Composable
-private fun TimeHeader(from: Instant, to: Instant, scroll: androidx.compose.foundation.ScrollState) {
+private fun TimeHeader(from: Instant, to: Instant, halfHourWidth: Dp, scroll: androidx.compose.foundation.ScrollState) {
     Row(Modifier.fillMaxWidth().height(HEADER_HEIGHT)) {
         Box(Modifier.width(CHANNEL_COLUMN), contentAlignment = Alignment.CenterStart) {
             Text("Today", style = ClickarrTextStyles.Caption, color = ClickarrColors.TextSecondary)
@@ -220,7 +226,7 @@ private fun TimeHeader(from: Instant, to: Instant, scroll: androidx.compose.foun
         Row(Modifier.horizontalScroll(scroll, enabled = false)) {
             var t = from
             while (t < to) {
-                Box(Modifier.width(ClickarrDimens.GuideHalfHourWidth), contentAlignment = Alignment.CenterStart) {
+                Box(Modifier.width(halfHourWidth), contentAlignment = Alignment.CenterStart) {
                     Text(headerLabel(t), style = ClickarrTextStyles.Secondary, color = ClickarrColors.TextSecondary)
                 }
                 t += 30.minutes
@@ -273,6 +279,7 @@ private object PlainBringIntoViewSpec : BringIntoViewSpec {
 private class GuideGrid(
     val window: GuideViewModel.Window,
     val minutePx: Float,
+    val halfHourWidth: Dp,
     val scroll: androidx.compose.foundation.ScrollState,
     val focus: GuideFocus,
 )
@@ -315,7 +322,7 @@ private fun GuideRow(
                                 actions.onFocusAiring(airing)
                                 // Keep the focused cell inside the visible window.
                                 val leftPx = ((focusTime - window.from).inWholeMinutes * minutePx).toInt()
-                                val margin = with(density) { ClickarrDimens.GuideHalfHourWidth.toPx() }.toInt()
+                                val margin = with(density) { grid.halfHourWidth.toPx() }.toInt()
                                 val target = (leftPx - margin).coerceAtLeast(0)
                                 if (leftPx < scroll.value || leftPx > scroll.value + scroll.viewportSize - margin) {
                                     scope.launch { scroll.animateScrollTo(target) }
@@ -559,17 +566,11 @@ private fun PreviewCard(airing: Airing?, preview: GuideViewModel.Preview?) {
 
 /** Midnight columns carry the day, so a window that crosses it reads "Sat 12:00 AM". */
 private fun headerLabel(instant: Instant): String {
-    val local = instant.toLocalDateTime(TimeZone.currentSystemDefault())
+    val local = AppTime.local(instant)
     val time = timeOfDay(instant)
     if (local.hour != 0 || local.minute != 0) return time
     val day = local.dayOfWeek.name.take(3).lowercase().replaceFirstChar { it.uppercase() }
     return "$day $time"
 }
 
-private fun timeOfDay(instant: Instant): String {
-    val local = instant.toLocalDateTime(TimeZone.currentSystemDefault())
-    val h24 = local.hour
-    val h12 = if (h24 % 12 == 0) 12 else h24 % 12
-    val ampm = if (h24 < 12) "AM" else "PM"
-    return "%d:%02d %s".format(h12, local.minute, ampm)
-}
+private fun timeOfDay(instant: Instant): String = AppTime.timeOfDay(instant)

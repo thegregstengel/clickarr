@@ -22,8 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.tv.material3.Text
 import kotlin.time.Duration
 import kotlinx.datetime.Instant
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
+import net.clickarr.core.common.AppTime
 import net.clickarr.core.model.Airing
 import net.clickarr.playback.core.TuneState
 import net.clickarr.playback.core.TuneStatus
@@ -129,13 +128,7 @@ internal fun clock(now: Instant): String = timeOfDay(now)
 
 internal fun slotRange(a: Airing): String = "${timeOfDay(a.start)} – ${timeOfDay(a.end)}"
 
-internal fun timeOfDay(instant: Instant): String {
-    val local = instant.toLocalDateTime(TimeZone.currentSystemDefault())
-    val h24 = local.hour
-    val h12 = if (h24 % 12 == 0) 12 else h24 % 12
-    val ampm = if (h24 < 12) "AM" else "PM"
-    return "%d:%02d %s".format(h12, local.minute, ampm)
-}
+internal fun timeOfDay(instant: Instant): String = AppTime.timeOfDay(instant)
 
 internal fun mmss(d: Duration): String {
     val total = d.inWholeSeconds

@@ -346,7 +346,7 @@ All at 1920×1080, 48 dp safe area. Numbers are dp.
 | Screen | Structure |
 |---|---|
 | **Player** | Full-bleed video. Overlay per 4. Mini-guide on Left/Right. Nothing else. |
-| **Guide** | Shell (96) + time header (40) + grid. Channel column 200, visible window 1624 wide ≈ 3 h 40 m. 10 rows visible at 64 + 6. |
+| **Guide** | Shell (96) + time header (40) + grid. Channel column 248, four half-hour columns sized to the remaining width, so two hours are visible at any size setting. 10 rows visible at 64 + 6. |
 | **Channels** | Shell + two panes: list 480, preview flex. |
 | **Favorites** | Same as Guide, filtered to favorites, with an empty state card if none. |
 | **Settings** | Shell + nav 320 + pane flex (max 1120 content). |

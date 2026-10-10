@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.hours
-import kotlin.time.Duration.Companion.minutes
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,11 +13,11 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
-import kotlinx.datetime.TimeZone
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
+import net.clickarr.core.common.AppTime
 import net.clickarr.core.common.Clock
 import net.clickarr.core.model.Airing
 import net.clickarr.core.model.Channel
@@ -124,7 +123,7 @@ class GuideViewModel @Inject constructor(
 
     private suspend fun rebuild(channels: List<Channel>, favorites: Set<String>) {
         val now = clock.now()
-        val from = floorToHalfHour(now - 30.minutes)
+        val from = floorToHalfHour(now)
         val to = from + hours.hours
         val rows = channels.sortedBy { it.number }.map { ch ->
             val lineup = lineups[ch.lineup] ?: repository.lineup(ch.lineup)?.also { lineups[ch.lineup] = it }
@@ -148,7 +147,7 @@ class GuideViewModel @Inject constructor(
     }
 
     private fun floorToHalfHour(t: Instant): Instant {
-        val tz = TimeZone.currentSystemDefault()
+        val tz = AppTime.zone
         val local = t.toLocalDateTime(tz)
         val minute = if (local.minute < 30) 0 else 30
         return LocalDateTime(local.date, LocalTime(local.hour, minute)).toInstant(tz)
