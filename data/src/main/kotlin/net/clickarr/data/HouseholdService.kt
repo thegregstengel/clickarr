@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.datetime.Clock as KxClock
 import kotlinx.datetime.Instant
 import net.clickarr.core.common.ClickarrError
@@ -133,21 +134,36 @@ class HouseholdService @Inject constructor(
 
     private suspend fun startCoordinator(): Outcome<Unit> {
         val initial = store.loadState() ?: return Outcome.Failure(ClickarrError.Invalid("No household to coordinate"))
+        Log.d(TAG) { "starting coordinator for ${initial.household.name} (rev ${initial.revision})" }
         val c = Coordinator(initial, store, systemClock, fingerprint = { DeviceIdentity.fingerprint() })
         c.start()
         coordinator = c
+        var port = DEFAULT_PORT
         val started = withContext(Dispatchers.IO) {
             runCatching {
                 embeddedServer(CIO, port = DEFAULT_PORT, host = "0.0.0.0") { coordinatorRoutes(c) }.also { it.start(wait = false) }
             }.recoverCatching {
+                port = 0
                 embeddedServer(CIO, port = 0, host = "0.0.0.0") { coordinatorRoutes(c) }.also { it.start(wait = false) }
             }
         }
         val s = started.getOrElse { return Outcome.Failure(ClickarrError.Unknown("Could not start the household server", it)) }
         server = s
-        val port = withContext(Dispatchers.IO) { s.engine.resolvedConnectors().firstOrNull()?.port ?: DEFAULT_PORT }
+        Log.d(TAG) { "server started" }
         HouseholdClockOffset.reset()
+        // Show the role immediately; the exact port only matters when the default was taken.
         _role.value = Role.Coordinator(port, null)
+        if (port == 0) {
+            port = withTimeoutOrNull(CONNECTOR_TIMEOUT_MS) {
+                withContext(Dispatchers.IO) { s.engine.resolvedConnectors().firstOrNull()?.port }
+            } ?: DEFAULT_PORT
+            _role.value = Role.Coordinator(port, null)
+        }
+        Log.d(TAG) { "coordinator listening on $port" }
+        val fingerprint = runCatching { DeviceIdentity.fingerprint() }.getOrElse {
+            Log.w(TAG, it) { "device identity unavailable" }
+            ""
+        }
         discovery.advertise(
             HouseholdDiscovery.Advertisement(
                 serviceName = "Clickarr ${prefs.deviceNameNow()}",
@@ -155,7 +171,7 @@ class HouseholdService @Inject constructor(
                 householdId = initial.household.id.value,
                 householdName = initial.household.name,
                 deviceId = selfId.value,
-                fingerprint = DeviceIdentity.fingerprint(),
+                fingerprint = fingerprint,
                 role = "coordinator",
             ),
         )
@@ -329,6 +345,7 @@ class HouseholdService @Inject constructor(
 
     companion object {
         private const val TAG = "Household"
+        private const val CONNECTOR_TIMEOUT_MS = 5_000L
         private const val MEMBER_TOKEN = "household:member-token"
         val PIN_LIFETIME = Pairing.PIN_LIFETIME_SECONDS.seconds
     }
