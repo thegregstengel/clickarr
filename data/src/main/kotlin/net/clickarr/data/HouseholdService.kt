@@ -2,9 +2,7 @@ package net.clickarr.data
 
 import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
-import io.ktor.server.cio.CIO
 import io.ktor.server.engine.EmbeddedServer
-import io.ktor.server.engine.embeddedServer
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -25,7 +23,6 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.datetime.Clock as KxClock
 import kotlinx.datetime.Instant
 import net.clickarr.core.common.ClickarrError
@@ -46,12 +43,10 @@ import net.clickarr.household.client.pinnedTo
 import net.clickarr.household.client.TrustOnFirstUse
 import net.clickarr.household.client.HouseholdJoin
 import net.clickarr.household.coordinator.Coordinator
-import net.clickarr.household.coordinator.coordinatorRoutes
 import net.clickarr.household.discovery.DeviceIdentity
 import net.clickarr.household.discovery.DiscoveredCoordinator
 import net.clickarr.household.discovery.HouseholdDiscovery
 import net.clickarr.household.protocol.Command
-import net.clickarr.household.protocol.DEFAULT_PORT
 import net.clickarr.household.protocol.Event
 import net.clickarr.household.protocol.PROTOCOL_VERSION
 import net.clickarr.household.protocol.PairCompleteResponse
@@ -148,7 +143,8 @@ class HouseholdService @Inject constructor(
         val c = Coordinator(initial, store, systemClock, fingerprint = { DeviceIdentity.fingerprint() })
         c.start()
         coordinator = c
-        val listening = startListening(c) ?: return Outcome.Failure(ClickarrError.Unknown("Could not start the household server"))
+        val listening = CoordinatorListener.start(c)
+            ?: return Outcome.Failure(ClickarrError.Unknown("Could not start the household server"))
         server = listening.server
         frontDoor = listening.door
         val port = listening.port
@@ -181,41 +177,6 @@ class HouseholdService @Inject constructor(
         }
         Log.i(TAG) { "coordinator up on $port" }
         return Outcome.Success(Unit)
-    }
-
-    private class Listening(val server: EmbeddedServer<*, *>, val door: TlsFrontDoor?, val port: Int, val tls: Boolean)
-
-    /**
-     * TLS on the LAN port in front of a loopback-only engine. Plain HTTP on the LAN port only if the device
-     * cannot start TLS at all, which spike C is meant to rule out; the role and the advertisement say which.
-     */
-    private suspend fun startListening(c: Coordinator): Listening? {
-        val secure = runCatching {
-            val engine = startServer(c, "127.0.0.1", 0)
-            val backendPort = enginePort(engine) ?: run { engine.stop(0, 0); error("engine port unknown") }
-            val ssl = TlsFrontDoor.sslContext(DeviceIdentity.keyStore().also { DeviceIdentity.certificate() }, DeviceIdentity.ALIAS, null)
-            val door = TlsFrontDoor(ssl, backendPort)
-            val port = runCatching { door.start(DEFAULT_PORT) }.getOrElse { door.start(0) }
-            Listening(engine, door, port, tls = true)
-        }.onFailure { Log.w(TAG, it) { "TLS front door failed; falling back to plain HTTP on the LAN (insecure)" } }.getOrNull()
-        if (secure != null) return secure
-        return runCatching {
-            val engine = runCatching { startServer(c, "0.0.0.0", DEFAULT_PORT) }.getOrElse { startServer(c, "0.0.0.0", 0) }
-            Listening(engine, null, enginePort(engine) ?: DEFAULT_PORT, tls = false)
-        }.onFailure { Log.w(TAG, it) { "household server failed to start" } }.getOrNull()
-    }
-
-    private suspend fun enginePort(engine: EmbeddedServer<*, *>): Int? = withTimeoutOrNull(CONNECTOR_TIMEOUT_MS) {
-        withContext(Dispatchers.IO) { engine.engine.resolvedConnectors().firstOrNull()?.port }
-    }
-
-    /** Suspending start so no thread blocks inside a coroutine; returns once the engine is accepting. */
-    private suspend fun startServer(c: Coordinator, host: String, port: Int): EmbeddedServer<*, *> {
-        val s = embeddedServer(CIO, port = port, host = host) { coordinatorRoutes(c) }
-        Log.d(TAG) { "starting engine on $host:$port" }
-        withContext(Dispatchers.IO) { s.startSuspend(wait = false) }
-        Log.d(TAG) { "engine up" }
-        return s
     }
 
     fun beginAddDevice(): Coordinator.ActivePin? {
@@ -412,7 +373,6 @@ class HouseholdService @Inject constructor(
 
     companion object {
         private const val TAG = "Household"
-        private const val CONNECTOR_TIMEOUT_MS = 5_000L
         private const val MEMBER_TOKEN = "household:member-token"
         val PIN_LIFETIME = Pairing.PIN_LIFETIME_SECONDS.seconds
     }

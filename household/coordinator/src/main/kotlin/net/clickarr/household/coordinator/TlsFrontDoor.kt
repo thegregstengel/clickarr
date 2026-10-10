@@ -110,7 +110,8 @@ private class FixedAliasKeyManager(private val delegate: X509KeyManager, private
     override fun chooseClientAlias(keyType: Array<String>?, issuers: Array<Principal>?, socket: Socket?): String? =
         delegate.chooseClientAlias(keyType, issuers, socket)
 
-    override fun getClientAliases(keyType: String?, issuers: Array<Principal>?): Array<String>? = delegate.getClientAliases(keyType, issuers)
+    override fun getClientAliases(keyType: String?, issuers: Array<Principal>?): Array<String>? =
+        delegate.getClientAliases(keyType, issuers)
 
     override fun getCertificateChain(alias: String?) = delegate.getCertificateChain(alias)
 
