@@ -14,6 +14,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.runBlocking
 import net.clickarr.BuildConfig
 import net.clickarr.core.common.Clock
+import net.clickarr.core.common.OffsetClock
+import net.clickarr.data.HouseholdClockOffset
 import net.clickarr.core.database.ClickarrDatabase
 import net.clickarr.core.scheduling.CyclicLineupStrategy
 import net.clickarr.core.scheduling.ScheduleStrategy
@@ -49,7 +51,7 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun clock(): Clock = Clock.System
+    fun clock(): Clock = OffsetClock(Clock.System) { HouseholdClockOffset.offsetMs }
 
     @Provides
     @Singleton

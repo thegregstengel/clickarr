@@ -130,6 +130,15 @@ class FirstRunFlowTest {
         click("About")
         waitForText("MIT licensed")
         shot("12-settings-about")
+
+        click("Household")
+        waitForText("Create a household")
+        shot("13-household-none")
+        click("Create a household")
+        waitForText("This TV coordinates", timeoutMs = 30_000)
+        click("Add a device")
+        waitForText("enter this code")
+        shot("14-household-pin")
     }
 
     companion object {

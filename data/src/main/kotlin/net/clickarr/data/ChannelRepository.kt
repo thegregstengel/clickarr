@@ -36,6 +36,7 @@ import net.clickarr.core.model.ProgrammingSource
 import net.clickarr.core.model.ProviderId
 import net.clickarr.core.scheduling.Lineups
 import net.clickarr.core.scheduling.ScheduleStrategy
+import net.clickarr.household.protocol.Command
 
 /**
  * Channels and their lineup snapshots. Creating a channel resolves its programming source through the
@@ -48,6 +49,7 @@ class ChannelRepository @Inject constructor(
     private val registry: ProviderRegistry,
     private val strategy: ScheduleStrategy,
     private val clock: Clock,
+    private val household: HouseholdService,
 ) {
     val channels: Flow<List<Channel>> = db.channels().observeAll().map { list -> list.map { it.toModel() } }
 
@@ -56,7 +58,14 @@ class ChannelRepository @Inject constructor(
     val favorites: Flow<Set<ChannelId>> = db.favorites().observeAll().map { ids -> ids.map(::ChannelId).toSet() }
 
     suspend fun setFavorite(id: ChannelId, favorite: Boolean) {
+        if (routed(Command.SetFavorite(id, favorite))) return
         if (favorite) db.favorites().add(FavoriteEntity(id.value)) else db.favorites().remove(FavoriteEntity(id.value))
+    }
+
+    /** True when the household took the write (or refused it, in which case the error is logged). */
+    private suspend fun routed(command: Command): Boolean = when (val r = household.apply(command)) {
+        is Outcome.Success -> r.value
+        is Outcome.Failure -> throw HouseholdWriteException(r.error)
     }
 
     /** Re-resolve every channel's source; changes cut over at each channel's next program boundary. */
@@ -95,15 +104,23 @@ class ChannelRepository @Inject constructor(
             id = channelId, number = number, name = name, icon = icon, source = source, order = order,
             slotRounding = slotRounding, seed = Random.nextLong(), lineup = snapshot.id, anchor = alignedAnchor(now, slotRounding),
         )
+        when (val r = household.apply(Command.CreateChannel(channel, snapshot))) {
+            is Outcome.Success -> if (r.value) return Outcome.Success(channel)
+            is Outcome.Failure -> return r
+        }
         val (snapEntity, entryEntities) = snapshot.toEntities()
         db.lineups().insert(snapEntity, entryEntities)
         db.channels().upsert(channel.toEntity(now))
         return Outcome.Success(channel)
     }
 
-    suspend fun update(channel: Channel) = db.channels().upsert(channel.toEntity(clock.now()))
+    suspend fun update(channel: Channel) {
+        if (routed(Command.UpdateChannel(channel))) return
+        db.channels().upsert(channel.toEntity(clock.now()))
+    }
 
     suspend fun delete(id: ChannelId) {
+        if (routed(Command.DeleteChannel(id))) return
         db.channels().delete(id.value)
         db.lineups().orphanIds().forEach { db.lineups().delete(it) }
     }
@@ -122,14 +139,18 @@ class ChannelRepository @Inject constructor(
         val snapshot = Lineups.create(LineupSnapshotId(UUID.randomUUID().toString()), id, entries, now)
         val current = lineup(channel.lineup)
         if (current?.contentHash == snapshot.contentHash) return Outcome.Success(channel)
-        val (snapEntity, entryEntities) = snapshot.toEntities()
-        db.lineups().insert(snapEntity, entryEntities)
         val cutover = if (applyNow || current == null) null else strategy.airingAt(channel, current, now)?.end
         val updated = if (cutover == null) {
             channel.copy(lineup = snapshot.id, anchor = alignedAnchor(now, channel.slotRounding), pendingLineup = null, pendingAt = null)
         } else {
             channel.copy(pendingLineup = snapshot.id, pendingAt = cutover)
         }
+        when (val r = household.apply(Command.UpdateChannel(updated, snapshot))) {
+            is Outcome.Success -> if (r.value) return Outcome.Success(updated)
+            is Outcome.Failure -> return r
+        }
+        val (snapEntity, entryEntities) = snapshot.toEntities()
+        db.lineups().insert(snapEntity, entryEntities)
         db.channels().upsert(updated.toEntity(now))
         return Outcome.Success(updated)
     }
@@ -184,3 +205,6 @@ private fun ProgrammingSource.firstRef(): MediaRef? = when (this) {
     is ProgrammingSource.Explicit -> items.firstOrNull()
     is ProgrammingSource.Union -> sources.firstNotNullOfOrNull { it.firstRef() }
 }
+
+/** A household refused or could not take a write; the message is user-facing. */
+class HouseholdWriteException(val error: ClickarrError) : RuntimeException(error.message)

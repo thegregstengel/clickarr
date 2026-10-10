@@ -12,12 +12,14 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import net.clickarr.data.ChannelRepository
+import net.clickarr.data.HouseholdService
 import net.clickarr.data.ProviderRegistry
 
 /** App-level state: are providers loaded, is a server connected, are there channels. Drives the start route. */
 @HiltViewModel
 class AppViewModel @Inject constructor(
     private val registry: ProviderRegistry,
+    private val household: HouseholdService,
     channels: ChannelRepository,
 ) : ViewModel() {
     private val _ready = MutableStateFlow(false)
@@ -33,6 +35,7 @@ class AppViewModel @Inject constructor(
         viewModelScope.launch {
             registry.load()
             _ready.value = true
+            household.start()
         }
     }
 }

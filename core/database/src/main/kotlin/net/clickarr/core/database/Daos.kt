@@ -110,6 +110,15 @@ interface LineupDao {
         insertEntries(entries)
     }
 
+    @Query("SELECT * FROM lineup_entry WHERE lineupId IN (:ids) ORDER BY lineupId, position")
+    suspend fun entriesFor(ids: List<String>): List<LineupEntryEntity>
+
+    @Query("DELETE FROM lineup_entry")
+    suspend fun deleteAllEntries()
+
+    @Query("DELETE FROM lineup_snapshot")
+    suspend fun deleteAllSnapshots()
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSnapshot(snapshot: LineupSnapshotEntity)
 
@@ -150,11 +159,74 @@ interface FavoriteDao {
     @Query("SELECT channelId FROM favorite")
     fun observeAll(): Flow<List<String>>
 
+    @Query("SELECT channelId FROM favorite")
+    suspend fun all(): List<String>
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun add(favorite: FavoriteEntity)
 
     @Delete
     suspend fun remove(favorite: FavoriteEntity)
+
+    @Transaction
+    suspend fun replaceAll(ids: List<String>) {
+        clear()
+        addAll(ids.map { FavoriteEntity(it) })
+    }
+
+    @Query("DELETE FROM favorite")
+    suspend fun clear()
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun addAll(favorites: List<FavoriteEntity>)
+}
+
+@Dao
+interface HouseholdDao {
+    @Query("SELECT * FROM household WHERE id = 1")
+    suspend fun get(): HouseholdEntity?
+
+    @Query("SELECT * FROM household WHERE id = 1")
+    fun observe(): Flow<HouseholdEntity?>
+
+    @Upsert
+    suspend fun upsert(household: HouseholdEntity)
+
+    @Query("DELETE FROM household")
+    suspend fun clear()
+
+    @Query("SELECT * FROM household_device ORDER BY joinedAtEpochMs")
+    suspend fun devices(): List<HouseholdDeviceEntity>
+
+    @Query("SELECT * FROM household_device ORDER BY joinedAtEpochMs")
+    fun observeDevices(): Flow<List<HouseholdDeviceEntity>>
+
+    @Transaction
+    suspend fun replaceDevices(devices: List<HouseholdDeviceEntity>) {
+        clearDevices()
+        insertDevices(devices)
+    }
+
+    @Query("DELETE FROM household_device")
+    suspend fun clearDevices()
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertDevices(devices: List<HouseholdDeviceEntity>)
+
+    @Query("SELECT * FROM household_server")
+    suspend fun servers(): List<HouseholdServerEntity>
+
+    @Transaction
+    suspend fun replaceServers(servers: List<HouseholdServerEntity>) {
+        clearServers()
+        insertServers(servers)
+    }
+
+    @Query("DELETE FROM household_server")
+    suspend fun clearServers()
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertServers(servers: List<HouseholdServerEntity>)
 }
 
 @Dao

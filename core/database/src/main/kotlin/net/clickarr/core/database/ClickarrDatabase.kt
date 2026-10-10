@@ -15,8 +15,11 @@ import androidx.room.RoomDatabase
         LineupEntryEntity::class,
         FavoriteEntity::class,
         SyncStateEntity::class,
+        HouseholdEntity::class,
+        HouseholdDeviceEntity::class,
+        HouseholdServerEntity::class,
     ],
-    version = 2,
+    version = 3,
     // Schema export is enabled in Phase 4 (reproducible builds), together with migration tests.
     exportSchema = false,
 )
@@ -27,6 +30,7 @@ abstract class ClickarrDatabase : RoomDatabase() {
     abstract fun channels(): ChannelDao
     abstract fun lineups(): LineupDao
     abstract fun favorites(): FavoriteDao
+    abstract fun household(): HouseholdDao
     abstract fun syncState(): SyncStateDao
 
     companion object {

@@ -67,8 +67,7 @@ fun SettingsScreen(
                 SettingsSection.CHANNELS -> ChannelsPane(viewModel)
                 SettingsSection.APPEARANCE -> AppearancePane(viewModel)
                 SettingsSection.PLAYBACK -> PlaybackPane(viewModel)
-                SettingsSection.HOUSEHOLD ->
-                    Caption("Household sync between your TVs arrives in Phase 2. Each TV works on its own until then.")
+                SettingsSection.HOUSEHOLD -> HouseholdPane()
                 SettingsSection.DIAGNOSTICS -> DiagnosticsPane(viewModel)
                 SettingsSection.ABOUT -> AboutPane(appVersion, onOpenSpikes, onExit)
             }

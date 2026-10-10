@@ -111,6 +111,41 @@ data class LineupEntryEntity(
     val subtitle: String?,
 )
 
+/** Single row (id = 1): this install's household membership. */
+@Entity(tableName = "household")
+data class HouseholdEntity(
+    @PrimaryKey val id: Int = 1,
+    val householdId: String,
+    val name: String,
+    val coordinatorDeviceId: String,
+    val createdAtEpochMs: Long,
+    /** NONE, COORDINATOR, MEMBER */
+    val role: String,
+    val revision: Long,
+    val schedulerVersion: Int,
+    /** Member only: where the coordinator was last reached. */
+    val coordinatorBaseUrl: String?,
+    val coordinatorFingerprint: String?,
+    val lastSyncEpochMs: Long?,
+)
+
+@Entity(tableName = "household_device")
+data class HouseholdDeviceEntity(
+    @PrimaryKey val deviceId: String,
+    val name: String,
+    val joinedAtEpochMs: Long,
+    val lastSeenEpochMs: Long?,
+)
+
+@Entity(tableName = "household_server")
+data class HouseholdServerEntity(
+    @PrimaryKey val serverIdentity: String,
+    val kind: String,
+    val name: String,
+    /** JSON array of URLs */
+    val urls: String,
+)
+
 @Entity(tableName = "favorite")
 data class FavoriteEntity(@PrimaryKey val channelId: String)
 
