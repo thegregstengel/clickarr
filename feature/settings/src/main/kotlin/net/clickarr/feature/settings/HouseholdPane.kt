@@ -43,7 +43,7 @@ import net.clickarr.ui.design.ClickarrColors
 import net.clickarr.ui.design.ClickarrDimens
 import net.clickarr.ui.design.ClickarrTextStyles
 
-/** Settings, Household (design language 4, "Device card", "PIN display and entry"). */
+/** Settings, Sync (design language 4, "Device card", "PIN display and entry"). */
 @Composable
 fun HouseholdPane(viewModel: HouseholdViewModel = hiltViewModel()) {
     val role by viewModel.role.collectAsState()
@@ -133,7 +133,7 @@ private fun JoinSection(vm: HouseholdViewModel, primary: Modifier, swap: (() -> 
     var fingerprint by remember { mutableStateOf<String?>(null) }
     var pin by remember { mutableStateOf("") }
     Label("Households found")
-    if (found.isEmpty()) Caption("Looking… On the other TV open Settings, Household, Add a device.")
+    if (found.isEmpty()) Caption("Looking… On the other TV open Settings, Sync, Add a device.")
     found.forEach { c ->
         ListItem(
             selected = address == c.baseUrl,

@@ -96,8 +96,8 @@ device in the middle presenting its own certificate cannot finish pairing. If a 
 the coordinator falls back to plain HTTP, says so in the Household pane, and advertises `tls=0`; joiners that type
 an address try TLS first and plain HTTP second.
 
-To try it with two devices on one LAN: on TV A open Settings, Household, Create a household, then Add a device and
-read the code. On TV B open Settings, Household, Join a household, pick TV A from the list (or type its address),
+To try it with two devices on one LAN: on TV A open Settings, Sync, Create a household, then Add a device and
+read the code. On TV B open Settings, Sync, Join a household, pick TV A from the list (or type its address),
 enter the code, Join. Both TVs now show the same channels and the same program at the same offset.
 
 The emulator test also exercises the member side without a second device: `app/src/androidTest/.../TestCoordinator.kt`

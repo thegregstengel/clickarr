@@ -739,10 +739,10 @@ Each install generates, once, an EC P-256 key pair in the Android Keystore with 
 ```text
 Coordinator (Living Room)                        Joiner (Bedroom)
 ─────────────────────────                        ────────────────
-Settings → Household → Add device
+Settings → Sync → Add device
   generates PIN 6 digits, expires 120 s
   shows: "Enter 482 913 on the new device"
-                                                 Settings → Household → Join
+                                                 Settings → Sync → Join
                                                  discovers "Living Room", user selects
                                                  TLS connect; pins server fingerprint from TXT (TOFU)
                                                  POST /v1/pair/start  {deviceId, name, certFingerprint}

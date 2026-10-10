@@ -58,7 +58,14 @@ class DevicePrefs(context: Context) {
         store.edit { it[UI_SCALE] = scale.coerceIn(MIN_UI_SCALE, 1f) }
     }
 
-    /** Palette name for Settings, Appearance, Theme: default, dark, light, or dracula. */
+    /** How far ahead the guide reaches, in hours (Settings, Channels). */
+    val guideHours: Flow<Int> = store.data.map { it[GUIDE_HOURS] ?: DEFAULT_GUIDE_HOURS }
+
+    suspend fun setGuideHours(hours: Int) {
+        store.edit { it[GUIDE_HOURS] = hours.coerceIn(MIN_GUIDE_HOURS, MAX_GUIDE_HOURS) }
+    }
+
+    /** Palette name for Settings, General, Theme: default, dark, light, or dracula. */
     val theme: Flow<String> = store.data.map { it[THEME] ?: DEFAULT_THEME }
 
     suspend fun setTheme(name: String) {
@@ -75,6 +82,10 @@ class DevicePrefs(context: Context) {
         const val DEFAULT_UI_SCALE = 0.65f
         const val MIN_UI_SCALE = 0.5f
         private val THEME = stringPreferencesKey("theme")
+        private val GUIDE_HOURS = intPreferencesKey("guide_hours")
+        const val DEFAULT_GUIDE_HOURS = 6
+        const val MIN_GUIDE_HOURS = 3
+        const val MAX_GUIDE_HOURS = 24
         const val DEFAULT_THEME = "default"
 
         fun defaultDeviceName(): String = Build.MODEL.ifBlank { "Clickarr TV" }

@@ -72,9 +72,8 @@ fun SettingsScreen(
                 SettingsSection.GENERAL -> GeneralPane(viewModel)
                 SettingsSection.SERVER -> ServerPane(viewModel, actions.onDisconnected)
                 SettingsSection.CHANNELS -> ChannelsPane(viewModel, actions)
-                SettingsSection.APPEARANCE -> AppearancePane(viewModel)
                 SettingsSection.PLAYBACK -> PlaybackPane(viewModel)
-                SettingsSection.HOUSEHOLD -> HouseholdPane()
+                SettingsSection.SYNC -> HouseholdPane()
                 SettingsSection.DIAGNOSTICS -> DiagnosticsPane(viewModel)
                 SettingsSection.ABOUT -> AboutPane(appVersion, viewModel, actions.onOpenSpikes, actions.onExit)
             }
@@ -105,6 +104,23 @@ private fun GeneralPane(vm: SettingsViewModel) {
     Label("This TV")
     Text(g.deviceName.ifBlank { "Clickarr TV" }, style = ClickarrTextStyles.RowTitle)
     Caption("Device id ${g.deviceId.take(8)}. The name is what other TVs in a household will see.")
+    Label("Theme")
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        ClickarrPalettes.all.forEach { p -> Chip(p.label, selected = g.theme == p.name) { vm.setTheme(p.name) } }
+    }
+    Label("Size")
+    Caption("How large everything is drawn. Small fits the most on screen.")
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        listOf("Small" to 0.55f, "Medium" to 0.65f, "Large" to 0.75f).forEach { (label, scale) ->
+            Chip(label, selected = g.uiScale == scale) { vm.setUiScale(scale) }
+        }
+    }
+    Label("Overlay stays for")
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        listOf(3, 5, 8).forEach { s ->
+            Chip("$s seconds", selected = g.overlayTimeoutMs == s * 1000) { vm.setOverlayTimeout(s * 1000) }
+        }
+    }
 }
 
 @Composable
@@ -134,6 +150,11 @@ private fun ChannelsPane(vm: SettingsViewModel, actions: SettingsActions) {
         Button(onClick = vm::refreshAllLineups) { Text("Refresh all lineups from Plex") }
     }
     message?.let { Caption(it) }
+    val g by vm.general.collectAsState()
+    Label("Guide shows the next")
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        listOf(3, 6, 12, 24).forEach { h -> Chip("$h hours", selected = g.guideHours == h) { vm.setGuideHours(h) } }
+    }
     if (list.isEmpty()) {
         Caption("No channels yet. Create one from a show, a whole library, a collection, or a playlist.")
     }
@@ -156,34 +177,13 @@ private fun ChannelsPane(vm: SettingsViewModel, actions: SettingsActions) {
     }
 }
 
-@Composable
-private fun AppearancePane(vm: SettingsViewModel) {
-    val g by vm.general.collectAsState()
-    Label("Theme")
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        ClickarrPalettes.all.forEach { p -> Chip(p.label, selected = g.theme == p.name) { vm.setTheme(p.name) } }
-    }
-    Label("Size")
-    Caption("How large everything is drawn. Small fits the most on screen.")
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        listOf("Small" to 0.55f, "Medium" to 0.65f, "Large" to 0.75f).forEach { (label, scale) ->
-            Chip(label, selected = g.uiScale == scale) { vm.setUiScale(scale) }
-        }
-    }
-    Label("Overlay stays for")
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        listOf(3, 5, 8).forEach { s ->
-            Chip("$s seconds", selected = g.overlayTimeoutMs == s * 1000) { vm.setOverlayTimeout(s * 1000) }
-        }
-    }
-}
 
 @Composable
 private fun PlaybackPane(vm: SettingsViewModel) {
     val p = vm.profile
     Label("Direct play profile")
     Caption("Up to ${p.maxWidth}×${p.maxHeight}, video ${p.videoCodecs.joinToString()}, audio ${p.audioCodecs.joinToString()}.")
-    Caption("Anything outside this is transcoded by Plex. A per-device probe replaces this fixed profile in Phase 3.")
+    Caption("Probed from this TV's decoders and display at startup. Anything outside it is transcoded by Plex.")
 }
 
 @Composable

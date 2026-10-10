@@ -55,11 +55,18 @@ class GuideViewModel @Inject constructor(
     val window: StateFlow<Window?> = _window.asStateFlow()
 
     private val lineups = HashMap<LineupSnapshotId, LineupSnapshot>()
+    private var hours = DevicePrefs.DEFAULT_GUIDE_HOURS
 
     init {
         viewModelScope.launch {
             combine(repository.channels, repository.favorites) { c, f -> c to f }
                 .collect { (c, f) -> rebuild(c, f.map { it.value }.toSet()) }
+        }
+        viewModelScope.launch {
+            prefs.guideHours.collect { h ->
+                hours = h
+                _window.value?.let { w -> rebuild(w.rows.map { it.channel }, w.favorites) }
+            }
         }
         viewModelScope.launch {
             while (true) {
@@ -72,7 +79,7 @@ class GuideViewModel @Inject constructor(
     private suspend fun rebuild(channels: List<Channel>, favorites: Set<String>) {
         val now = clock.now()
         val from = floorToHalfHour(now - 30.minutes)
-        val to = from + WINDOW
+        val to = from + hours.hours
         val rows = channels.sortedBy { it.number }.map { ch ->
             val lineup = lineups[ch.lineup] ?: repository.lineup(ch.lineup)?.also { lineups[ch.lineup] = it }
             Row(ch, lineup?.let { strategy.airingsBetween(ch, it, from, to) } ?: emptyList())
@@ -101,8 +108,4 @@ class GuideViewModel @Inject constructor(
         return LocalDateTime(local.date, LocalTime(local.hour, minute)).toInstant(tz)
     }
 
-    companion object {
-        /** How far ahead the grid reaches; fast-forward jumps through it three hours at a time. */
-        val WINDOW = 6.hours
-    }
 }

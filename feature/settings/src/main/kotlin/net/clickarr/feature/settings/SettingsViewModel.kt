@@ -39,15 +39,25 @@ class SettingsViewModel @Inject constructor(
     val profile: DeviceProfile,
     private val updates: UpdateChecker,
 ) : ViewModel() {
-    data class General(val deviceName: String, val deviceId: String, val overlayTimeoutMs: Int, val uiScale: Float, val theme: String)
+    data class General(
+        val deviceName: String,
+        val deviceId: String,
+        val overlayTimeoutMs: Int,
+        val uiScale: Float,
+        val theme: String,
+        val guideHours: Int,
+    )
 
     val general: StateFlow<General> =
-        combine(prefs.deviceName, prefs.overlayTimeoutMs, prefs.uiScale, prefs.theme) { name, timeout, scale, theme ->
-            General(name, prefs.deviceId, timeout, scale, theme)
+        combine(prefs.deviceName, prefs.overlayTimeoutMs, prefs.uiScale, prefs.theme, prefs.guideHours) { name, t, scale, theme, h ->
+            General(name, prefs.deviceId, t, scale, theme, h)
         }.stateIn(
             viewModelScope,
             SharingStarted.WhileSubscribed(5_000),
-            General("", prefs.deviceId, DevicePrefs.DEFAULT_OVERLAY_TIMEOUT_MS, DevicePrefs.DEFAULT_UI_SCALE, DevicePrefs.DEFAULT_THEME),
+            General(
+                "", prefs.deviceId, DevicePrefs.DEFAULT_OVERLAY_TIMEOUT_MS, DevicePrefs.DEFAULT_UI_SCALE,
+                DevicePrefs.DEFAULT_THEME, DevicePrefs.DEFAULT_GUIDE_HOURS,
+            ),
         )
 
     val servers: StateFlow<List<ServerInfo>> = registry.providers.map { it.values.map { p -> p.server } }
@@ -85,6 +95,8 @@ class SettingsViewModel @Inject constructor(
     fun setUiScale(scale: Float) = viewModelScope.launch { prefs.setUiScale(scale) }
 
     fun setTheme(name: String) = viewModelScope.launch { prefs.setTheme(name) }
+
+    fun setGuideHours(hours: Int) = viewModelScope.launch { prefs.setGuideHours(hours) }
 
     fun disconnect(onDone: () -> Unit) {
         viewModelScope.launch {

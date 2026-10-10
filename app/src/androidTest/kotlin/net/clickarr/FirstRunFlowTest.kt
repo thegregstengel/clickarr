@@ -173,14 +173,14 @@ class FirstRunFlowTest {
         click("About")
         waitForText("MIT licensed")
         shot("12-settings-about")
-        click("Appearance")
+        click("General")
         waitForText("Theme")
         click("Dracula")
         waitForText("Dracula")
-        shot("12b-appearance-dracula")
+        shot("12b-general-dracula")
         click("Clickarr") // back to the default palette for the rest of the run
 
-        click("Household")
+        click("Sync")
         waitForText("Create a household")
         shot("13-household-none")
         click("Create a household")
