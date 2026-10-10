@@ -27,6 +27,7 @@ the household protocol and database may still change between minor versions.
   package-installer session and reports the system's verdict on the pane; one button carries check, download (with
   a progress bar), and install so focus stays put; the app says up front when a build is signed with another key.
 - Settings, General, Time: automatic network time and a time zone; the manual clock nudge is gone.
+- Launcher icon is the square TV mark again. Fire TV shows every sideloaded app as a square icon on its own wide tile and ignores the banner, so a 16:9 icon only got letterboxed; a full-width tile needs an Amazon Appstore listing. Android TV and Google TV keep using the 16:9 banner.
 - Guide preview card with thumbnail and synopsis; player mini-guide on Left and Right.
 - Episodes in a row: a channel can play 2, 3, or a range of one show's episodes back to back in aired order, shuffled between runs or alternating shows in order (scheduler version 2).
 - Clock in the shell beside the settings cog; Settings, General, Time: zone, automatic network time (SNTP), and a manual nudge.
