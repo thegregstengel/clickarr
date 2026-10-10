@@ -61,9 +61,11 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import net.clickarr.core.model.Airing
 import net.clickarr.core.model.Channel
+import net.clickarr.core.model.ChannelIcon
 import net.clickarr.ui.design.ClickarrColors
 import net.clickarr.ui.design.ClickarrDimens
 import net.clickarr.ui.design.ClickarrTextStyles
+import net.clickarr.ui.design.GlyphIcon
 import net.clickarr.ui.design.clickarrFocusable
 
 private val CHANNEL_COLUMN = 200.dp
@@ -319,7 +321,9 @@ private fun ChannelCell(channel: Channel, isCurrent: Boolean) {
             color = ClickarrColors.TextSecondary,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
         )
+        (channel.icon as? ChannelIcon.Glyph)?.let { GlyphIcon(it.name, 32.dp, Modifier.padding(start = 8.dp)) }
     }
 }
 

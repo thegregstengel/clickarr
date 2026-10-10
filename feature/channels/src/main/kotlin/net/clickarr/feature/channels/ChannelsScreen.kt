@@ -23,10 +23,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.tv.material3.Button
 import androidx.tv.material3.ListItem
 import androidx.tv.material3.Text
+import net.clickarr.core.model.ChannelIcon
 import net.clickarr.core.model.ChannelId
 import net.clickarr.ui.design.ClickarrColors
 import net.clickarr.ui.design.ClickarrDimens
 import net.clickarr.ui.design.ClickarrTextStyles
+import net.clickarr.ui.design.GlyphIcon
 
 /** Channels tab: list on the left, a static preview card for the focused channel on the right. */
 @Composable
@@ -53,7 +55,12 @@ fun ChannelsScreen(
                         selected = preview?.channel?.id == ch.id,
                         onClick = { viewModel.tune(ch, onWatch) },
                         headlineContent = { Text(ch.name, style = ClickarrTextStyles.RowTitle) },
-                        leadingContent = { Text(ch.number.toString(), style = ClickarrTextStyles.RowTitle) },
+                        leadingContent = {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Text(ch.number.toString(), style = ClickarrTextStyles.RowTitle, modifier = Modifier.width(56.dp))
+                                (ch.icon as? ChannelIcon.Glyph)?.let { GlyphIcon(it.name, 40.dp) }
+                            }
+                        },
                         trailingContent = {
                             if (ch.id in favorites) Text("★", style = ClickarrTextStyles.RowTitle, color = ClickarrColors.AccentGlow)
                         },

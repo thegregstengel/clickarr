@@ -198,6 +198,7 @@ class FirstRunFlowTest {
         compose.onNodeWithTag("editor.name").performTextClearance()
         compose.onNodeWithTag("editor.name").performTextInput("Office Reruns")
         click("+")
+        click("Comedy") // a glyph from the icon palette
         shot("19-edit-channel")
         click("Save changes")
         waitForText("Office Reruns")

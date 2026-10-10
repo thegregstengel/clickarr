@@ -8,7 +8,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -24,12 +26,15 @@ import androidx.tv.material3.Button
 import androidx.tv.material3.ListItem
 import androidx.tv.material3.Text
 import kotlin.time.Duration.Companion.minutes
+import net.clickarr.core.model.ChannelIcon
 import net.clickarr.core.model.ChannelId
 import net.clickarr.core.model.OrderingMode
 import net.clickarr.feature.channels.EditorViewModel.Step
 import net.clickarr.ui.design.ClickarrColors
 import net.clickarr.ui.design.ClickarrDimens
+import net.clickarr.ui.design.ClickarrGlyphs
 import net.clickarr.ui.design.ClickarrTextStyles
+import net.clickarr.ui.design.GlyphIcon
 
 /** Create-channel wizard, or the editor for an existing channel. One step per screen, D-pad friendly. */
 @Composable
@@ -156,6 +161,31 @@ private fun Chip(label: String, selected: Boolean, onClick: () -> Unit) {
     )
 }
 
+/** The Lucide palette as a row of square chips; the first chip is "no icon" (design language 1.6). */
+@Composable
+private fun IconPicker(selected: ChannelIcon?, onPick: (ChannelIcon?) -> Unit) {
+    val current = (selected as? ChannelIcon.Glyph)?.name
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        item {
+            ListItem(
+                selected = current == null,
+                onClick = { onPick(null) },
+                headlineContent = { Text("None", style = ClickarrTextStyles.Caption) },
+                modifier = Modifier.width(96.dp),
+            )
+        }
+        items(ClickarrGlyphs.all, key = { it.name }) { g ->
+            ListItem(
+                selected = current == g.name,
+                onClick = { onPick(ChannelIcon.Glyph(g.name)) },
+                headlineContent = { GlyphIcon(g.name, 28.dp) },
+                supportingContent = { Text(g.label, style = ClickarrTextStyles.Caption, maxLines = 1) },
+                modifier = Modifier.width(112.dp),
+            )
+        }
+    }
+}
+
 @Composable
 private fun Details(d: EditorViewModel.Draft, vm: EditorViewModel) {
     Text("Name", style = ClickarrTextStyles.LabelAllCaps, color = ClickarrColors.TextMuted)
@@ -179,6 +209,8 @@ private fun Details(d: EditorViewModel.Draft, vm: EditorViewModel) {
         Text(d.number.toString(), style = ClickarrTextStyles.ChannelNumber)
         Button(onClick = { vm.updateDraft { it.copy(number = it.number + 1) } }) { Text("+") }
     }
+    Text("Icon", style = ClickarrTextStyles.LabelAllCaps, color = ClickarrColors.TextMuted)
+    IconPicker(d.icon) { icon -> vm.updateDraft { it.copy(icon = icon) } }
     Text("Order", style = ClickarrTextStyles.LabelAllCaps, color = ClickarrColors.TextMuted)
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Chip("In order", d.order == OrderingMode.SEQUENTIAL) { vm.updateDraft { it.copy(order = OrderingMode.SEQUENTIAL) } }

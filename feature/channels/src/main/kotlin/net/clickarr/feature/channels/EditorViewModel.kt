@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import net.clickarr.core.common.Outcome
 import net.clickarr.core.model.Channel
+import net.clickarr.core.model.ChannelIcon
 import net.clickarr.core.model.ChannelId
 import net.clickarr.core.model.Collection
 import net.clickarr.core.model.Library
@@ -69,6 +70,7 @@ class EditorViewModel @Inject constructor(
         val number: Int,
         val order: OrderingMode = OrderingMode.SEQUENTIAL,
         val rounding: Duration? = 30.minutes,
+        val icon: ChannelIcon? = null,
         /** Set when editing an existing channel. */
         val editing: Channel? = null,
     )
@@ -194,7 +196,7 @@ class EditorViewModel @Inject constructor(
         _step.value = Step.Loading
         viewModelScope.launch {
             val c = repository.byId(id) ?: return@launch fail("That channel no longer exists")
-            _step.value = Step.Details(Draft(c.source, c.name, c.name, c.number, c.order, c.slotRounding, editing = c))
+            _step.value = Step.Details(Draft(c.source, c.name, c.name, c.number, c.order, c.slotRounding, c.icon, editing = c))
         }
     }
 
@@ -224,8 +226,8 @@ class EditorViewModel @Inject constructor(
         val name = d.name.ifBlank { d.suggestedName }
         viewModelScope.launch {
             val r = d.editing?.let { c ->
-                repository.update(c.copy(name = name, number = d.number, order = d.order, slotRounding = d.rounding))
-            } ?: repository.create(d.number, name, d.source, d.order, d.rounding)
+                repository.update(c.copy(name = name, number = d.number, order = d.order, slotRounding = d.rounding, icon = d.icon))
+            } ?: repository.create(d.number, name, d.source, d.order, d.rounding, d.icon)
             _step.value = when (r) {
                 is Outcome.Success -> Step.Saved(r.value.name, r.value.number)
                 is Outcome.Failure -> Step.Failed(r.error.message)
