@@ -22,6 +22,7 @@ import kotlinx.datetime.toLocalDateTime
 import net.clickarr.core.common.Clock
 import net.clickarr.core.model.Airing
 import net.clickarr.core.model.Channel
+import net.clickarr.core.model.ChannelId
 import net.clickarr.core.model.LineupSnapshot
 import net.clickarr.core.model.LineupSnapshotId
 import net.clickarr.core.scheduling.ScheduleStrategy
@@ -77,6 +78,13 @@ class GuideViewModel @Inject constructor(
             Row(ch, lineup?.let { strategy.airingsBetween(ch, it, from, to) } ?: emptyList())
         }
         _window.value = Window(from, to, now, rows, prefs.lastChannelId.first(), favorites)
+    }
+
+    fun toggleFavorite(id: ChannelId) {
+        viewModelScope.launch {
+            val favorites = _window.value?.favorites.orEmpty()
+            repository.setFavorite(id, id.value !in favorites)
+        }
     }
 
     fun tune(channel: Channel, then: () -> Unit) {

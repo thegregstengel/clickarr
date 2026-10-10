@@ -24,7 +24,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         args = intent.toSpikeArgs()
         setContent {
-            if (args.spike != null) SpikeApp(args) else ClickarrTheme { ClickarrApp(onExit = { finish() }) }
+            if (args.spike != null) ClickarrTheme { SpikeApp(args) } else ClickarrApp(onExit = { finish() })
         }
     }
 

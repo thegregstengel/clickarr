@@ -22,6 +22,8 @@ import net.clickarr.feature.channels.ChannelEditorScreen
 import net.clickarr.feature.player.PlayerScreen
 import net.clickarr.feature.setup.SetupScreen
 import net.clickarr.ui.design.ClickarrColors
+import net.clickarr.ui.design.ClickarrPalettes
+import net.clickarr.ui.design.ClickarrTheme
 
 /**
  * Start route: setup when no server is connected, otherwise the player (television starts playing).
@@ -29,6 +31,12 @@ import net.clickarr.ui.design.ClickarrColors
  */
 @Composable
 fun ClickarrApp(onExit: () -> Unit, viewModel: AppViewModel = hiltViewModel()) {
+    val theme by viewModel.theme.collectAsState()
+    ClickarrTheme(ClickarrPalettes.byName(theme)) { AppContent(onExit, viewModel) }
+}
+
+@Composable
+private fun AppContent(onExit: () -> Unit, viewModel: AppViewModel) {
     val ready by viewModel.ready.collectAsState()
     val hasServer by viewModel.hasServer.collectAsState()
     val hadChannels by viewModel.hadChannelsAtStart.collectAsState()

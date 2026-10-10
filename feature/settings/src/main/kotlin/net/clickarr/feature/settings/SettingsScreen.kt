@@ -30,6 +30,7 @@ import androidx.tv.material3.Button
 import androidx.tv.material3.ListItem
 import androidx.tv.material3.Text
 import net.clickarr.ui.design.ClickarrColors
+import net.clickarr.ui.design.ClickarrPalettes
 import net.clickarr.ui.design.ClickarrDimens
 import net.clickarr.ui.design.ClickarrTextStyles
 
@@ -130,6 +131,10 @@ private fun ChannelsPane(vm: SettingsViewModel) {
 @Composable
 private fun AppearancePane(vm: SettingsViewModel) {
     val g by vm.general.collectAsState()
+    Label("Theme")
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        ClickarrPalettes.all.forEach { p -> Chip(p.label, selected = g.theme == p.name) { vm.setTheme(p.name) } }
+    }
     Label("Size")
     Caption("How large everything is drawn. Small fits the most on screen.")
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

@@ -3,6 +3,8 @@ package net.clickarr.feature.guide
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.basicMarquee
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.gestures.BringIntoViewSpec
 import androidx.compose.foundation.gestures.LocalBringIntoViewSpec
 import androidx.compose.runtime.CompositionLocalProvider
@@ -96,20 +98,32 @@ fun GuideScreen(onWatch: () -> Unit, onlyFavorites: Boolean = false, viewModel: 
     var details by remember { mutableStateOf<Pair<Channel, Airing>?>(null) }
 
     val grid = GuideGrid(w, minutePx, scroll, focus)
+    val actions = GuideActions(
+        onFocusAiring = { focused = it },
+        onDetails = { details = it },
+        onTune = { ch -> viewModel.tune(ch, onWatch) },
+        onToggleFavorite = { ch -> viewModel.toggleFavorite(ch.id) },
+    )
     CompositionLocalProvider(LocalBringIntoViewSpec provides PlainBringIntoViewSpec) {
-        GuideBody(grid, onlyFavorites, focused, { focused = it }, details, { details = it }) { ch -> viewModel.tune(ch, onWatch) }
+        GuideBody(grid, onlyFavorites, focused, details, actions)
     }
 }
+
+/** Everything a row can ask the screen to do. */
+private class GuideActions(
+    val onFocusAiring: (Airing) -> Unit,
+    val onDetails: (Pair<Channel, Airing>?) -> Unit,
+    val onTune: (Channel) -> Unit,
+    val onToggleFavorite: (Channel) -> Unit,
+)
 
 @Composable
 private fun GuideBody(
     grid: GuideGrid,
     onlyFavorites: Boolean,
     focused: Airing?,
-    onFocusAiring: (Airing) -> Unit,
     details: Pair<Channel, Airing>?,
-    onDetails: (Pair<Channel, Airing>?) -> Unit,
-    onTune: (Channel) -> Unit,
+    actions: GuideActions,
 ) {
     val w = grid.window
     val scroll = grid.scroll
@@ -133,9 +147,8 @@ private fun GuideBody(
                         rowIndex = rowIndex,
                         grid = grid,
                         isCurrent = row.channel.id.value == w.currentChannelId,
-                        onFocusAiring = onFocusAiring,
-                        onDetails = { a -> onDetails(row.channel to a) },
-                        onTune = { onTune(row.channel) },
+                        isFavorite = row.channel.id.value in w.favorites,
+                        actions = actions,
                     )
                 }
             }
@@ -150,9 +163,9 @@ private fun GuideBody(
                     DetailsCard(
                         channel = ch,
                         airing = a,
-                        onTune = { onTune(ch) },
+                        onTune = { actions.onTune(ch) },
                         onClose = {
-                            onDetails(null)
+                            actions.onDetails(null)
                             val rowIndex = w.rows.indexOfFirst { it.channel.id == ch.id }
                             if (rowIndex >= 0) focus.requestAt(rowIndex, maxOf(a.start, w.from))
                         },
@@ -236,9 +249,8 @@ private fun GuideRow(
     rowIndex: Int,
     grid: GuideGrid,
     isCurrent: Boolean,
-    onFocusAiring: (Airing) -> Unit,
-    onDetails: (Airing) -> Unit,
-    onTune: () -> Unit,
+    isFavorite: Boolean,
+    actions: GuideActions,
 ) {
     val window = grid.window
     val minutePx = grid.minutePx
@@ -248,7 +260,7 @@ private fun GuideRow(
     val scope = rememberCoroutineScope()
     val density = LocalDensity.current
     Row(Modifier.fillMaxWidth().height(ROW_HEIGHT).padding(vertical = ClickarrDimens.GuideCellGutter / 2)) {
-        ChannelCell(row.channel, isCurrent)
+        ChannelCell(row.channel, isCurrent, isFavorite) { actions.onToggleFavorite(row.channel) }
         Box(Modifier.fillMaxSize().clipToBounds().horizontalScroll(scroll)) {
             Layout(
                 content = {
@@ -264,7 +276,7 @@ private fun GuideRow(
                                     focus.cellAt(rowIndex + 1, focusTime)?.let { c -> down = focus.requester(rowIndex + 1, c) }
                                 },
                             onFocus = {
-                                onFocusAiring(airing)
+                                actions.onFocusAiring(airing)
                                 // Keep the focused cell inside the visible window.
                                 val leftPx = ((focusTime - window.from).inWholeMinutes * minutePx).toInt()
                                 val margin = with(density) { ClickarrDimens.GuideHalfHourWidth.toPx() }.toInt()
@@ -274,8 +286,8 @@ private fun GuideRow(
                                 }
                             },
                             actions = CellActions(
-                                tune = onTune,
-                                details = { onDetails(airing) },
+                                tune = { actions.onTune(row.channel) },
+                                details = { actions.onDetails(row.channel to airing) },
                                 jumpRows = { d -> focus.requestAt((rowIndex + d).coerceIn(0, maxOf(0, focus.rows.lastIndex)), focusTime) },
                                 jumpTime = { d -> focus.requestAt(rowIndex, (focusTime + d).coerceIn(window.from, window.to - 1.minutes)) },
                             ),
@@ -301,17 +313,26 @@ private fun GuideRow(
     }
 }
 
+/** Number, name, glyph, and a star. OK on the cell toggles the channel as a favorite (the Favorites tab). */
 @Composable
-private fun ChannelCell(channel: Channel, isCurrent: Boolean) {
+private fun ChannelCell(channel: Channel, isCurrent: Boolean, isFavorite: Boolean, onToggleFavorite: () -> Unit) {
+    val interaction = remember { MutableInteractionSource() }
     Row(
         Modifier
             .width(CHANNEL_COLUMN)
             .fillMaxHeight()
             .padding(end = 16.dp)
-            .background(
-                if (isCurrent) ClickarrColors.AccentPrimaryDeep else ClickarrColors.BgPanel,
-                RoundedCornerShape(ClickarrDimens.RadiusCell),
+            .clickarrFocusable(
+                interaction,
+                idleColor = if (isCurrent) ClickarrColors.AccentPrimaryDeep else ClickarrColors.BgPanel,
+                selected = isCurrent,
             )
+            .onKeyEvent { e ->
+                val select = e.type == KeyEventType.KeyDown && (e.key == Key.DirectionCenter || e.key == Key.Enter)
+                if (select) onToggleFavorite()
+                select
+            }
+            .focusable(interactionSource = interaction)
             .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -324,10 +345,17 @@ private fun ChannelCell(channel: Channel, isCurrent: Boolean) {
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )
-        (channel.icon as? ChannelIcon.Glyph)?.let { GlyphIcon(it.name, 32.dp, Modifier.padding(start = 8.dp)) }
+        (channel.icon as? ChannelIcon.Glyph)?.let { GlyphIcon(it.name, 28.dp, Modifier.padding(start = 8.dp)) }
+        Text(
+            if (isFavorite) "★" else "☆",
+            style = ClickarrTextStyles.RowTitle,
+            color = if (isFavorite) ClickarrColors.AccentGlow else ClickarrColors.TextMuted,
+            modifier = Modifier.padding(start = 8.dp),
+        )
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ProgramCell(
     airing: Airing,
@@ -337,8 +365,10 @@ private fun ProgramCell(
     actions: CellActions,
 ) {
     val interaction = remember { MutableInteractionSource() }
+    val isFocused by interaction.collectIsFocusedAsState()
     val past = airing.end <= window.now
     val current = airing.start <= window.now && window.now < airing.end
+    val label = listOfNotNull(airing.entry.title, airing.entry.subtitle).joinToString("  ·  ")
     Box(
         modifier
             .fillMaxSize()
@@ -351,11 +381,15 @@ private fun ProgramCell(
             .padding(horizontal = 12.dp),
         contentAlignment = Alignment.CenterStart,
     ) {
+        // Scrolls the label across the cell while focused, only when it does not fit (basicMarquee is a no-op otherwise).
         Text(
-            airing.entry.title,
+            label,
             style = ClickarrTextStyles.RowTitle,
             color = if (past) ClickarrColors.TextMuted else ClickarrColors.TextPrimary,
             maxLines = 1,
+            softWrap = false,
+            overflow = if (isFocused) TextOverflow.Clip else TextOverflow.Ellipsis,
+            modifier = if (isFocused) Modifier.basicMarquee(iterations = Int.MAX_VALUE, initialDelayMillis = 800) else Modifier,
         )
         if (current) {
             // Thin progress along the bottom edge of the program airing now (design language, "Cells").

@@ -58,6 +58,13 @@ class DevicePrefs(context: Context) {
         store.edit { it[UI_SCALE] = scale.coerceIn(MIN_UI_SCALE, 1f) }
     }
 
+    /** Palette name for Settings, Appearance, Theme: default, dark, light, or dracula. */
+    val theme: Flow<String> = store.data.map { it[THEME] ?: DEFAULT_THEME }
+
+    suspend fun setTheme(name: String) {
+        store.edit { it[THEME] = name }
+    }
+
     companion object {
         private val DEVICE_ID = stringPreferencesKey("device_id")
         private val DEVICE_NAME = stringPreferencesKey("device_name")
@@ -67,6 +74,8 @@ class DevicePrefs(context: Context) {
         private val UI_SCALE = floatPreferencesKey("ui_scale")
         const val DEFAULT_UI_SCALE = 0.65f
         const val MIN_UI_SCALE = 0.5f
+        private val THEME = stringPreferencesKey("theme")
+        const val DEFAULT_THEME = "default"
 
         fun defaultDeviceName(): String = Build.MODEL.ifBlank { "Clickarr TV" }
     }

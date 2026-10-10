@@ -17,6 +17,8 @@ the household protocol and database may still change between minor versions.
 - Device profile probed from the device's decoders and display (4K, HEVC, HDR flags).
 - Settings, Appearance, Size: Small, Medium (default), or Large scale for the whole interface, sized for a real TV.
 - Edit existing channels; 1 hour time slots; a Reality glyph and friends; show picker with a side panel.
+- Settings, Appearance, Theme: Clickarr (navy), Dark, Light, and Dracula.
+- Guide: the focused program scrolls its title and episode when they do not fit; OK on a channel cell stars it as a favorite.
 - Nightly debug builds at clickarr.net/nightly.
 
 ### Security

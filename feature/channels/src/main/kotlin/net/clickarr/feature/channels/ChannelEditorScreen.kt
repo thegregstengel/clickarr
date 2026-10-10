@@ -21,6 +21,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -179,7 +183,7 @@ private fun Chip(label: String, selected: Boolean, onClick: () -> Unit) {
 
 /** The Lucide palette as a row of square chips; the first chip is "no icon" (design language 1.6). */
 @Composable
-private fun IconPicker(selected: ChannelIcon?, onPick: (ChannelIcon?) -> Unit) {
+private fun IconPicker(selected: ChannelIcon?, first: FocusRequester, onPick: (ChannelIcon?) -> Unit) {
     val current = (selected as? ChannelIcon.Glyph)?.name
     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         item {
@@ -187,7 +191,7 @@ private fun IconPicker(selected: ChannelIcon?, onPick: (ChannelIcon?) -> Unit) {
                 selected = current == null,
                 onClick = { onPick(null) },
                 headlineContent = { Text("None", style = ClickarrTextStyles.Caption) },
-                modifier = Modifier.width(96.dp),
+                modifier = Modifier.width(96.dp).focusRequester(first),
             )
         }
         items(ClickarrGlyphs.all, key = { it.name }) { g ->
@@ -228,13 +232,16 @@ private fun DetailsFields(d: EditorViewModel.Draft, vm: EditorViewModel) {
         )
     }
     Text("Channel number", style = ClickarrTextStyles.LabelAllCaps, color = ClickarrColors.TextMuted)
+    // Down from the number buttons should reach the icon row, not skip to Order; say so explicitly.
+    val firstIcon = remember { FocusRequester() }
+    val toIcons = Modifier.focusProperties { down = firstIcon }
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Button(onClick = { vm.updateDraft { it.copy(number = (it.number - 1).coerceAtLeast(1)) } }) { Text("−") }
+        Button(onClick = { vm.updateDraft { it.copy(number = (it.number - 1).coerceAtLeast(1)) } }, modifier = toIcons) { Text("−") }
         Text(d.number.toString(), style = ClickarrTextStyles.ChannelNumber)
-        Button(onClick = { vm.updateDraft { it.copy(number = it.number + 1) } }) { Text("+") }
+        Button(onClick = { vm.updateDraft { it.copy(number = it.number + 1) } }, modifier = toIcons) { Text("+") }
     }
     Text("Icon", style = ClickarrTextStyles.LabelAllCaps, color = ClickarrColors.TextMuted)
-    IconPicker(d.icon) { icon -> vm.updateDraft { it.copy(icon = icon) } }
+    IconPicker(d.icon, firstIcon) { icon -> vm.updateDraft { it.copy(icon = icon) } }
     Text("Order", style = ClickarrTextStyles.LabelAllCaps, color = ClickarrColors.TextMuted)
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Chip("In order", d.order == OrderingMode.SEQUENTIAL) { vm.updateDraft { it.copy(order = OrderingMode.SEQUENTIAL) } }
