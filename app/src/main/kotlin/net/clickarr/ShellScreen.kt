@@ -57,6 +57,7 @@ private enum class ShellTab(val label: String) { GUIDE("Guide"), FAVORITES("Favo
 class ShellCallbacks(
     val onWatch: () -> Unit,
     val onCreateChannel: () -> Unit,
+    val onSuggestChannels: () -> Unit,
     val onEditChannel: (ChannelId) -> Unit,
     val onDisconnected: () -> Unit,
     val onExit: () -> Unit,
@@ -122,6 +123,7 @@ fun ShellScreen(
                         onOpenSpikes = { spikes = true },
                         onExit = callbacks.onExit,
                         onCreateChannel = callbacks.onCreateChannel,
+                        onSuggestChannels = callbacks.onSuggestChannels,
                         onEditChannel = callbacks.onEditChannel,
                     ),
                 )

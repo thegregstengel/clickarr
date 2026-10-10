@@ -95,7 +95,7 @@ class FirstRunFlowTest {
     @Test
     fun connectCreateChannelTuneAndOpenGuide() = flow {
         // Cold start on a software-rendered emulator: Hilt graph, Room, DataStore, first Compose frame.
-        waitForText("Connect to your Plex server", timeoutMs = 90_000)
+        waitForText("Connect to your media server", timeoutMs = 90_000)
         shot("01-setup")
         click("Enter address manually")
         waitForText("Server address and token")
@@ -134,6 +134,11 @@ class FirstRunFlowTest {
         waitForText("Create channel")
         waitForText("Parks and Recreation")
         shot("06-channels-list")
+        click("Suggest channels")
+        waitForText("Create selected")
+        shot("06b-suggest")
+        device.pressBack()
+        waitForText("Create channel")
         // Tune from the guide: OK on the Guide tab keeps focus in the row; Down enters on the current program.
         click("Guide")
         waitForText("Today")

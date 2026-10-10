@@ -5,6 +5,7 @@ object Routes {
     const val PLAYER = "player"
     const val SHELL = "shell?tab={tab}&section={section}"
     const val EDITOR = "editor?channel={channel}"
+    const val SUGGEST = "suggest"
 
     /** The shell on [tab] (guide, favorites, settings); [section] opens Settings on that pane. */
     fun shell(tab: String = "guide", section: String? = null) =

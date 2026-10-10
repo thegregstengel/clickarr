@@ -19,6 +19,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import androidx.navigation.compose.rememberNavController
 import net.clickarr.feature.channels.ChannelEditorScreen
+import net.clickarr.feature.channels.SuggestScreen
 import net.clickarr.feature.player.PlayerScreen
 import net.clickarr.feature.setup.SetupScreen
 import net.clickarr.ui.design.ClickarrColors
@@ -80,11 +81,15 @@ private fun AppNav(nav: NavHostController, start: String, onExit: () -> Unit) {
                 callbacks = ShellCallbacks(
                     onWatch = { nav.navigate(Routes.PLAYER) { popUpTo(Routes.PLAYER) { inclusive = true } } },
                     onCreateChannel = { nav.navigate(Routes.editor()) },
+                    onSuggestChannels = { nav.navigate(Routes.SUGGEST) },
                     onEditChannel = { nav.navigate(Routes.editor(it.value)) },
                     onDisconnected = { nav.navigate(Routes.SETUP) { popUpTo(0) { inclusive = true } } },
                     onExit = onExit,
                 ),
             )
+        }
+        composable(Routes.SUGGEST) {
+            SuggestScreen(onDone = { nav.popBackStack() })
         }
         composable(
             Routes.EDITOR,

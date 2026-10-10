@@ -149,6 +149,7 @@ private fun ChannelsPane(vm: SettingsViewModel, actions: SettingsActions) {
     val message by vm.message.collectAsState()
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Button(onClick = actions.onCreateChannel) { Text("Create channel") }
+        Button(onClick = actions.onSuggestChannels) { Text("Suggest channels") }
         Button(onClick = vm::refreshAllLineups) { Text("Refresh all lineups from Plex") }
     }
     message?.let { Caption(it) }

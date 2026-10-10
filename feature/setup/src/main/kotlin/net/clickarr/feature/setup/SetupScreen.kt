@@ -21,6 +21,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import net.clickarr.ui.design.R as DesignR
+import net.clickarr.ui.design.ClickarrLogoHorizontal
+import androidx.tv.material3.ListItem
+import androidx.tv.material3.Icon
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.border
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -32,7 +43,6 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import net.clickarr.ui.design.ClickarrColors
 import net.clickarr.ui.design.ClickarrDimens
-import net.clickarr.ui.design.ClickarrLogoStacked
 import net.clickarr.ui.design.ClickarrTextStyles
 
 /** First-run flow (design language section 5, "Setup"). Centered column, one card per step. */
@@ -41,14 +51,15 @@ fun SetupScreen(onDone: () -> Unit, viewModel: SetupViewModel = hiltViewModel())
     val step by viewModel.step.collectAsState()
     LaunchedEffect(step) { if (step is SetupViewModel.Step.Done) onDone() }
 
-    Box(Modifier.fillMaxSize().background(ClickarrColors.BgBase), contentAlignment = Alignment.Center) {
+    // The mockup sits the card in a dim living room. Two soft glows on the brand dark stand in for the photo.
+    Box(Modifier.fillMaxSize().background(ClickarrColors.BgBase).background(roomGlow()), contentAlignment = Alignment.Center) {
         Column(
-            Modifier.width(880.dp).padding(horizontal = ClickarrDimens.SafeArea, vertical = 24.dp).verticalScroll(rememberScrollState()),
+            Modifier.width(760.dp).padding(horizontal = ClickarrDimens.SafeArea, vertical = 24.dp).verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            ClickarrLogoStacked(markSize = 88.dp)
-            Text("Turn your media library into TV", style = ClickarrTextStyles.ScreenTitle, color = ClickarrColors.TextSecondary)
+            ClickarrLogoHorizontal(markSize = 56.dp)
+            Text("Turn your media library into TV", style = ClickarrTextStyles.RowTitle, color = ClickarrColors.TextPrimary)
             Card {
                 when (val s = step) {
                     SetupViewModel.Step.Welcome -> Welcome(viewModel)
@@ -65,27 +76,54 @@ fun SetupScreen(onDone: () -> Unit, viewModel: SetupViewModel = hiltViewModel())
 }
 
 @Composable
+private fun roomGlow(): Brush = Brush.radialGradient(
+    colors = listOf(ClickarrColors.AccentPrimaryDeep.copy(alpha = 0.55f), Color.Transparent),
+    center = Offset(0.25f * GLOW_SPAN, 0.2f * GLOW_SPAN),
+    radius = GLOW_SPAN,
+)
+
+@Composable
 private fun Card(content: @Composable () -> Unit) {
     Column(
         Modifier
-            .background(ClickarrColors.BgElevated, RoundedCornerShape(ClickarrDimens.RadiusCard))
-            .padding(ClickarrDimens.CardPadding + 8.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+            .fillMaxWidth()
+            .background(ClickarrColors.BgPanel.copy(alpha = 0.92f), RoundedCornerShape(ClickarrDimens.RadiusCard))
+            .border(1.dp, ClickarrColors.BgCellBorder, RoundedCornerShape(ClickarrDimens.RadiusCard))
+            .padding(ClickarrDimens.CardPadding + 4.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) { content() }
 }
 
+/** The mockup's "Connect to Your Media Server" card: a row per way in, each with a tile and a chevron. */
 @Composable
 private fun Welcome(vm: SetupViewModel) {
-    Text("Connect to your Plex server", style = ClickarrTextStyles.ScreenTitle)
-    Text(
-        "Sign in with your Plex account to find your server, or enter an address and token.",
-        style = ClickarrTextStyles.Secondary,
-        color = ClickarrColors.TextSecondary,
+    Text("Connect to your media server", style = ClickarrTextStyles.ScreenTitle)
+    Text("Choose your server and sign in to get started.", style = ClickarrTextStyles.Secondary, color = ClickarrColors.TextSecondary)
+    ConnectRow("Plex", "Sign in with your Plex account", DesignR.drawable.ic_ui_server, ClickarrColors.StatusWarn, vm::startPlexLink)
+    ConnectRow(
+        "Enter address manually", "A server address and token", DesignR.drawable.ic_ui_settings, ClickarrColors.AccentPrimary, vm::startManual,
     )
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Button(onClick = vm::startPlexLink) { Text("Sign in with Plex") }
-        Button(onClick = vm::startManual) { Text("Enter address manually") }
-    }
+}
+
+@Composable
+private fun ConnectRow(title: String, subtitle: String, icon: Int, tint: Color, onClick: () -> Unit) {
+    ListItem(
+        selected = false,
+        onClick = onClick,
+        headlineContent = { Text(title, style = ClickarrTextStyles.RowTitle) },
+        supportingContent = { Text(subtitle, style = ClickarrTextStyles.Caption, color = ClickarrColors.TextSecondary) },
+        leadingContent = {
+            Box(
+                Modifier.size(44.dp).background(tint.copy(alpha = 0.18f), RoundedCornerShape(ClickarrDimens.RadiusCell)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(painterResource(icon), contentDescription = null, Modifier.size(24.dp), tint = tint)
+            }
+        },
+        trailingContent = {
+            Icon(painterResource(DesignR.drawable.ic_ui_chevron_right), contentDescription = null, Modifier.size(24.dp))
+        },
+    )
 }
 
 @Composable
@@ -163,3 +201,5 @@ private fun Failed(s: SetupViewModel.Step.Failed, vm: SetupViewModel) {
     }
     Text("", style = MaterialTheme.typography.labelSmall)
 }
+
+private const val GLOW_SPAN = 1400f

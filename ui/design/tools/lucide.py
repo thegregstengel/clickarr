@@ -109,7 +109,7 @@ def kotlin() -> str:
 
 
 # Icons the interface itself uses (not channel glyphs): written as ic_ui_<name>.xml, no registry entry.
-UI_ICONS = ["settings"]
+UI_ICONS = ["settings", "server", "chevron-right"]
 
 
 def main() -> None:
