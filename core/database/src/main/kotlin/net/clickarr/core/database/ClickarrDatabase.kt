@@ -16,7 +16,7 @@ import androidx.room.RoomDatabase
         FavoriteEntity::class,
         SyncStateEntity::class,
     ],
-    version = 1,
+    version = 2,
     // Schema export is enabled in Phase 4 (reproducible builds), together with migration tests.
     exportSchema = false,
 )

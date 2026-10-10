@@ -2,6 +2,7 @@ package net.clickarr.core.model
 
 import kotlin.time.Duration
 import kotlinx.datetime.Instant
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -14,9 +15,11 @@ enum class EpisodeOrder { AIRED, INTERLEAVED }
 sealed interface ChannelIcon {
     /** One of the built-in glyph names (Lucide set). */
     @Serializable
+    @SerialName("glyph")
     data class Glyph(val name: String) : ChannelIcon
 
     @Serializable
+    @SerialName("art")
     data class Art(val ref: ArtworkRef) : ChannelIcon
 }
 
@@ -43,19 +46,24 @@ data class MediaFilter(
 @Serializable
 sealed interface ProgrammingSource {
     @Serializable
+    @SerialName("shows")
     data class Shows(val shows: List<MediaRef>, val episodeOrder: EpisodeOrder = EpisodeOrder.AIRED) : ProgrammingSource
 
     @Serializable
+    @SerialName("library")
     data class Library(val library: MediaRef, val filter: MediaFilter = MediaFilter()) : ProgrammingSource
 
     @Serializable
+    @SerialName("collection")
     data class Collection(val ref: MediaRef) : ProgrammingSource
 
     @Serializable
+    @SerialName("playlist")
     data class Playlist(val ref: MediaRef) : ProgrammingSource
 
     /** Hand-picked items in the order given. A Lord of the Rings channel is just the films, in order. */
     @Serializable
+    @SerialName("explicit")
     data class Explicit(val items: List<MediaRef>) : ProgrammingSource
 
     /**
@@ -63,6 +71,7 @@ sealed interface ProgrammingSource {
      * Lets a channel be "these two collections plus these three shows".
      */
     @Serializable
+    @SerialName("union")
     data class Union(val sources: List<ProgrammingSource>) : ProgrammingSource
 }
 
