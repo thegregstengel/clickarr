@@ -3,6 +3,7 @@ package net.clickarr
 import android.view.KeyEvent
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onFirst
@@ -75,6 +76,14 @@ class FirstRunFlowTest {
         }
     }
 
+    /** Focus a control the way a remote would, which scrolls it into view, and check it is really on screen. */
+    private fun reach(text: String) {
+        val node = compose.onAllNodes(hasText(text, substring = false)).onFirst()
+        node.requestFocus()
+        compose.waitForIdle()
+        node.assertIsDisplayed()
+    }
+
     @Test
     fun connectCreateChannelTuneAndOpenGuide() = flow {
         // Cold start on a software-rendered emulator: Hilt graph, Room, DataStore, first Compose frame.
@@ -112,6 +121,7 @@ class FirstRunFlowTest {
         click("Parks and Recreation")
         click("Continue")
         waitForText("Channel number")
+        reach("Create channel")
         click("Create channel")
         waitForText("Create channel")
         waitForText("Parks and Recreation")
@@ -184,6 +194,7 @@ class FirstRunFlowTest {
         click("The Office (US)")
         click("Continue")
         waitForText("Channel number")
+        reach("Create channel")
         click("Create channel")
         waitForText("Create channel")
         waitForText("The Office (US)")
@@ -202,6 +213,7 @@ class FirstRunFlowTest {
         compose.onAllNodes(hasText("+", substring = false)).onFirst().requestFocus() // leave the field so the keyboard closes
         compose.waitForIdle()
         shot("19-edit-channel")
+        reach("Save changes")
         click("Save changes")
         waitForText("Create channel") // back on the Channels tab
         waitForText("Office Reruns")

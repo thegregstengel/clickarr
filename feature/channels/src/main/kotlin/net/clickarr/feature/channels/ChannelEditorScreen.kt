@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -189,8 +191,16 @@ private fun IconPicker(selected: ChannelIcon?, onPick: (ChannelIcon?) -> Unit) {
     }
 }
 
+/** The form is taller than a 1080p screen once the icon row is in; the focused control scrolls into view. */
 @Composable
 private fun Details(d: EditorViewModel.Draft, vm: EditorViewModel) {
+    Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        DetailsFields(d, vm)
+    }
+}
+
+@Composable
+private fun DetailsFields(d: EditorViewModel.Draft, vm: EditorViewModel) {
     Text("Name", style = ClickarrTextStyles.LabelAllCaps, color = ClickarrColors.TextMuted)
     Row(
         Modifier
