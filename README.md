@@ -91,7 +91,7 @@ Phase 1 and 2 (the MVP) prove the core experience. Everything else lands after.
 | Half-hour slot padding with filler cards | Marathons, holiday programming, interstitials and bumpers |
 | Grid guide, overlay, channel surfing, numeric entry | Live preview while browsing channels, favorites filter |
 | Household pairing over TLS with pinned device certificates, sync across TVs | Google Drive sync as the alternative to a LAN household: backup, restore, and TVs in different homes on one lineup |
-| Edit channels, icons, 1 hour slots, themes and UI size | Coordinator migration, viewing history |
+| Edit channels, icons, 1 hour slots, themes and UI size; a settings lock code to keep children out of Settings and the editor | Coordinator migration, viewing history |
 | Resume last channel on launch; episodes you sit through are marked watched in Plex (optional progress too) | Viewing history, "what did I miss" |
 
 ## Platforms

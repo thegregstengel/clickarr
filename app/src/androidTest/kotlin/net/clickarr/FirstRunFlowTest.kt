@@ -4,6 +4,7 @@ import android.view.KeyEvent
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onFirst
@@ -74,6 +75,12 @@ class FirstRunFlowTest {
             runCatching { compose.onRoot(useUnmergedTree = true).printToLog("Clickarr/Test") }
             throw t
         }
+    }
+
+    /** A key on the lock pad, found by its "Key N" description so a channel number cannot be mistaken for it. */
+    private fun clickKey(digit: Int) {
+        compose.onAllNodes(hasContentDescription("Key $digit")).onFirst().performSemanticsAction(SemanticsActions.OnClick)
+        compose.waitForIdle()
     }
 
     /** The settings cog has no text; focus it by tag and press OK like a remote. */
@@ -192,6 +199,21 @@ class FirstRunFlowTest {
         waitForText("Dracula")
         shot("12b-general-dracula")
         click("Clickarr") // back to the default palette for the rest of the run
+
+        // Settings lock: set 1234 (twice), leave, come back to the gate, unlock, remove the code again.
+        click("Set a code")
+        repeat(2) { listOf(1, 2, 3, 4).forEach(::clickKey) }
+        waitForText("Code set. Settings will ask for it from now on.")
+        shot("12c-lock-set")
+        click("Guide")
+        waitForText("Today")
+        openSettings()
+        waitForText("Settings are locked")
+        shot("12d-lock-gate")
+        listOf(1, 2, 3, 4).forEach(::clickKey)
+        waitForText("This TV")
+        click("Remove code")
+        waitForText("Code removed. Settings open freely again.")
 
         click("Sync")
         waitForText("Local household")

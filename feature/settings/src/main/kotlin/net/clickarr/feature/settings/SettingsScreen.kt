@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -59,6 +60,13 @@ fun SettingsScreen(
     var section by rememberSaveable {
         mutableStateOf(SettingsSection.entries.firstOrNull { it.name.equals(initialSection, true) } ?: SettingsSection.GENERAL)
     }
+    // The settings lock (General, "Settings lock"): one code per visit; leaving Settings locks it again.
+    val locked by viewModel.lock.locked.collectAsState()
+    DisposableEffect(Unit) { onDispose { viewModel.lock.relock() } }
+    if (locked) {
+        LockGate(viewModel.lock)
+        return
+    }
     Row(Modifier.fillMaxSize()) {
         // Lazy so the focused entry scrolls into view; eight rows do not fit above the fold at 1080p.
         LazyColumn(
@@ -92,10 +100,10 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun Caption(text: String) = Text(text, style = ClickarrTextStyles.Secondary, color = ClickarrColors.TextSecondary)
+internal fun Caption(text: String) = Text(text, style = ClickarrTextStyles.Secondary, color = ClickarrColors.TextSecondary)
 
 @Composable
-private fun Label(text: String) = Text(text, style = ClickarrTextStyles.LabelAllCaps, color = ClickarrColors.TextMuted)
+internal fun Label(text: String) = Text(text, style = ClickarrTextStyles.LabelAllCaps, color = ClickarrColors.TextMuted)
 
 /** Zone and automatic network time, for a TV whose clock drifts. */
 @Composable
@@ -152,6 +160,7 @@ private fun GeneralPane(vm: SettingsViewModel) {
     Label("This TV")
     Text(g.deviceName.ifBlank { "Clickarr TV" }, style = ClickarrTextStyles.RowTitle)
     Caption("Device id ${g.deviceId.take(8)}. The name is what other TVs in a household will see.")
+    LockBlock(vm.lock)
     TimeBlock(g, vm)
     Label("Theme")
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

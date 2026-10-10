@@ -102,6 +102,13 @@ class DevicePrefs(context: Context) {
         }
     }
 
+    /** Settings, General, Settings lock: the salted hash from [SettingsLock.record], or null when there is no code. */
+    val settingsLock: Flow<String?> = store.data.map { it[SETTINGS_LOCK] }
+
+    suspend fun setSettingsLock(record: String?) {
+        store.edit { if (record == null) it.remove(SETTINGS_LOCK) else it[SETTINGS_LOCK] = record }
+    }
+
     /** Settings, Playback: off, watched (mark whole episodes), or progress (also the running position). */
     val watchReporting: Flow<String> = store.data.map { it[WATCH_REPORTING] ?: DEFAULT_WATCH_REPORTING }
 
@@ -142,6 +149,7 @@ class DevicePrefs(context: Context) {
         private val LAST_REFRESH_AT = longPreferencesKey("last_auto_refresh_at")
         private val LAST_REFRESH_NOTE = stringPreferencesKey("last_auto_refresh_note")
         private val WATCH_REPORTING = stringPreferencesKey("watch_reporting")
+        private val SETTINGS_LOCK = stringPreferencesKey("settings_lock")
         const val WATCH_OFF = "off"
         const val WATCH_WATCHED = "watched"
         const val WATCH_PROGRESS = "progress"

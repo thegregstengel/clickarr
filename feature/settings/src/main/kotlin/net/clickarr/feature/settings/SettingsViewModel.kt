@@ -1,6 +1,7 @@
 package net.clickarr.feature.settings
 
 import android.os.Build
+import android.os.SystemClock
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -207,6 +208,9 @@ class SettingsViewModel @Inject constructor(
         prefs.watchReporting.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DevicePrefs.DEFAULT_WATCH_REPORTING)
 
     fun setWatchReporting(mode: String) = viewModelScope.launch { prefs.setWatchReporting(mode) }
+
+    /** Settings, General, Settings lock; see [LockController]. */
+    val lock = LockController(prefs, viewModelScope) { SystemClock.elapsedRealtime() }
 
     fun disconnect(onDone: () -> Unit) {
         viewModelScope.launch {
