@@ -193,6 +193,16 @@ class SettingsViewModel @Inject constructor(
 
     fun setGuideHours(hours: Int) = viewModelScope.launch { prefs.setGuideHours(hours) }
 
+    /** Settings, Channels, "Keep lineups current": the daily re-read and what the last one found. */
+    data class RefreshInfo(val automatic: Boolean, val lastAt: Instant?, val note: String?)
+
+    val refreshInfo: StateFlow<RefreshInfo> =
+        combine(prefs.autoRefresh, prefs.lastAutoRefreshAt, prefs.lastAutoRefreshNote) { auto, at, note ->
+            RefreshInfo(auto, at?.let(Instant::fromEpochMilliseconds), note)
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), RefreshInfo(true, null, null))
+
+    fun setAutoRefresh(on: Boolean) = viewModelScope.launch { prefs.setAutoRefresh(on) }
+
     fun disconnect(onDone: () -> Unit) {
         viewModelScope.launch {
             servers.value.forEach { registry.remove(it.providerId) }

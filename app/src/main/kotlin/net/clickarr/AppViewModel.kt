@@ -18,6 +18,7 @@ import net.clickarr.core.common.Clock
 import net.clickarr.data.DevicePrefs
 import net.clickarr.data.TimeSync
 import net.clickarr.data.HouseholdService
+import net.clickarr.data.LineupRefresher
 import net.clickarr.data.ProviderRegistry
 
 /** App-level state: are providers loaded, is a server connected, are there channels. Drives the start route. */
@@ -28,6 +29,7 @@ class AppViewModel @Inject constructor(
     channels: ChannelRepository,
     prefs: DevicePrefs,
     timeSync: TimeSync,
+    private val refresher: LineupRefresher,
     private val clock: Clock,
 ) : ViewModel() {
     private val _ready = MutableStateFlow(false)
@@ -55,6 +57,7 @@ class AppViewModel @Inject constructor(
             _hadChannelsAtStart.value = channels.channels.first().isNotEmpty()
             _ready.value = true
             household.start()
+            refresher.start(viewModelScope)
         }
     }
 }

@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import java.util.UUID
@@ -85,6 +86,22 @@ class DevicePrefs(context: Context) {
         store.edit { it[UPDATE_CHANNEL] = channel }
     }
 
+    /** Settings, Channels: re-read every channel's source from Plex once a day ([LineupRefresher]). */
+    val autoRefresh: Flow<Boolean> = store.data.map { it[AUTO_REFRESH] ?: true }
+    val lastAutoRefreshAt: Flow<Long?> = store.data.map { it[LAST_REFRESH_AT] }
+    val lastAutoRefreshNote: Flow<String?> = store.data.map { it[LAST_REFRESH_NOTE] }
+
+    suspend fun setAutoRefresh(on: Boolean) {
+        store.edit { it[AUTO_REFRESH] = on }
+    }
+
+    suspend fun recordAutoRefresh(atEpochMs: Long, note: String) {
+        store.edit {
+            it[LAST_REFRESH_AT] = atEpochMs
+            it[LAST_REFRESH_NOTE] = note
+        }
+    }
+
     /** How far ahead the guide reaches, in hours (Settings, Channels). */
     val guideHours: Flow<Int> = store.data.map { it[GUIDE_HOURS] ?: DEFAULT_GUIDE_HOURS }
 
@@ -114,6 +131,9 @@ class DevicePrefs(context: Context) {
         private val SYNC_MODE = stringPreferencesKey("sync_mode")
         private val TIME_ZONE = stringPreferencesKey("time_zone")
         private val AUTO_TIME = booleanPreferencesKey("auto_time")
+        private val AUTO_REFRESH = booleanPreferencesKey("auto_refresh")
+        private val LAST_REFRESH_AT = longPreferencesKey("last_auto_refresh_at")
+        private val LAST_REFRESH_NOTE = stringPreferencesKey("last_auto_refresh_note")
         const val SYNC_OFF = "off"
         const val SYNC_LOCAL = "local"
         const val SYNC_DRIVE = "drive"

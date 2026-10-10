@@ -34,6 +34,8 @@ the household protocol and database may still change between minor versions.
 - Episodes in a row: a channel can play 2, 3, or a range of one show's episodes back to back in aired order, shuffled between runs or alternating shows in order (scheduler version 2).
 - Clock in the shell beside the settings cog; Settings, General, Time: zone and automatic network time (SNTP).
 - Guide shows two hours across the screen at any size and starts at the current half hour.
+- Settings, Channels, Keep lineups current: once a day Clickarr re-reads every channel's source from Plex, so new episodes
+  join at the next program boundary without anyone pressing Refresh. Members of a household leave it to the coordinator.
 - Nightly debug builds at clickarr.net/nightly.
 
 ### Security

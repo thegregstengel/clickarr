@@ -149,6 +149,9 @@ class ChannelRepository @Inject constructor(
             val snapshot = Lineups.create(LineupSnapshotId(UUID.randomUUID().toString()), id, entries, now)
             val current = lineup(channel.lineup)
             if (current?.contentHash == snapshot.contentHash) return@flatMap Outcome.Success(channel)
+            // Already queued (by this TV or another one in the household): nothing to add.
+            val pending = channel.pendingLineup?.let { lineup(it) }
+            if (pending?.contentHash == snapshot.contentHash) return@flatMap Outcome.Success(channel)
             val cutover = if (applyNow || current == null) null else strategy.airingAt(channel, current, now)?.end
             val updated = if (cutover == null) {
                 channel.copy(

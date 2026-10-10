@@ -113,6 +113,20 @@ private fun TimeBlock(g: SettingsViewModel.General, vm: SettingsViewModel) {
     }
 }
 
+private fun refreshCaption(r: SettingsViewModel.RefreshInfo): String {
+    val last = r.lastAt?.let { at ->
+        val local = AppTime.local(at)
+        val month = local.month.name.lowercase().replaceFirstChar(Char::uppercase).take(MONTH_ABBREVIATION)
+        "$month ${local.dayOfMonth}, ${AppTime.timeOfDay(at)}"
+    }
+    return when {
+        !r.automatic -> "New episodes join a channel only when you press Refresh."
+        last == null -> "Each channel's source is re-read from Plex once a day; new episodes join at the next program boundary."
+        else -> "Last automatic refresh $last: ${r.note ?: "no changes"}."
+    }
+}
+
+private const val MONTH_ABBREVIATION = 3
 private val ZONES = listOf(
     "Eastern" to "America/New_York", "Central" to "America/Chicago", "Mountain" to "America/Denver",
     "Arizona" to "America/Phoenix", "Pacific" to "America/Los_Angeles", "Alaska" to "America/Anchorage",
@@ -185,6 +199,13 @@ private fun ChannelsPane(vm: SettingsViewModel, actions: SettingsActions) {
         Button(onClick = vm::refreshAllLineups) { Text("Refresh all lineups from Plex") }
     }
     message?.let { Caption(it) }
+    val refresh by vm.refreshInfo.collectAsState()
+    Label("Keep lineups current")
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Chip("Automatic, daily", selected = refresh.automatic) { vm.setAutoRefresh(true) }
+        Chip("Only when I press Refresh", selected = !refresh.automatic) { vm.setAutoRefresh(false) }
+    }
+    Caption(refreshCaption(refresh))
     val g by vm.general.collectAsState()
     Label("Guide shows the next")
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
