@@ -53,7 +53,7 @@ class EditorViewModel @Inject constructor(
         data class PickCollection(val library: Library, val collections: List<Collection>) : Step
         data class PickPlaylist(val playlists: List<Playlist>) : Step
         data class Details(val draft: Draft) : Step
-        data class Saving(val name: String) : Step
+        data class Saving(val name: String, val building: Boolean = true) : Step
         data class Saved(val name: String, val number: Int) : Step
         data class Failed(val message: String) : Step
         data object Loading : Step
@@ -202,7 +202,7 @@ class EditorViewModel @Inject constructor(
 
     fun act(action: EditAction) {
         val c = (_step.value as? Step.Details)?.draft?.editing ?: return
-        _step.value = Step.Saving(c.name)
+        _step.value = Step.Saving(c.name, building = action == EditAction.REFRESH_LINEUP)
         viewModelScope.launch {
             _step.value = when (action) {
                 EditAction.DELETE -> runCatching { repository.delete(c.id) }
@@ -222,7 +222,7 @@ class EditorViewModel @Inject constructor(
     fun save() {
         val s = _step.value as? Step.Details ?: return
         val d = s.draft
-        _step.value = Step.Saving(d.name)
+        _step.value = Step.Saving(d.name, building = d.editing == null)
         val name = d.name.ifBlank { d.suggestedName }
         viewModelScope.launch {
             val r = d.editing?.let { c ->
