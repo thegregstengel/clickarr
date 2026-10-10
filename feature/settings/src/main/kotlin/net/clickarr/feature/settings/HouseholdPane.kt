@@ -52,53 +52,66 @@ fun HouseholdPane(viewModel: HouseholdViewModel = hiltViewModel()) {
     val message by viewModel.message.collectAsState()
     val joining by viewModel.joining.collectAsState()
 
-    // When a section is swapped out (create, join, leave), the focused button disappears with it and TV focus
-    // would fall back to the shell's tab row, switching tabs. Hand focus to the new section's primary action.
-    val section = when (val r = role) {
-        HouseholdService.Role.None -> if (joining) "join" else "none"
-        is HouseholdService.Role.Coordinator -> if (r.pin != null) "coordinator-pin" else "coordinator"
-        is HouseholdService.Role.Member -> "member"
-    }
-    val primaryFocus = remember { FocusRequester() }
-    val anchor = remember { FocusRequester() }
-    var shownSection by remember { mutableStateOf(section) }
-    val parking = remember { booleanArrayOf(false) }
-    LaunchedEffect(section) {
-        if (section != shownSection) {
-            shownSection = section
-            parking[0] = false
-            val ok = runCatching { primaryFocus.requestFocus() }.getOrDefault(false)
-            Log.d(TAG) { "section $section, primary focus taken: $ok" }
-        }
-    }
-    // A failed action leaves the section in place with a message; bring focus back from the anchor.
-    LaunchedEffect(message) {
-        if (message != null) {
-            parking[0] = false
-            runCatching { primaryFocus.requestFocus() }
-        }
-    }
-    // Park focus here before an action removes the focused button, so focus never leaves the pane. If the
-    // viewer's D-pad lands here instead, pass straight through to the primary action.
-    Box(
-        Modifier
-            .size(1.dp)
-            .focusRequester(anchor)
-            .onFocusChanged { if (it.isFocused && !parking[0]) runCatching { primaryFocus.requestFocus() } }
-            .focusable(),
-    )
-    val swap: (() -> Unit) -> Unit = { action ->
-        parking[0] = true
-        runCatching { anchor.requestFocus() }
-        action()
-    }
-    val primary = Modifier.focusRequester(primaryFocus)
+    val focus = rememberSectionFocus(sectionKey(role, joining), message)
+    val primary = focus.primary
+    val swap = focus::swap
     when (val r = role) {
         HouseholdService.Role.None -> if (joining) JoinSection(viewModel, primary, swap) else NoneSection(viewModel, primary, swap)
         is HouseholdService.Role.Coordinator -> CoordinatorSection(r, household?.name, devices, viewModel, primary, swap)
         is HouseholdService.Role.Member -> MemberSection(r, household?.name, devices, viewModel, primary, swap)
     }
     message?.let { Text(it, style = ClickarrTextStyles.Secondary, color = ClickarrColors.StatusError) }
+}
+
+/**
+ * Keeps TV focus inside the pane while its sections change. When a section is swapped out (create, join,
+ * leave), the focused button disappears with it and focus would fall back to the shell's tab row; instead an
+ * action first parks focus on a hidden anchor, and the new section's primary action takes it afterwards.
+ */
+private class SectionFocus(val primaryRequester: FocusRequester, val anchor: FocusRequester) {
+    val parking = booleanArrayOf(false)
+    val primary: Modifier get() = Modifier.focusRequester(primaryRequester)
+
+    fun swap(action: () -> Unit) {
+        parking[0] = true
+        runCatching { anchor.requestFocus() }
+        action()
+    }
+
+    fun takePrimary(): Boolean {
+        parking[0] = false
+        return runCatching { primaryRequester.requestFocus() }.getOrDefault(false)
+    }
+}
+
+private fun sectionKey(role: HouseholdService.Role, joining: Boolean): String = when (role) {
+    HouseholdService.Role.None -> if (joining) "join" else "none"
+    is HouseholdService.Role.Coordinator -> if (role.pin != null) "coordinator-pin" else "coordinator"
+    is HouseholdService.Role.Member -> "member"
+}
+
+@Composable
+private fun rememberSectionFocus(section: String, message: String?): SectionFocus {
+    val focus = remember { SectionFocus(FocusRequester(), FocusRequester()) }
+    var shownSection by remember { mutableStateOf(section) }
+    LaunchedEffect(section) {
+        if (section != shownSection) {
+            shownSection = section
+            val ok = focus.takePrimary()
+            Log.d(TAG) { "section $section, primary focus taken: $ok" }
+        }
+    }
+    // A failed action leaves the section in place with a message; bring focus back from the anchor.
+    LaunchedEffect(message) { if (message != null) focus.takePrimary() }
+    // The anchor. If the viewer's D-pad lands here instead, pass straight through to the primary action.
+    Box(
+        Modifier
+            .size(1.dp)
+            .focusRequester(focus.anchor)
+            .onFocusChanged { if (it.isFocused && !focus.parking[0]) focus.takePrimary() }
+            .focusable(),
+    )
+    return focus
 }
 
 @Composable
