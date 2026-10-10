@@ -142,7 +142,9 @@ class ChannelRepository @Inject constructor(
             if (current?.contentHash == snapshot.contentHash) return@flatMap Outcome.Success(channel)
             val cutover = if (applyNow || current == null) null else strategy.airingAt(channel, current, now)?.end
             val updated = if (cutover == null) {
-                channel.copy(lineup = snapshot.id, anchor = alignedAnchor(now, channel.slotRounding), pendingLineup = null, pendingAt = null)
+                channel.copy(
+                    lineup = snapshot.id, anchor = alignedAnchor(now, channel.slotRounding), pendingLineup = null, pendingAt = null,
+                )
             } else {
                 channel.copy(pendingLineup = snapshot.id, pendingAt = cutover)
             }

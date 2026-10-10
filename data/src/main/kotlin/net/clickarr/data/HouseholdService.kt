@@ -191,22 +191,25 @@ class HouseholdService @Inject constructor(
     suspend fun join(baseUrl: String, coordinatorFingerprint: String?, pin: String): Outcome<Unit> {
         if (_role.value !is Role.None) return Outcome.Failure(ClickarrError.Invalid("Already in a household"))
         val url = baseUrl.trimEnd('/')
-        return pairWith(url, coordinatorFingerprint, pin).map { paired ->
-            secrets.put(MEMBER_TOKEN, paired.deviceToken)
-            store.saveState(paired.state)
-            val now = systemClock.now().toEpochMilliseconds()
-            db.household().get()?.let {
-                db.household().upsert(
-                    it.copy(
-                        role = RoomCoordinatorStore.ROLE_MEMBER,
-                        coordinatorBaseUrl = url,
-                        coordinatorFingerprint = paired.coordinatorFingerprint,
-                        lastSyncEpochMs = now,
-                    ),
-                )
-            }
-            db.household().get()?.let { startMember(it) }
+        val paired = when (val r = pairWith(url, coordinatorFingerprint, pin)) {
+            is Outcome.Success -> r.value
+            is Outcome.Failure -> return r
         }
+        secrets.put(MEMBER_TOKEN, paired.deviceToken)
+        store.saveState(paired.state)
+        val now = systemClock.now().toEpochMilliseconds()
+        db.household().get()?.let {
+            db.household().upsert(
+                it.copy(
+                    role = RoomCoordinatorStore.ROLE_MEMBER,
+                    coordinatorBaseUrl = url,
+                    coordinatorFingerprint = paired.coordinatorFingerprint,
+                    lastSyncEpochMs = now,
+                ),
+            )
+        }
+        db.household().get()?.let { startMember(it) }
+        return Outcome.Success(Unit)
     }
 
     /** Probe the coordinator, check versions, and run the pairing exchange. */
