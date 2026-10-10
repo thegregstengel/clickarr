@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -81,6 +82,17 @@ private fun Caption(text: String) = Text(text, style = ClickarrTextStyles.Second
 @Composable
 private fun Label(text: String) = Text(text, style = ClickarrTextStyles.LabelAllCaps, color = ClickarrColors.TextMuted)
 
+/** A choice in a row. ListItem fills the width by default, which would push its siblings off screen. */
+@Composable
+private fun Chip(label: String, selected: Boolean, onClick: () -> Unit) {
+    ListItem(
+        selected = selected,
+        onClick = onClick,
+        headlineContent = { Text(label, style = ClickarrTextStyles.Caption) },
+        modifier = Modifier.widthIn(min = 140.dp, max = 260.dp),
+    )
+}
+
 @Composable
 private fun GeneralPane(vm: SettingsViewModel) {
     val g by vm.general.collectAsState()
@@ -119,24 +131,16 @@ private fun ChannelsPane(vm: SettingsViewModel) {
 private fun AppearancePane(vm: SettingsViewModel) {
     val g by vm.general.collectAsState()
     Label("Size")
-    Caption("How large everything is drawn. Small fits more of the guide on screen; Large is the original design scale.")
+    Caption("How large everything is drawn. Small fits the most on screen.")
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        listOf("Small" to 0.75f, "Medium" to 0.85f, "Large" to 1f).forEach { (label, scale) ->
-            ListItem(
-                selected = g.uiScale == scale,
-                onClick = { vm.setUiScale(scale) },
-                headlineContent = { Text(label, style = ClickarrTextStyles.Caption) },
-            )
+        listOf("Small" to 0.55f, "Medium" to 0.65f, "Large" to 0.75f).forEach { (label, scale) ->
+            Chip(label, selected = g.uiScale == scale) { vm.setUiScale(scale) }
         }
     }
     Label("Overlay stays for")
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         listOf(3, 5, 8).forEach { s ->
-            ListItem(
-                selected = g.overlayTimeoutMs == s * 1000,
-                onClick = { vm.setOverlayTimeout(s * 1000) },
-                headlineContent = { Text("$s seconds", style = ClickarrTextStyles.Caption) },
-            )
+            Chip("$s seconds", selected = g.overlayTimeoutMs == s * 1000) { vm.setOverlayTimeout(s * 1000) }
         }
     }
 }

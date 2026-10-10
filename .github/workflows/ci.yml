@@ -26,6 +26,9 @@ jobs:
         with:
           cache-read-only: ${{ github.ref != 'refs/heads/main' }}
 
+      - name: Version code for this build (minutes since 2026-01-01 UTC)
+        run: echo "VERSION_CODE=$(( ($(date +%s) - 1767225600) / 60 ))" >> "$GITHUB_ENV"
+
       - name: Static analysis
         run: ./gradlew detekt --no-daemon
 
@@ -36,6 +39,8 @@ jobs:
         run: ./gradlew :app:lintDebug --no-daemon
 
       - name: Assemble debug APK
+        env:
+          CLICKARR_VERSION_CODE: ${{ env.VERSION_CODE }}
         run: ./gradlew :app:assembleDebug --no-daemon
 
       - name: Upload debug APK

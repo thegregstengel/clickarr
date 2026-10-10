@@ -35,6 +35,9 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
+      - name: Version code for this build (minutes since 2026-01-01 UTC)
+        run: echo "VERSION_CODE=$(( ($(date +%s) - 1767225600) / 60 ))" >> "$GITHUB_ENV"
+
       - name: Decode the keystore
         env:
           KS: ${{ secrets.CLICKARR_KEYSTORE_BASE64 }}
@@ -42,6 +45,7 @@ jobs:
 
       - name: Build the signed release APK
         env:
+          CLICKARR_VERSION_CODE: ${{ env.VERSION_CODE }}
           CLICKARR_KEYSTORE_PATH: ${{ runner.temp }}/release.jks
           CLICKARR_KEYSTORE_PASSWORD: ${{ secrets.CLICKARR_KEYSTORE_PASSWORD }}
           CLICKARR_KEY_ALIAS: ${{ secrets.CLICKARR_KEY_ALIAS }}

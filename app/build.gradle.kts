@@ -9,7 +9,8 @@ android {
 
     defaultConfig {
         applicationId = "net.clickarr"
-        versionCode = 2
+        // CI sets CLICKARR_VERSION_CODE to the minutes since 2026-01-01 so every build is a newer version.
+        versionCode = System.getenv("CLICKARR_VERSION_CODE")?.toIntOrNull() ?: 2
         versionName = "0.1.0-dev"
     }
 

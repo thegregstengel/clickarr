@@ -65,8 +65,8 @@ class DevicePrefs(context: Context) {
         private val OVERLAY_TIMEOUT = intPreferencesKey("overlay_timeout_ms")
         const val DEFAULT_OVERLAY_TIMEOUT_MS = 5_000
         private val UI_SCALE = floatPreferencesKey("ui_scale")
-        const val DEFAULT_UI_SCALE = 0.85f
-        const val MIN_UI_SCALE = 0.7f
+        const val DEFAULT_UI_SCALE = 0.65f
+        const val MIN_UI_SCALE = 0.5f
 
         fun defaultDeviceName(): String = Build.MODEL.ifBlank { "Clickarr TV" }
     }

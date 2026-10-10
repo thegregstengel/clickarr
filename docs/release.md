@@ -27,7 +27,8 @@ from the environment only when `CLICKARR_KEYSTORE_PATH` is set, so local release
 ## Cutting a release
 
 1. Move the `[Unreleased]` notes in `CHANGELOG.md` under a new `## [0.1.0] - 2026-10-20` heading.
-2. Set `versionName = "0.1.0"` and bump `versionCode` in `app/build.gradle.kts`. Pre-releases use a suffix,
+2. Set `versionName = "0.1.0"` in `app/build.gradle.kts` (`versionCode` is set by CI to the minutes since
+   2026-01-01, so every build, nightly or release, is a newer version). Pre-releases use a suffix,
    `0.1.0-rc1`, and are marked as such on GitHub automatically.
 3. Commit, then tag and push: `git tag v0.1.0 && git push origin main v0.1.0`.
 4. The Release workflow checks the tag against `versionName`, builds `assembleRelease`, and publishes

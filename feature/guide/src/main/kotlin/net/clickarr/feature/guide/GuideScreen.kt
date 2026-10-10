@@ -50,6 +50,7 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.tv.material3.Button
 import androidx.tv.material3.Text
@@ -68,7 +69,7 @@ import net.clickarr.ui.design.ClickarrTextStyles
 import net.clickarr.ui.design.GlyphIcon
 import net.clickarr.ui.design.clickarrFocusable
 
-private val CHANNEL_COLUMN = 200.dp
+private val CHANNEL_COLUMN = 248.dp
 private val ROW_HEIGHT = 64.dp
 private val HEADER_HEIGHT = 40.dp
 private const val ROW_JUMP = 5
@@ -314,12 +315,12 @@ private fun ChannelCell(channel: Channel, isCurrent: Boolean) {
             .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(channel.number.toString(), style = ClickarrTextStyles.RowTitle, modifier = Modifier.width(56.dp))
+        Text(channel.number.toString(), style = ClickarrTextStyles.RowTitle, modifier = Modifier.width(48.dp))
         Text(
             channel.name.uppercase(),
-            style = ClickarrTextStyles.LabelAllCaps,
+            style = ClickarrTextStyles.LabelAllCaps.copy(fontSize = 14.sp, lineHeight = 17.sp, letterSpacing = 0.5.sp),
             color = ClickarrColors.TextSecondary,
-            maxLines = 1,
+            maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )

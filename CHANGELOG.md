@@ -15,7 +15,7 @@ the household protocol and database may still change between minor versions.
 - Settings: General, Media Server, Channels (refresh lineups), Appearance, Playback, Household, Diagnostics, About.
 - Households: one TV coordinates, others join with a PIN over the LAN and follow the same lineup.
 - Device profile probed from the device's decoders and display (4K, HEVC, HDR flags).
-- Settings, Appearance, Size: Small, Medium (default), or Large scale for the whole interface.
+- Settings, Appearance, Size: Small, Medium (default), or Large scale for the whole interface, sized for a real TV.
 - Edit existing channels; 1 hour time slots; a Reality glyph and friends; show picker with a side panel.
 - Nightly debug builds at clickarr.net/nightly.
 
