@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
@@ -41,11 +43,12 @@ fun SettingsScreen(
 ) {
     var section by rememberSaveable { mutableStateOf(SettingsSection.GENERAL) }
     Row(Modifier.fillMaxSize()) {
-        Column(
+        // Lazy so the focused entry scrolls into view; eight rows do not fit above the fold at 1080p.
+        LazyColumn(
             Modifier.width(320.dp).fillMaxHeight().background(ClickarrColors.BgPanel).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            SettingsSection.entries.forEach { s ->
+            items(SettingsSection.entries) { s ->
                 ListItem(
                     selected = section == s,
                     onClick = { section = s },
