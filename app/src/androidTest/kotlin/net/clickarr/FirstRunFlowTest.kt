@@ -199,8 +199,11 @@ class FirstRunFlowTest {
         compose.onNodeWithTag("editor.name").performTextInput("Office Reruns")
         click("+")
         click("Comedy") // a glyph from the icon palette
+        compose.onAllNodes(hasText("+", substring = false)).onFirst().requestFocus() // leave the field so the keyboard closes
+        compose.waitForIdle()
         shot("19-edit-channel")
         click("Save changes")
+        waitForText("Create channel") // back on the Channels tab
         waitForText("Office Reruns")
         shot("20-channels-edited")
         val edited = otherTv.coordinator.state.value.channels.single { it.id == created.id }

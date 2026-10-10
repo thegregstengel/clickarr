@@ -63,7 +63,10 @@ private fun StepContent(step: Step, viewModel: EditorViewModel) {
         is Step.PickCollection -> Picker("Which collection?", s.collections, { it.name }) { viewModel.confirmCollection(it) }
         is Step.PickPlaylist -> Picker("Which playlist?", s.playlists, { it.name }) { viewModel.confirmPlaylist(it) }
         is Step.Details -> Details(s.draft, viewModel)
-        is Step.Saving -> Text("Building the schedule for ${s.name}…", style = ClickarrTextStyles.Secondary)
+        is Step.Saving -> Text(
+            if (s.building) "Building the schedule for ${s.name}…" else "Saving ${s.name}…",
+            style = ClickarrTextStyles.Secondary,
+        )
         is Step.Saved -> Text("Channel ${s.number} saved", style = ClickarrTextStyles.Secondary)
         Step.Closed -> Unit
         is Step.Failed -> {
