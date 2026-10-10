@@ -139,15 +139,17 @@ class HouseholdService @Inject constructor(
         c.start()
         coordinator = c
         var port = DEFAULT_PORT
-        val started = withContext(Dispatchers.IO) {
-            runCatching {
-                embeddedServer(CIO, port = DEFAULT_PORT, host = "0.0.0.0") { coordinatorRoutes(c) }.also { it.start(wait = false) }
-            }.recoverCatching {
-                port = 0
-                embeddedServer(CIO, port = 0, host = "0.0.0.0") { coordinatorRoutes(c) }.also { it.start(wait = false) }
+        val s = try {
+            startServer(c, DEFAULT_PORT)
+        } catch (e: Exception) {
+            Log.w(TAG, e) { "port $DEFAULT_PORT unavailable, picking a free one" }
+            port = 0
+            try {
+                startServer(c, 0)
+            } catch (e2: Exception) {
+                return Outcome.Failure(ClickarrError.Unknown("Could not start the household server", e2))
             }
         }
-        val s = started.getOrElse { return Outcome.Failure(ClickarrError.Unknown("Could not start the household server", it)) }
         server = s
         Log.d(TAG) { "server started" }
         HouseholdClockOffset.reset()
@@ -185,6 +187,15 @@ class HouseholdService @Inject constructor(
         }
         Log.i(TAG) { "coordinator up on $port" }
         return Outcome.Success(Unit)
+    }
+
+    /** Suspending start so no thread blocks inside a coroutine; returns once the engine is accepting. */
+    private suspend fun startServer(c: Coordinator, port: Int): EmbeddedServer<*, *> {
+        val s = embeddedServer(CIO, port = port, host = "0.0.0.0") { coordinatorRoutes(c) }
+        Log.d(TAG) { "starting engine on $port" }
+        withContext(Dispatchers.IO) { s.startSuspend(wait = false) }
+        Log.d(TAG) { "engine up" }
+        return s
     }
 
     fun beginAddDevice(): Coordinator.ActivePin? {
