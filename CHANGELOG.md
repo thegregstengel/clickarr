@@ -21,6 +21,9 @@ the household protocol and database may still change between minor versions.
 - Guide: the focused program scrolls its title and episode when they do not fit; OK on a channel cell stars it as a favorite.
 - Nightly debug builds at clickarr.net/nightly.
 
+### Planned
+- Google Drive sync as the alternative to a LAN household (ADR 0020): backup, restore, and TVs in different homes on one lineup.
+
 ### Security
 - Plex tokens stay in the Android Keystore on each device and are never synchronized between devices.
 - Pairing proof binds the PIN to both devices' certificate fingerprints. Household transport is plain LAN HTTP until

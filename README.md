@@ -74,6 +74,7 @@ A few decisions shape everything else:
 - **A channel is a function from time to program.** Schedules are never stored or synced. They are recomputed from a frozen lineup, a start time, and a seed, so every device gets the same answer for "what is on channel 10 at 7:17 PM" without talking to each other.
 - **Video goes straight from your server to the TV.** Clickarr never proxies media. The server still does direct play or transcoding, Clickarr just asks for the right item at the right offset.
 - **Multiple TVs form a household over the LAN.** One TV coordinates, the others cache the lineup and keep working if it is off. Pairing uses a PIN plus a pinned certificate so a random device on your Wi-Fi cannot join.
+- **Or sync through Google Drive instead.** Pick one in Settings: a local household, or Google Drive sync, which backs up your channels and keeps TVs in different homes on the same lineup, as long as they use the same Plex server. Sign-in is the TV code flow, so it works on Fire TV with no Google Play Services. Planned for Phase 4 ([ADR 0020](docs/adr/0020-sync-mode-lan-household-or-google-drive.md)).
 - **Media server credentials never leave the device they were entered on.** Each TV signs in itself. A household shares channels, not tokens.
 - **Fire TV is a first-class target.** Nothing depends on Google Play Services. Sideload the APK and go.
 
@@ -89,7 +90,8 @@ Phase 1 and 2 (the MVP) prove the core experience. Everything else lands after.
 | Sequential and shuffled lineups | Time blocks, day-of-week schedules, fixed-time programs |
 | Half-hour slot padding with filler cards | Marathons, holiday programming, interstitials and bumpers |
 | Grid guide, overlay, channel surfing, numeric entry | Live preview while browsing channels, favorites filter |
-| Household pairing and sync across TVs (plain LAN HTTP until the TLS spike reports) | Coordinator migration, viewing history |
+| Household pairing and sync across TVs (plain LAN HTTP until the TLS spike reports) | Google Drive sync as the alternative to a LAN household: backup, restore, and TVs in different homes on one lineup |
+| Edit channels, icons, 1 hour slots, themes and UI size | Coordinator migration, viewing history |
 | Resume last channel on launch | Watched-state reporting to your server |
 
 ## Platforms

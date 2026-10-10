@@ -993,8 +993,9 @@ Each phase ends with something runnable. Estimates assume one primary developer 
 - Plex transcode session hygiene, device profile table for Fire TV models, resolution caps.
 - First public release (`v0.1.0`), GitHub Releases, Downloader short URL, update checker.
 
-### Phase 4: Hardening (2 to 3 weeks)
+### Phase 4: Hardening and Drive sync (4 to 5 weeks)
 
+- Google Drive sync as the alternative to a LAN household (ADR 0020, added 2026-10-10): Settings, Sync with Off, Local household, or Google Drive; device-code sign-in; the household document in Drive's per-app folder; replay-on-conflict writes; Plex server identity check before applying remote state; backup and restore fall out of it.
 - Reproducible-build verification in CI; F-Droid metadata.
 - Manual coordinator migration.
 - Multiple Plex servers per household; per-device "not available here" handling.
