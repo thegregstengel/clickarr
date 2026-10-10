@@ -33,8 +33,12 @@ fun FillerCard(state: TuneState, now: Instant, reason: String?, showHeader: Bool
                 Text(channel.name.uppercase(), style = ClickarrTextStyles.LabelAllCaps, color = ClickarrColors.TextSecondary)
             }
         }
+        // With the overlay up along the bottom, the countdown moves to the upper third so the two never overlap.
         Column(
-            Modifier.align(Alignment.Center).padding(ClickarrDimens.SafeArea),
+            Modifier
+                .align(if (showHeader) Alignment.Center else Alignment.TopCenter)
+                .padding(ClickarrDimens.SafeArea)
+                .padding(top = if (showHeader) 0.dp else FILLER_TOP_WITH_OVERLAY),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -61,3 +65,5 @@ fun FillerCard(state: TuneState, now: Instant, reason: String?, showHeader: Bool
         }
     }
 }
+
+private val FILLER_TOP_WITH_OVERLAY = 96.dp

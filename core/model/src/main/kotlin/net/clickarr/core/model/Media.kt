@@ -66,8 +66,6 @@ sealed interface MediaItem {
 data class Show(
     override val ref: MediaRef,
     override val title: String,
-    /** Plex's synopsis, for the guide's preview card. */
-    val summary: String? = null,
     override val artwork: Artwork = Artwork(),
     override val genres: List<String> = emptyList(),
     override val year: Int? = null,
@@ -75,6 +73,8 @@ data class Show(
     val network: String? = null,
     val seasonCount: Int = 0,
     val episodeCount: Int = 0,
+    /** Plex's synopsis, for the guide's preview card. */
+    val summary: String? = null,
 ) : MediaItem
 
 @Serializable
@@ -92,8 +92,6 @@ data class Season(
 data class Episode(
     override val ref: MediaRef,
     override val title: String,
-    /** Plex's synopsis, for the guide's preview card. */
-    val summary: String? = null,
     override val artwork: Artwork = Artwork(),
     override val genres: List<String> = emptyList(),
     override val year: Int? = null,
@@ -104,20 +102,22 @@ data class Episode(
     val episodeIndex: Int,
     override val runtime: Duration,
     override val media: List<MediaVersion> = emptyList(),
+    /** Plex's synopsis, for the guide's preview card. */
+    val summary: String? = null,
 ) : MediaItem, Playable
 
 @Serializable
 data class Movie(
     override val ref: MediaRef,
     override val title: String,
-    /** Plex's synopsis, for the guide's preview card. */
-    val summary: String? = null,
     override val artwork: Artwork = Artwork(),
     override val genres: List<String> = emptyList(),
     override val year: Int? = null,
     val studio: String? = null,
     override val runtime: Duration,
     override val media: List<MediaVersion> = emptyList(),
+    /** Plex's synopsis, for the guide's preview card. */
+    val summary: String? = null,
 ) : MediaItem, Playable
 
 @Serializable

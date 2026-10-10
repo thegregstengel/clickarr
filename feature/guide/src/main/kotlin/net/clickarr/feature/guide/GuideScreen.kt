@@ -219,7 +219,7 @@ private fun TimeHeader(from: Instant, to: Instant, scroll: androidx.compose.foun
             var t = from
             while (t < to) {
                 Box(Modifier.width(ClickarrDimens.GuideHalfHourWidth), contentAlignment = Alignment.CenterStart) {
-                    Text(timeOfDay(t), style = ClickarrTextStyles.Secondary, color = ClickarrColors.TextSecondary)
+                    Text(headerLabel(t), style = ClickarrTextStyles.Secondary, color = ClickarrColors.TextSecondary)
                 }
                 t += 30.minutes
             }
@@ -551,6 +551,15 @@ private fun PreviewCard(airing: Airing?, preview: GuideViewModel.Preview?) {
             }
         }
     }
+}
+
+/** Midnight columns carry the day, so a window that crosses it reads "Sat 12:00 AM". */
+private fun headerLabel(instant: Instant): String {
+    val local = instant.toLocalDateTime(TimeZone.currentSystemDefault())
+    val time = timeOfDay(instant)
+    if (local.hour != 0 || local.minute != 0) return time
+    val day = local.dayOfWeek.name.take(3).lowercase().replaceFirstChar { it.uppercase() }
+    return "$day $time"
 }
 
 private fun timeOfDay(instant: Instant): String {

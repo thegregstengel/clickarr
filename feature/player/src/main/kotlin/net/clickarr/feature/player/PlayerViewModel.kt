@@ -12,6 +12,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import net.clickarr.core.model.Airing
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -54,6 +56,36 @@ class PlayerViewModel @Inject constructor(
 
     private val _digits = MutableStateFlow("")
     val digits: StateFlow<String> = _digits.asStateFlow()
+
+    /** The current channel's program now and the next few (design language 4, "Mini-guide"). */
+    data class MiniGuide(val items: List<Airing>, val index: Int)
+
+    private val _miniGuide = MutableStateFlow<MiniGuide?>(null)
+    val miniGuide: StateFlow<MiniGuide?> = _miniGuide.asStateFlow()
+
+    fun openMiniGuide() {
+        val channel = tune.value.channel ?: return
+        val now = tune.value.airing ?: return
+        viewModelScope.launch {
+            val lineup = deps.channels.lineup(channel.lineup) ?: return@launch
+            val items = ArrayList<Airing>().apply { add(now) }
+            var last = now
+            while (items.size <= MINI_GUIDE_AHEAD) {
+                last = deps.strategy.next(channel, lineup, last) ?: break
+                items += last
+            }
+            hideOverlay()
+            _miniGuide.value = MiniGuide(items, 0)
+        }
+    }
+
+    fun moveMiniGuide(delta: Int) {
+        _miniGuide.update { g -> g?.copy(index = (g.index + delta).coerceIn(0, g.items.lastIndex)) }
+    }
+
+    fun closeMiniGuide() {
+        _miniGuide.value = null
+    }
 
     private var hideJob: Job? = null
     private var digitJob: Job? = null
@@ -141,3 +173,5 @@ class PlayerViewModel @Inject constructor(
         private const val DIGIT_COMMIT_MS = 2_000L
     }
 }
+
+private const val MINI_GUIDE_AHEAD = 3

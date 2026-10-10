@@ -58,6 +58,8 @@ jobs:
           cp "clickarr-${VERSION}.apk" clickarr.apk
           sha256sum "clickarr-${VERSION}.apk" clickarr.apk > SHA256SUMS.txt
           cat SHA256SUMS.txt
+          printf '{"versionCode":%s,"versionName":"%s","apk":"clickarr.apk","sha256":"%s","channel":"release"}\n' \
+            "$VERSION_CODE" "$VERSION" "$(sha256sum clickarr.apk | cut -d' ' -f1)" > version.json
 
       - name: Release notes from the changelog
         run: |
@@ -74,4 +76,4 @@ jobs:
         run: |
           PRE=""; case "$VERSION" in *-*) PRE="--prerelease";; esac
           gh release create "${GITHUB_REF_NAME}" $PRE --title "Clickarr $VERSION" --notes-file notes.md \
-            "clickarr-${VERSION}.apk" clickarr.apk SHA256SUMS.txt
+            "clickarr-${VERSION}.apk" clickarr.apk SHA256SUMS.txt version.json

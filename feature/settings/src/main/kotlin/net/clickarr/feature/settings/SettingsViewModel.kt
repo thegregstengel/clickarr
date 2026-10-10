@@ -4,6 +4,7 @@ import android.os.Build
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.io.File
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -72,22 +73,56 @@ class SettingsViewModel @Inject constructor(
     private val _message = MutableStateFlow<String?>(null)
     val message: StateFlow<String?> = _message.asStateFlow()
 
-    private val _updateStatus = MutableStateFlow<String?>(null)
-    val updateStatus: StateFlow<String?> = _updateStatus.asStateFlow()
+    sealed interface UpdateState {
+        data object Idle : UpdateState
+        data object Checking : UpdateState
+        data class UpToDate(val versionName: String) : UpdateState
+        data class Available(val latest: UpdateChecker.Latest) : UpdateState
+        data class Downloading(val latest: UpdateChecker.Latest, val progress: Float) : UpdateState
+        data class Ready(val latest: UpdateChecker.Latest, val file: File) : UpdateState
+        data class Failed(val message: String) : UpdateState
+    }
 
-    /** Manual check against GitHub releases (About pane). Never automatic. */
-    fun checkForUpdates(currentVersion: String) {
-        _updateStatus.value = "Checking…"
+    private val _updateState = MutableStateFlow<UpdateState>(UpdateState.Idle)
+    val updateState: StateFlow<UpdateState> = _updateState.asStateFlow()
+
+    val updateChannel: StateFlow<String> =
+        prefs.updateChannel.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DevicePrefs.DEFAULT_UPDATE_CHANNEL)
+
+    fun setUpdateChannel(channel: String) = viewModelScope.launch {
+        prefs.setUpdateChannel(channel)
+        _updateState.value = UpdateState.Idle
+    }
+
+    /** Manual check against GitHub releases on the chosen channel (About and Updates). Never automatic. */
+    fun checkForUpdates(currentVersionCode: Int) {
+        _updateState.value = UpdateState.Checking
         viewModelScope.launch {
-            _updateStatus.value = when (val r = updates.latest()) {
-                is Outcome.Success -> if (UpdateChecker.isNewer(r.value.version, currentVersion)) {
-                    "Version ${r.value.version} is available. Install it with Downloader from clickarr.net/apk."
+            _updateState.value = when (val r = updates.latest(updateChannel.value)) {
+                is Outcome.Success -> if (r.value.versionCode > currentVersionCode) {
+                    UpdateState.Available(r.value)
                 } else {
-                    "You have the latest release (${r.value.version})."
+                    UpdateState.UpToDate(r.value.versionName)
                 }
-                is Outcome.Failure -> r.error.message
+                is Outcome.Failure -> UpdateState.Failed(r.error.message)
             }
         }
+    }
+
+    fun downloadUpdate() {
+        val latest = (_updateState.value as? UpdateState.Available)?.latest ?: return
+        _updateState.value = UpdateState.Downloading(latest, 0f)
+        viewModelScope.launch {
+            _updateState.value = when (val r = updates.download(latest) { p -> _updateState.value = UpdateState.Downloading(latest, p) }) {
+                is Outcome.Success -> UpdateState.Ready(latest, r.value)
+                is Outcome.Failure -> UpdateState.Failed(r.error.message)
+            }
+        }
+    }
+
+    fun installUpdate() {
+        val ready = _updateState.value as? UpdateState.Ready ?: return
+        updates.install(ready.file)
     }
 
     fun setOverlayTimeout(ms: Int) = viewModelScope.launch { prefs.setOverlayTimeoutMs(ms) }

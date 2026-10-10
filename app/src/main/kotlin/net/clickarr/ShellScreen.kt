@@ -115,6 +115,7 @@ fun ShellScreen(
                 ShellTab.FAVORITES -> GuideScreen(onWatch = callbacks.onWatch, onlyFavorites = true, takeFocus = !switched)
                 ShellTab.SETTINGS -> SettingsScreen(
                     appVersion = BuildConfig.VERSION_NAME,
+                    appVersionCode = BuildConfig.VERSION_CODE,
                     initialSection = initialSection,
                     actions = SettingsActions(
                         onDisconnected = callbacks.onDisconnected,

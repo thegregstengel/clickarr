@@ -58,6 +58,13 @@ class DevicePrefs(context: Context) {
         store.edit { it[UI_SCALE] = scale.coerceIn(MIN_UI_SCALE, 1f) }
     }
 
+    /** Which builds the updater offers: nightly or release (Settings, About and Updates). */
+    val updateChannel: Flow<String> = store.data.map { it[UPDATE_CHANNEL] ?: DEFAULT_UPDATE_CHANNEL }
+
+    suspend fun setUpdateChannel(channel: String) {
+        store.edit { it[UPDATE_CHANNEL] = channel }
+    }
+
     /** How far ahead the guide reaches, in hours (Settings, Channels). */
     val guideHours: Flow<Int> = store.data.map { it[GUIDE_HOURS] ?: DEFAULT_GUIDE_HOURS }
 
@@ -83,6 +90,8 @@ class DevicePrefs(context: Context) {
         const val MIN_UI_SCALE = 0.5f
         private val THEME = stringPreferencesKey("theme")
         private val GUIDE_HOURS = intPreferencesKey("guide_hours")
+        private val UPDATE_CHANNEL = stringPreferencesKey("update_channel")
+        const val DEFAULT_UPDATE_CHANNEL = "nightly"
         const val DEFAULT_GUIDE_HOURS = 6
         const val MIN_GUIDE_HOURS = 3
         const val MAX_GUIDE_HOURS = 24

@@ -29,6 +29,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.tv.material3.Button
 import androidx.tv.material3.ListItem
 import androidx.tv.material3.Text
+import net.clickarr.data.UpdateChecker
 import net.clickarr.ui.design.ClickarrColors
 import net.clickarr.ui.design.GlyphIcon
 import net.clickarr.core.model.ChannelIcon
@@ -42,6 +43,7 @@ import net.clickarr.ui.design.ClickarrTextStyles
 @Composable
 fun SettingsScreen(
     appVersion: String,
+    appVersionCode: Int,
     initialSection: String?,
     actions: SettingsActions,
     viewModel: SettingsViewModel = hiltViewModel(),
@@ -75,7 +77,7 @@ fun SettingsScreen(
                 SettingsSection.PLAYBACK -> PlaybackPane(viewModel)
                 SettingsSection.SYNC -> HouseholdPane()
                 SettingsSection.DIAGNOSTICS -> DiagnosticsPane(viewModel)
-                SettingsSection.ABOUT -> AboutPane(appVersion, viewModel, actions.onOpenSpikes, actions.onExit)
+                SettingsSection.ABOUT -> AboutPane(appVersion, appVersionCode, viewModel, actions)
             }
         }
     }
@@ -202,13 +204,44 @@ private fun DiagnosticsPane(vm: SettingsViewModel) {
 }
 
 @Composable
-private fun AboutPane(appVersion: String, vm: SettingsViewModel, onOpenSpikes: () -> Unit, onExit: () -> Unit) {
-    val updateStatus by vm.updateStatus.collectAsState()
-    Text("Clickarr $appVersion", style = ClickarrTextStyles.RowTitle)
+private fun AboutPane(appVersion: String, appVersionCode: Int, vm: SettingsViewModel, actions: SettingsActions) {
+    Text("Clickarr $appVersion (build $appVersionCode)", style = ClickarrTextStyles.RowTitle)
     Caption("Turn your media library into TV. Open source, MIT licensed. clickarr.net")
     Caption("Plex is a trademark of Plex, Inc. Clickarr is an independent project.")
-    Button(onClick = { vm.checkForUpdates(appVersion) }) { Text("Check for updates") }
-    updateStatus?.let { Caption(it) }
-    Button(onClick = onOpenSpikes) { Text("Phase 0 spikes") }
-    Button(onClick = onExit) { Text("Exit Clickarr") }
+    UpdatesBlock(appVersionCode, vm)
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Button(onClick = actions.onOpenSpikes) { Text("Phase 0 spikes") }
+        Button(onClick = actions.onExit) { Text("Exit Clickarr") }
+    }
+}
+
+/** Channel choice, check, download with progress, and the hand-off to the system installer. */
+@Composable
+private fun UpdatesBlock(appVersionCode: Int, vm: SettingsViewModel) {
+    val channel by vm.updateChannel.collectAsState()
+    val state by vm.updateState.collectAsState()
+    Label("Updates")
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Chip("Nightly", selected = channel == UpdateChecker.CHANNEL_NIGHTLY) { vm.setUpdateChannel(UpdateChecker.CHANNEL_NIGHTLY) }
+        Chip("Release", selected = channel == UpdateChecker.CHANNEL_RELEASE) { vm.setUpdateChannel(UpdateChecker.CHANNEL_RELEASE) }
+    }
+    Caption("Nightly and release builds are signed with different keys, so switching between them means uninstalling Clickarr once.")
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Button(onClick = { vm.checkForUpdates(appVersionCode) }) { Text("Check for updates") }
+        when (val s = state) {
+            is SettingsViewModel.UpdateState.Available -> Button(onClick = vm::downloadUpdate) { Text("Download ${s.latest.versionName}") }
+            is SettingsViewModel.UpdateState.Ready -> Button(onClick = vm::installUpdate) { Text("Install ${s.latest.versionName}") }
+            else -> Unit
+        }
+    }
+    val line = when (val s = state) {
+        SettingsViewModel.UpdateState.Idle -> null
+        SettingsViewModel.UpdateState.Checking -> "Checking…"
+        is SettingsViewModel.UpdateState.UpToDate -> "You have the latest ${channel} build (${s.versionName})."
+        is SettingsViewModel.UpdateState.Available -> "${s.latest.versionName} (build ${s.latest.versionCode}) is available."
+        is SettingsViewModel.UpdateState.Downloading -> "Downloading ${s.latest.versionName}: ${(s.progress * 100).toInt()}%"
+        is SettingsViewModel.UpdateState.Ready -> "Downloaded and verified. Install opens the system installer; Clickarr restarts after."
+        is SettingsViewModel.UpdateState.Failed -> s.message
+    }
+    line?.let { Caption(it) }
 }

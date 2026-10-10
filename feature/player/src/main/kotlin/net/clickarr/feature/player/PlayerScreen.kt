@@ -15,6 +15,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -49,6 +50,7 @@ fun PlayerScreen(
     val tune by viewModel.tune.collectAsState()
     val overlayVisible by viewModel.overlayVisible.collectAsState()
     val digits by viewModel.digits.collectAsState()
+    val miniGuide by viewModel.miniGuide.collectAsState()
     val focus = remember { FocusRequester() }
     val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -71,7 +73,11 @@ fun PlayerScreen(
             .focusRequester(focus)
             .focusable()
             .onPreviewKeyEvent { event ->
-                event.type == KeyEventType.KeyDown && handleKey(event.key, viewModel, overlayVisible, onOpenGuide, onOpenShell)
+                event.type == KeyEventType.KeyDown && if (miniGuide != null) {
+                    handleMiniGuideKey(event.key, viewModel)
+                } else {
+                    handleKey(event.key, viewModel, overlayVisible, onOpenGuide, onOpenShell)
+                }
             },
     ) {
         AndroidView(
@@ -99,6 +105,7 @@ fun PlayerScreen(
             ChannelOverlay(tune, now = viewModel.now(), digits = digits)
         }
         if (digits.isNotEmpty() && !overlayVisible) DigitBadge(digits)
+        miniGuide?.let { MiniGuide(it, now = viewModel.now(), modifier = Modifier.align(Alignment.BottomCenter)) }
     }
 }
 
@@ -114,7 +121,8 @@ private fun handleKey(
         Key.DirectionUp, Key.ChannelUp -> vm::channelUp
         Key.DirectionDown, Key.ChannelDown -> vm::channelDown
         Key.DirectionCenter, Key.Enter -> vm::toggleOverlay
-        Key.Menu, Key.DirectionLeft, Key.DirectionRight -> onOpenGuide
+        Key.Menu -> onOpenGuide
+        Key.DirectionLeft, Key.DirectionRight -> vm::openMiniGuide
         Key.MediaPlayPause, Key.MediaPlay, Key.MediaPause -> vm::playPause
         Key.Back -> if (overlayVisible) vm::hideOverlay else onOpenShell
         in DIGIT_KEYS -> ({ vm.enterDigit(DIGIT_KEYS.indexOf(key)) })
@@ -122,6 +130,17 @@ private fun handleKey(
     }
     action?.invoke()
     return action != null
+}
+
+/** Inside the mini-guide: Left and Right move, OK and Back close. Everything else is ignored while it is up. */
+private fun handleMiniGuideKey(key: Key, vm: PlayerViewModel): Boolean {
+    when (key) {
+        Key.DirectionLeft -> vm.moveMiniGuide(-1)
+        Key.DirectionRight -> vm.moveMiniGuide(+1)
+        Key.DirectionCenter, Key.Enter, Key.Back -> vm.closeMiniGuide()
+        else -> return false
+    }
+    return true
 }
 
 private val DIGIT_KEYS = listOf(Key.Zero, Key.One, Key.Two, Key.Three, Key.Four, Key.Five, Key.Six, Key.Seven, Key.Eight, Key.Nine)

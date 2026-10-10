@@ -43,11 +43,21 @@ jobs:
           CLICKARR_VERSION_CODE: ${{ env.VERSION_CODE }}
         run: ./gradlew :app:assembleDebug --no-daemon
 
+      - name: Describe the build for the in-app updater
+        run: |
+          NAME="$(sed -n 's/.*versionName = "\(.*\)".*/\1/p' app/build.gradle.kts)-debug"
+          SHA="$(sha256sum app/build/outputs/apk/debug/app-debug.apk | cut -d' ' -f1)"
+          printf '{"versionCode":%s,"versionName":"%s","apk":"clickarr-nightly-debug.apk","sha256":"%s","channel":"nightly"}\n' \
+            "$VERSION_CODE" "$NAME" "$SHA" > app/build/outputs/apk/debug/version.json
+          cat app/build/outputs/apk/debug/version.json
+
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
           name: clickarr-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            app/build/outputs/apk/debug/version.json
           retention-days: 14
 
       - name: Upload test reports
@@ -93,4 +103,4 @@ jobs:
           else
             gh release create nightly --prerelease --title "Nightly (debug)" --notes "$NOTES"
           fi
-          gh release upload nightly clickarr-nightly-debug.apk clickarr-nightly-debug.apk.sha256 --clobber
+          gh release upload nightly clickarr-nightly-debug.apk clickarr-nightly-debug.apk.sha256 apk/version.json --clobber

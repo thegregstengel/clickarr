@@ -145,7 +145,15 @@ class FirstRunFlowTest {
         waitForText("S1E", timeoutMs = 30_000) // the schedule resolved to an episode
         shot("07-player-overlay")
 
+        // Right opens the mini-guide for this channel; Back closes it; Menu opens the full guide.
         device.pressKeyCode(KeyEvent.KEYCODE_DPAD_RIGHT)
+        waitForText("Now")
+        device.pressKeyCode(KeyEvent.KEYCODE_DPAD_RIGHT)
+        compose.waitForIdle()
+        shot("07b-mini-guide")
+        device.pressBack()
+        compose.waitForIdle()
+        device.pressKeyCode(KeyEvent.KEYCODE_MENU)
         waitForText("Today")
         shot("08-guide")
         // Down moves to the program on channel 3 that overlaps the focused time (design language 2.8).
