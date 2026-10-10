@@ -37,7 +37,7 @@ internal fun LockGate(lock: LockController) {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text("Settings are locked", style = ClickarrTextStyles.ScreenTitle)
-        Caption("Enter the ${SettingsLock.LENGTH}-digit code.")
+        LockCaption("Enter the ${SettingsLock.LENGTH}-digit code.")
         Dots(entry.length)
         DigitPad(onDigit = lock::digit, onClear = lock::clear)
         message?.let { Text(it, style = ClickarrTextStyles.Secondary, color = ClickarrColors.StatusWarn) }
@@ -51,26 +51,29 @@ internal fun LockBlock(lock: LockController) {
     val setup by lock.setup.collectAsState()
     val entry by lock.entry.collectAsState()
     val message by lock.message.collectAsState()
-    Label("Settings lock")
+    LockLabel("Settings lock")
     when (val s = setup) {
         LockController.Setup.Idle -> {
             if (hasCode) {
-                Caption("A code is required to open Settings. Forgotten codes are cleared by clearing Clickarr's data on the TV.")
+                LockCaption("A code is required to open Settings. Forgotten codes are cleared by clearing Clickarr's data on the TV.")
                 Button(onClick = lock::removeCode) { Text("Remove code") }
             } else {
-                Caption("Keep children out of Settings and the channel editor. The guide and watching stay open.")
+                LockCaption("Keep children out of Settings and the channel editor. The guide and watching stay open.")
                 Button(onClick = lock::beginSetup) { Text("Set a code") }
             }
         }
         LockController.Setup.Enter, is LockController.Setup.Confirm -> {
-            val prompt = if (s is LockController.Setup.Confirm) "Enter the code again to confirm." else "Choose a ${SettingsLock.LENGTH}-digit code."
-            Caption(prompt)
+            val prompt = when (s) {
+                is LockController.Setup.Confirm -> "Enter the code again to confirm."
+                else -> "Choose a ${SettingsLock.LENGTH}-digit code."
+            }
+            LockCaption(prompt)
             Dots(entry.length)
             DigitPad(onDigit = lock::digit, onClear = lock::clear)
             Button(onClick = lock::cancelSetup) { Text("Cancel") }
         }
     }
-    message?.let { Caption(it) }
+    message?.let { LockCaption(it) }
 }
 
 @Composable
@@ -108,3 +111,9 @@ private fun DigitPad(onDigit: (Int) -> Unit, onClear: () -> Unit) {
 
 private val KEY_WIDTH = 88.dp
 private val PAD_ROWS = listOf(listOf(1, 2, 3), listOf(4, 5, 6), listOf(7, 8, 9))
+
+@Composable
+private fun LockCaption(text: String) = Text(text, style = ClickarrTextStyles.Secondary, color = ClickarrColors.TextSecondary)
+
+@Composable
+private fun LockLabel(text: String) = Text(text, style = ClickarrTextStyles.LabelAllCaps, color = ClickarrColors.TextMuted)

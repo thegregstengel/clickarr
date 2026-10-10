@@ -100,10 +100,10 @@ fun SettingsScreen(
 }
 
 @Composable
-internal fun Caption(text: String) = Text(text, style = ClickarrTextStyles.Secondary, color = ClickarrColors.TextSecondary)
+private fun Caption(text: String) = Text(text, style = ClickarrTextStyles.Secondary, color = ClickarrColors.TextSecondary)
 
 @Composable
-internal fun Label(text: String) = Text(text, style = ClickarrTextStyles.LabelAllCaps, color = ClickarrColors.TextMuted)
+private fun Label(text: String) = Text(text, style = ClickarrTextStyles.LabelAllCaps, color = ClickarrColors.TextMuted)
 
 /** Zone and automatic network time, for a TV whose clock drifts. */
 @Composable
