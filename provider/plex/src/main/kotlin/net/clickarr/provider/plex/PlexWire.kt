@@ -53,6 +53,7 @@ internal data class PlexMetadata(
     val duration: Long? = null,
     val thumb: String? = null,
     val art: String? = null,
+    val summary: String? = null,
     val index: Int? = null,
     val parentIndex: Int? = null,
     val parentRatingKey: String? = null,

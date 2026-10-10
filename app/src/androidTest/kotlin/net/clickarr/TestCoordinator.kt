@@ -54,7 +54,8 @@ class TestCoordinator : AutoCloseable {
     init {
         val now = clock.now()
         val keyStore = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
-        if (!keyStore.containsAlias(ALIAS)) generateKey()
+        if (keyStore.containsAlias(ALIAS)) keyStore.deleteEntry(ALIAS)
+        generateKey()
         fingerprint = spkiFingerprint(keyStore.getCertificate(ALIAS) as X509Certificate)
         coordinator = Coordinator(initialState(now), InMemoryCoordinatorStore(), clock, fingerprint = { fingerprint })
         runBlocking { coordinator.start() }
@@ -71,7 +72,7 @@ class TestCoordinator : AutoCloseable {
         val now = System.currentTimeMillis()
         val spec = KeyGenParameterSpec.Builder(ALIAS, KeyProperties.PURPOSE_SIGN or KeyProperties.PURPOSE_VERIFY)
             .setAlgorithmParameterSpec(ECGenParameterSpec("secp256r1"))
-            .setDigests(KeyProperties.DIGEST_SHA256, KeyProperties.DIGEST_SHA384)
+            .setDigests(KeyProperties.DIGEST_NONE, KeyProperties.DIGEST_SHA256, KeyProperties.DIGEST_SHA384)
             .setCertificateSubject(X500Principal("CN=Clickarr Test Coordinator"))
             .setCertificateSerialNumber(BigInteger.valueOf(now))
             .setCertificateNotBefore(Date(now - DAY_MS))

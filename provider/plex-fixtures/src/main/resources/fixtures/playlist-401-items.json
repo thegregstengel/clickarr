@@ -1,4 +1,57 @@
-{"MediaContainer":{"size":2,"Metadata":[
- {"ratingKey":"103","type":"movie","title":"Back to the Future","year":1985,"duration":6960000,"Media":[{"id":1003,"duration":6960000,"container":"mkv","videoCodec":"hevc","audioCodec":"truehd","width":3840,"height":2160,"Part":[{"id":2003,"key":"/library/parts/2003/1600000000/file.mkv"}]}]},
- {"ratingKey":"104","type":"movie","title":"The Goonies","year":1985,"duration":6840000,"Media":[{"id":1004,"duration":6840000,"container":"mp4","videoCodec":"h264","audioCodec":"aac","width":1920,"height":1080,"Part":[{"id":2004,"key":"/library/parts/2004/1600000000/file.mp4"}]}]}
-]}}
+{
+ "MediaContainer": {
+  "size": 2,
+  "Metadata": [
+   {
+    "ratingKey": "103",
+    "type": "movie",
+    "title": "Back to the Future",
+    "year": 1985,
+    "duration": 6960000,
+    "Media": [
+     {
+      "id": 1003,
+      "duration": 6960000,
+      "container": "mkv",
+      "videoCodec": "hevc",
+      "audioCodec": "truehd",
+      "width": 3840,
+      "height": 2160,
+      "Part": [
+       {
+        "id": 2003,
+        "key": "/library/parts/2003/1600000000/file.mkv"
+       }
+      ]
+     }
+    ],
+    "summary": "Back to the Future (1985). A synopsis from the fixture library, standing in for what Plex would say."
+   },
+   {
+    "ratingKey": "104",
+    "type": "movie",
+    "title": "The Goonies",
+    "year": 1985,
+    "duration": 6840000,
+    "Media": [
+     {
+      "id": 1004,
+      "duration": 6840000,
+      "container": "mp4",
+      "videoCodec": "h264",
+      "audioCodec": "aac",
+      "width": 1920,
+      "height": 1080,
+      "Part": [
+       {
+        "id": 2004,
+        "key": "/library/parts/2004/1600000000/file.mp4"
+       }
+      ]
+     }
+    ],
+    "summary": "The Goonies (1985). A synopsis from the fixture library, standing in for what Plex would say."
+   }
+  ]
+ }
+}

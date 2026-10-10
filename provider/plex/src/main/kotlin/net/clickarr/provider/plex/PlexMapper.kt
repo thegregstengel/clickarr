@@ -40,6 +40,7 @@ internal class PlexMapper(private val provider: ProviderId) {
     fun show(m: PlexMetadata) = Show(
         ref = ref(m.ratingKey),
         title = m.title,
+        summary = m.summary,
         artwork = artwork(m),
         genres = m.genres.map { it.tag },
         year = m.year,
@@ -52,6 +53,7 @@ internal class PlexMapper(private val provider: ProviderId) {
     fun movie(m: PlexMetadata) = Movie(
         ref = ref(m.ratingKey),
         title = m.title,
+        summary = m.summary,
         artwork = artwork(m),
         genres = m.genres.map { it.tag },
         year = m.year,
@@ -63,6 +65,7 @@ internal class PlexMapper(private val provider: ProviderId) {
     fun episode(m: PlexMetadata) = Episode(
         ref = ref(m.ratingKey),
         title = m.title,
+        summary = m.summary,
         artwork = artwork(m),
         genres = m.genres.map { it.tag },
         year = m.year,

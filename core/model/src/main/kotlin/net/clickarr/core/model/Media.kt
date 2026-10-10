@@ -66,6 +66,8 @@ sealed interface MediaItem {
 data class Show(
     override val ref: MediaRef,
     override val title: String,
+    /** Plex's synopsis, for the guide's preview card. */
+    val summary: String? = null,
     override val artwork: Artwork = Artwork(),
     override val genres: List<String> = emptyList(),
     override val year: Int? = null,
@@ -90,6 +92,8 @@ data class Season(
 data class Episode(
     override val ref: MediaRef,
     override val title: String,
+    /** Plex's synopsis, for the guide's preview card. */
+    val summary: String? = null,
     override val artwork: Artwork = Artwork(),
     override val genres: List<String> = emptyList(),
     override val year: Int? = null,
@@ -106,6 +110,8 @@ data class Episode(
 data class Movie(
     override val ref: MediaRef,
     override val title: String,
+    /** Plex's synopsis, for the guide's preview card. */
+    val summary: String? = null,
     override val artwork: Artwork = Artwork(),
     override val genres: List<String> = emptyList(),
     override val year: Int? = null,

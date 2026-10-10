@@ -81,6 +81,7 @@ class PlexFixtureServer : AutoCloseable {
     private fun dynamic(path: String): MockResponse = when {
         path.startsWith("/library/metadata/") -> metadataLookup(path.removePrefix("/library/metadata/"))
         path.startsWith("/library/parts/") -> media()
+        path.startsWith("/photo/:/transcode") -> thumb()
         path.startsWith("/video/:/transcode/universal/stop") || path.startsWith("/:/timeline") -> ok("{}")
         else -> notFound()
     }
@@ -115,6 +116,12 @@ class PlexFixtureServer : AutoCloseable {
 
     private fun load(name: String): String =
         checkNotNull(javaClass.getResourceAsStream("/fixtures/$name.json")) { "missing fixture $name" }.bufferedReader().readText()
+
+    /** A 320x180 PNG from the fixtures: every item's artwork, which is enough for a preview card. */
+    private fun thumb(): MockResponse {
+        val bytes = PlexFixtureServer::class.java.getResourceAsStream("/fixtures/thumb.png")?.readBytes() ?: return notFound()
+        return MockResponse().setResponseCode(200).setHeader("Content-Type", "image/png").setBody(okio.Buffer().write(bytes))
+    }
 
     private fun ok(body: String) = MockResponse().setResponseCode(200).setHeader("Content-Type", "application/json").setBody(body)
 

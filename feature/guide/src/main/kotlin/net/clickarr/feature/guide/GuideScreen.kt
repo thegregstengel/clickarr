@@ -41,6 +41,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
+import coil3.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
@@ -74,6 +77,8 @@ import net.clickarr.ui.design.clickarrFocusable
 private val CHANNEL_COLUMN = 248.dp
 private val ROW_HEIGHT = 64.dp
 private val HEADER_HEIGHT = 40.dp
+private val PREVIEW_HEIGHT = 104.dp
+private val PREVIEW_THUMB_WIDTH = 170.dp
 private const val ROW_JUMP = 5
 private val TIME_JUMP = 3.hours
 
@@ -93,6 +98,7 @@ fun GuideScreen(
     viewModel: GuideViewModel = hiltViewModel(),
 ) {
     val window by viewModel.window.collectAsState()
+    val preview by viewModel.preview.collectAsState()
     val all = window ?: return
     val w = if (onlyFavorites) all.copy(rows = all.rows.filter { it.channel.id.value in all.favorites }) else all
     val focus = remember(w.rows.size) { GuideFocus(w.rows.size) }
@@ -104,13 +110,13 @@ fun GuideScreen(
 
     val grid = GuideGrid(w, minutePx, scroll, focus)
     val actions = GuideActions(
-        onFocusAiring = { focused = it },
+        onFocusAiring = { focused = it; viewModel.focus(it) },
         onDetails = { details = it },
         onTune = { ch -> viewModel.tune(ch, onWatch) },
         onToggleFavorite = { ch -> viewModel.toggleFavorite(ch.id) },
     )
     CompositionLocalProvider(LocalBringIntoViewSpec provides PlainBringIntoViewSpec) {
-        GuideBody(grid, onlyFavorites, takeFocus, focused, details, actions)
+        GuideBody(grid, onlyFavorites, takeFocus, focused, preview, details, actions)
     }
 }
 
@@ -128,6 +134,7 @@ private fun GuideBody(
     onlyFavorites: Boolean,
     takeFocus: Boolean,
     focused: Airing?,
+    preview: GuideViewModel.Preview?,
     details: Pair<Channel, Airing>?,
     actions: GuideActions,
 ) {
@@ -198,7 +205,7 @@ private fun GuideBody(
                 }
             }
         }
-        FocusedDetail(focused)
+        PreviewCard(focused, preview?.takeIf { it.ref == focused?.entry?.ref })
     }
 }
 
@@ -504,19 +511,44 @@ private fun NowLine(window: GuideViewModel.Window, minutePx: Float, scrollPx: In
     }
 }
 
+/** The focused program: thumbnail, title, episode and slot, and the synopsis once the server answers. */
 @Composable
-private fun FocusedDetail(airing: Airing?) {
-    Row(Modifier.fillMaxWidth().height(56.dp), verticalAlignment = Alignment.CenterVertically) {
-        if (airing != null) {
-            Text(airing.entry.title, style = ClickarrTextStyles.RowTitle)
-            airing.entry.subtitle?.let {
-                Text("   $it", style = ClickarrTextStyles.Secondary, color = ClickarrColors.TextSecondary)
+private fun PreviewCard(airing: Airing?, preview: GuideViewModel.Preview?) {
+    Row(
+        Modifier.fillMaxWidth().height(PREVIEW_HEIGHT).padding(top = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        if (airing == null) return
+        Box(
+            Modifier
+                .width(PREVIEW_THUMB_WIDTH)
+                .fillMaxHeight()
+                .clip(RoundedCornerShape(ClickarrDimens.RadiusCell))
+                .background(ClickarrColors.BgCell),
+        ) {
+            preview?.thumbUrl?.let {
+                AsyncImage(model = it, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
             }
+        }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(airing.entry.title, style = ClickarrTextStyles.RowTitle, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            val slot = "${timeOfDay(airing.start)} – ${timeOfDay(airing.end)}"
             Text(
-                "   ${timeOfDay(airing.start)} – ${timeOfDay(airing.end)}",
+                listOfNotNull(airing.entry.subtitle, slot).joinToString("   "),
                 style = ClickarrTextStyles.Secondary,
                 color = ClickarrColors.TextSecondary,
+                maxLines = 1,
             )
+            preview?.summary?.let {
+                Text(
+                    it,
+                    style = ClickarrTextStyles.Caption,
+                    color = ClickarrColors.TextMuted,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
     }
 }
