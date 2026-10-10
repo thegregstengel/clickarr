@@ -60,8 +60,13 @@ jobs:
           cp "clickarr-${VERSION}.apk" clickarr.apk
           sha256sum "clickarr-${VERSION}.apk" clickarr.apk > SHA256SUMS.txt
           cat SHA256SUMS.txt
-          printf '{"versionCode":%s,"versionName":"%s","apk":"clickarr.apk","sha256":"%s","channel":"release"}\n' \
-            "$VERSION_CODE" "$VERSION" "$(sha256sum clickarr.apk | cut -d' ' -f1)" > version.json
+          APKSIGNER="$(ls "$ANDROID_HOME"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -1)"
+          SIGNER=""
+          if [ -x "$APKSIGNER" ]; then
+            SIGNER="$("$APKSIGNER" verify --print-certs clickarr.apk | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -1)"
+          fi
+          printf '{"versionCode":%s,"versionName":"%s","apk":"clickarr.apk","sha256":"%s","signer":"%s","channel":"release"}\n' \
+            "$VERSION_CODE" "$VERSION" "$(sha256sum clickarr.apk | cut -d' ' -f1)" "$SIGNER" > version.json
 
       - name: Release notes from the changelog
         run: |

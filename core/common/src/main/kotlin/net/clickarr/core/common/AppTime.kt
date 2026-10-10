@@ -6,9 +6,9 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
 /**
- * The time zone and clock corrections the whole app displays with (Settings, General, Time). The zone
- * defaults to the device's; corrections come from a network time check and from a manual adjustment.
- * Both are read by the app's [Clock] through the DI module, so schedules and the screen agree.
+ * The time zone and clock correction the whole app displays with (Settings, General, Time). The zone
+ * defaults to the device's; the correction comes from a network time check. Both are read by the app's
+ * [Clock] through the DI module, so schedules and the screen agree.
  */
 object AppTime {
     @Volatile
@@ -17,10 +17,6 @@ object AppTime {
     /** Measured against time.google.com or pool.ntp.org when automatic time is on. */
     @Volatile
     var networkOffsetMs: Long = 0L
-
-    /** The viewer's own nudge, for a TV whose clock cannot be fixed any other way. */
-    @Volatile
-    var manualOffsetMs: Long = 0L
 
     fun local(instant: Instant): LocalDateTime = instant.toLocalDateTime(zone)
 

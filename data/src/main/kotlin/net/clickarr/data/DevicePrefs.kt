@@ -7,7 +7,6 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.floatPreferencesKey
-import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -63,7 +62,6 @@ class DevicePrefs(context: Context) {
     /** Settings, General, Time. A null zone means the device's. */
     val timeZoneId: Flow<String?> = store.data.map { it[TIME_ZONE] }
     val autoTime: Flow<Boolean> = store.data.map { it[AUTO_TIME] ?: true }
-    val manualClockOffsetMs: Flow<Long> = store.data.map { it[CLOCK_OFFSET] ?: 0L }
 
     suspend fun setTimeZoneId(id: String?) {
         store.edit { if (id == null) it.remove(TIME_ZONE) else it[TIME_ZONE] = id }
@@ -71,10 +69,6 @@ class DevicePrefs(context: Context) {
 
     suspend fun setAutoTime(on: Boolean) {
         store.edit { it[AUTO_TIME] = on }
-    }
-
-    suspend fun setManualClockOffsetMs(ms: Long) {
-        store.edit { it[CLOCK_OFFSET] = ms.coerceIn(-MAX_CLOCK_OFFSET_MS, MAX_CLOCK_OFFSET_MS) }
     }
 
     /** Settings, Sync: off, local (a LAN household), or drive (Google Drive, ADR 0020). */
@@ -120,8 +114,6 @@ class DevicePrefs(context: Context) {
         private val SYNC_MODE = stringPreferencesKey("sync_mode")
         private val TIME_ZONE = stringPreferencesKey("time_zone")
         private val AUTO_TIME = booleanPreferencesKey("auto_time")
-        private val CLOCK_OFFSET = longPreferencesKey("clock_offset_ms")
-        const val MAX_CLOCK_OFFSET_MS = 12L * 60 * 60 * 1000
         const val SYNC_OFF = "off"
         const val SYNC_LOCAL = "local"
         const val SYNC_DRIVE = "drive"

@@ -30,6 +30,21 @@ android {
         }
     }
 
+    // Nightly (debug) builds sign with one long-lived key held by CI (docs/release.md), so a nightly can
+    // update over the previous one. Without it the debug key is whatever the build machine generated, and
+    // a device refuses the update as signed by a stranger.
+    val nightlyKeystorePath = System.getenv("CLICKARR_NIGHTLY_KEYSTORE_PATH")
+    if (!nightlyKeystorePath.isNullOrBlank()) {
+        signingConfigs {
+            create("nightly") {
+                storeFile = file(nightlyKeystorePath)
+                storePassword = System.getenv("CLICKARR_NIGHTLY_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("CLICKARR_NIGHTLY_KEY_ALIAS")?.ifBlank { null } ?: "clickarr-nightly"
+                keyPassword = System.getenv("CLICKARR_NIGHTLY_KEYSTORE_PASSWORD")
+            }
+        }
+    }
+
     buildFeatures {
         buildConfig = true
     }
@@ -38,6 +53,7 @@ android {
         debug {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
+            if (!nightlyKeystorePath.isNullOrBlank()) signingConfig = signingConfigs.getByName("nightly")
         }
         release {
             isMinifyEnabled = true

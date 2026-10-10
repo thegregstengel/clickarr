@@ -18,9 +18,9 @@ import net.clickarr.core.common.AppTime
 import net.clickarr.core.common.Log
 
 /**
- * Keeps [AppTime] in step with Settings: the chosen zone, the manual nudge, and, when automatic time is
- * on, an SNTP check against public time servers at start and every few hours. A TV stick with a clock a
- * minute off would otherwise be a minute off on every channel.
+ * Keeps [AppTime] in step with Settings: the chosen zone and, when automatic time is on, an SNTP check
+ * against public time servers at start and every few hours. A TV stick with a clock a minute off would
+ * otherwise be a minute off on every channel.
  */
 @Singleton
 class TimeSync @Inject constructor(private val prefs: DevicePrefs) {
@@ -30,7 +30,6 @@ class TimeSync @Inject constructor(private val prefs: DevicePrefs) {
         job?.cancel()
         job = scope.launch {
             launch { prefs.timeZoneId.collect { AppTime.zone = zoneOrDevice(it) } }
-            launch { prefs.manualClockOffsetMs.collect { AppTime.manualOffsetMs = it } }
             prefs.autoTime.collect { auto ->
                 if (!auto) {
                     AppTime.networkOffsetMs = 0L

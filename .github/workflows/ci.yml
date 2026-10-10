@@ -29,6 +29,18 @@ jobs:
       - name: Version code for this build (minutes since 2026-01-01 UTC)
         run: echo "VERSION_CODE=$(( ($(date +%s) - 1767225600) / 60 ))" >> "$GITHUB_ENV"
 
+      # One long-lived key for every nightly (docs/release.md), so a nightly installs over the previous one.
+      - name: Nightly signing key
+        env:
+          KS: ${{ secrets.CLICKARR_NIGHTLY_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KS" ]; then
+            echo "$KS" | base64 -d > "$RUNNER_TEMP/nightly.jks"
+            echo "CLICKARR_NIGHTLY_KEYSTORE_PATH=$RUNNER_TEMP/nightly.jks" >> "$GITHUB_ENV"
+          else
+            echo "::warning::CLICKARR_NIGHTLY_KEYSTORE_BASE64 is not set: this nightly is signed with a throwaway key and devices will refuse to update over an earlier nightly."
+          fi
+
       - name: Static analysis
         run: ./gradlew detekt --no-daemon
 
@@ -43,14 +55,24 @@ jobs:
           CLICKARR_VERSION_CODE: ${{ env.VERSION_CODE }}
           CLICKARR_GOOGLE_CLIENT_ID: ${{ secrets.CLICKARR_GOOGLE_CLIENT_ID }}
           CLICKARR_GOOGLE_CLIENT_SECRET: ${{ secrets.CLICKARR_GOOGLE_CLIENT_SECRET }}
+          CLICKARR_NIGHTLY_KEYSTORE_PATH: ${{ env.CLICKARR_NIGHTLY_KEYSTORE_PATH }}
+          CLICKARR_NIGHTLY_KEYSTORE_PASSWORD: ${{ secrets.CLICKARR_NIGHTLY_KEYSTORE_PASSWORD }}
+          CLICKARR_NIGHTLY_KEY_ALIAS: ${{ secrets.CLICKARR_NIGHTLY_KEY_ALIAS }}
         run: ./gradlew :app:assembleDebug --no-daemon
 
+      # The signer digest lets the app say up front when a build cannot update over the installed one.
       - name: Describe the build for the in-app updater
         run: |
+          APK=app/build/outputs/apk/debug/app-debug.apk
           NAME="$(sed -n 's/.*versionName = "\(.*\)".*/\1/p' app/build.gradle.kts)-debug"
-          SHA="$(sha256sum app/build/outputs/apk/debug/app-debug.apk | cut -d' ' -f1)"
-          printf '{"versionCode":%s,"versionName":"%s","apk":"clickarr-nightly-debug.apk","sha256":"%s","channel":"nightly"}\n' \
-            "$VERSION_CODE" "$NAME" "$SHA" > app/build/outputs/apk/debug/version.json
+          SHA="$(sha256sum "$APK" | cut -d' ' -f1)"
+          APKSIGNER="$(ls "$ANDROID_HOME"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -1)"
+          SIGNER=""
+          if [ -x "$APKSIGNER" ]; then
+            SIGNER="$("$APKSIGNER" verify --print-certs "$APK" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -1)"
+          fi
+          printf '{"versionCode":%s,"versionName":"%s","apk":"clickarr-nightly-debug.apk","sha256":"%s","signer":"%s","channel":"nightly"}\n' \
+            "$VERSION_CODE" "$NAME" "$SHA" "$SIGNER" > app/build/outputs/apk/debug/version.json
           cat app/build/outputs/apk/debug/version.json
 
       - name: Upload debug APK

@@ -23,6 +23,10 @@ the household protocol and database may still change between minor versions.
 - Settings, Sync: Off, Local household, or Google Drive (ADR 0020). Drive mode signs in with a TV code, keeps the household document in Drive's app folder, replays local edits over a newer remote state, and refuses a backup from a different Plex server. Needs a Google client in the build.
 - Settings, Channels, Suggest channels: a practical starting lineup from your collections, genres, decades, and playlists.
 - Settings, About and Updates: nightly or release channel, check, download with checksum, and install.
+- Updates: nightlies are signed with one long-lived key so they install over each other; the install goes through a
+  package-installer session and reports the system's verdict on the pane; one button carries check, download (with
+  a progress bar), and install so focus stays put; the app says up front when a build is signed with another key.
+- Settings, General, Time: automatic network time and a time zone; the manual clock nudge is gone.
 - Guide preview card with thumbnail and synopsis; player mini-guide on Left and Right.
 - Episodes in a row: a channel can play 2, 3, or a range of one show's episodes back to back in aired order, shuffled between runs or alternating shows in order (scheduler version 2).
 - Clock in the shell beside the settings cog; Settings, General, Time: zone, automatic network time (SNTP), and a manual nudge.

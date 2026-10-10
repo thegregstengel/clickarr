@@ -60,7 +60,7 @@ object AppModule {
     @Singleton
     fun clock(): Clock = OffsetClock(Clock.System) {
         val household = HouseholdClockOffset.offsetMs
-        (if (household != 0L) household else AppTime.networkOffsetMs) + AppTime.manualOffsetMs
+        if (household != 0L) household else AppTime.networkOffsetMs
     }
 
     @Provides

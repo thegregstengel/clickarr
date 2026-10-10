@@ -1,2 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" />
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <!-- Callback for the package-installer session started from Settings, About and Updates. -->
+        <receiver android:name=".InstallStatusReceiver" android:exported="false" />
+    </application>
+</manifest>

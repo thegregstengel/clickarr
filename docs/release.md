@@ -24,6 +24,26 @@ Add four repository secrets (Settings, Secrets and variables, Actions):
 The keystore and its passwords never go in the repo, in an issue, or in a chat. `app/build.gradle.kts` reads them
 from the environment only when `CLICKARR_KEYSTORE_PATH` is set, so local release builds stay unsigned.
 
+## One-time setup: the nightly key
+
+Nightlies are debug builds, and a debug build is signed with whatever key the build machine has. A fresh
+GitHub runner has a fresh key every time, so without a shared one no nightly can update over the last; the
+system refuses the install as signed by a stranger. Make a second key, kept apart from the release key, and
+give it to CI the same way (the alias defaults to `clickarr-nightly`):
+
+```sh
+keytool -genkeypair -v -keystore clickarr-nightly.jks -storetype PKCS12 -alias clickarr-nightly \
+  -keyalg RSA -keysize 4096 -validity 10000
+base64 -w0 clickarr-nightly.jks > clickarr-nightly.jks.b64
+gh secret set CLICKARR_NIGHTLY_KEYSTORE_BASE64 < clickarr-nightly.jks.b64
+gh secret set CLICKARR_NIGHTLY_KEYSTORE_PASSWORD   # the keystore password
+gh secret set CLICKARR_NIGHTLY_KEY_ALIAS --body clickarr-nightly
+```
+
+Without the secret the CI job warns and signs with a throwaway key. Changing the nightly key, or going from
+a throwaway-signed nightly to the shared key, means uninstalling Clickarr once on each TV; the app says so
+when it notices, because CI publishes the signer's certificate digest in `version.json`.
+
 ## Cutting a release
 
 1. Move the `[Unreleased]` notes in `CHANGELOG.md` under a new `## [0.1.0] - 2026-10-20` heading.
@@ -47,5 +67,9 @@ every build. For the TV flow Google does not treat the client secret as confiden
 
 ## In the app
 
-Settings, About, "Check for updates" asks the GitHub releases API for the latest tag and compares it with the
-running version. It runs only when pressed; Clickarr does not check on its own.
+Settings, About and Updates, "Check for updates" reads `version.json` from the nightly or the latest release and
+compares its version code with the running build. It runs only when pressed; Clickarr does not check on its own.
+Download verifies the APK's SHA-256 against `version.json`, and Install streams it into a package-installer
+session, so the system's verdict (confirmed, cancelled, blocked source, key mismatch) comes back as a sentence
+on the pane rather than a dialog that just closes. On Android 8 and later the TV has to allow installs from
+Clickarr once; the pane opens that settings page when it is needed.

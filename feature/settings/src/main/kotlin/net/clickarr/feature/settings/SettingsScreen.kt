@@ -2,12 +2,17 @@ package net.clickarr.feature.settings
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import net.clickarr.core.common.AppTime
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.layout.width
@@ -91,34 +96,23 @@ private fun Caption(text: String) = Text(text, style = ClickarrTextStyles.Second
 @Composable
 private fun Label(text: String) = Text(text, style = ClickarrTextStyles.LabelAllCaps, color = ClickarrColors.TextMuted)
 
-/** Zone, automatic network time, and a manual nudge for a TV whose clock is off. */
+/** Zone and automatic network time, for a TV whose clock drifts. */
 @Composable
 private fun TimeBlock(g: SettingsViewModel.General, vm: SettingsViewModel) {
     Label("Time")
     val zone = g.timeZoneId ?: "${AppTime.zone.id} (device)"
-    Caption("Now ${AppTime.timeOfDay(vm.now())}, $zone. Automatic time checks a public time server; the nudge is yours.")
+    Caption("Now ${AppTime.timeOfDay(vm.now())}, $zone. Automatic time checks a public time server so the guide lines up.")
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Chip("Automatic time", selected = g.autoTime) { vm.setAutoTime(true) }
-        Chip("Manual", selected = !g.autoTime) { vm.setAutoTime(false) }
+        Chip("Device clock", selected = !g.autoTime) { vm.setAutoTime(false) }
     }
     Label("Time zone")
     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         item { Chip("Device", selected = g.timeZoneId == null) { vm.setTimeZone(null) } }
         items(ZONES) { (label, id) -> Chip(label, selected = g.timeZoneId == id) { vm.setTimeZone(id) } }
     }
-    Label("Nudge the clock")
-    val minutes = g.clockOffsetMs / MINUTE_MS
-    val resetLabel = if (minutes == 0L) "No nudge" else "Reset (${if (minutes > 0) "+" else ""}$minutes min)"
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Button(onClick = { vm.nudgeClock(-MINUTE_MS * 5) }) { Text("−5 min") }
-        Button(onClick = { vm.nudgeClock(-MINUTE_MS) }) { Text("−1 min") }
-        Button(onClick = vm::resetClock) { Text(resetLabel) }
-        Button(onClick = { vm.nudgeClock(MINUTE_MS) }) { Text("+1 min") }
-        Button(onClick = { vm.nudgeClock(MINUTE_MS * 5) }) { Text("+5 min") }
-    }
 }
 
-private const val MINUTE_MS = 60_000L
 private val ZONES = listOf(
     "Eastern" to "America/New_York", "Central" to "America/Chicago", "Mountain" to "America/Denver",
     "Arizona" to "America/Phoenix", "Pacific" to "America/Los_Angeles", "Alaska" to "America/Anchorage",
@@ -254,7 +248,11 @@ private fun AboutPane(appVersion: String, appVersionCode: Int, vm: SettingsViewM
     }
 }
 
-/** Channel choice, check, download with progress, and the hand-off to the system installer. */
+/**
+ * Channel choice, then one button that is the check, the download, and the install in turn. One button
+ * rather than one per step, so focus stays on it while the state moves underneath; a button that vanished
+ * mid-download used to drop focus into the section list, which read as leaving the screen.
+ */
 @Composable
 private fun UpdatesBlock(appVersionCode: Int, vm: SettingsViewModel) {
     val channel by vm.updateChannel.collectAsState()
@@ -265,22 +263,54 @@ private fun UpdatesBlock(appVersionCode: Int, vm: SettingsViewModel) {
         Chip("Release", selected = channel == UpdateChecker.CHANNEL_RELEASE) { vm.setUpdateChannel(UpdateChecker.CHANNEL_RELEASE) }
     }
     Caption("Nightly and release builds are signed with different keys, so switching between them means uninstalling Clickarr once.")
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Button(onClick = { vm.checkForUpdates(appVersionCode) }) { Text("Check for updates") }
-        when (val s = state) {
-            is SettingsViewModel.UpdateState.Available -> Button(onClick = vm::downloadUpdate) { Text("Download ${s.latest.versionName}") }
-            is SettingsViewModel.UpdateState.Ready -> Button(onClick = vm::installUpdate) { Text("Install ${s.latest.versionName}") }
-            else -> Unit
+    Button(onClick = {
+        when (state) {
+            is SettingsViewModel.UpdateState.Available -> vm.downloadUpdate()
+            is SettingsViewModel.UpdateState.Ready, is SettingsViewModel.UpdateState.NeedsPermission -> vm.installUpdate()
+            SettingsViewModel.UpdateState.Checking,
+            is SettingsViewModel.UpdateState.Downloading,
+            is SettingsViewModel.UpdateState.Installing,
+            -> Unit
+            else -> vm.checkForUpdates(appVersionCode)
         }
-    }
-    val line = when (val s = state) {
-        SettingsViewModel.UpdateState.Idle -> null
-        SettingsViewModel.UpdateState.Checking -> "Checking…"
-        is SettingsViewModel.UpdateState.UpToDate -> "You have the latest ${channel} build (${s.versionName})."
-        is SettingsViewModel.UpdateState.Available -> "${s.latest.versionName} (build ${s.latest.versionCode}) is available."
-        is SettingsViewModel.UpdateState.Downloading -> "Downloading ${s.latest.versionName}: ${(s.progress * 100).toInt()}%"
-        is SettingsViewModel.UpdateState.Ready -> "Downloaded and verified. Install opens the system installer; Clickarr restarts after."
-        is SettingsViewModel.UpdateState.Failed -> s.message
-    }
-    line?.let { Caption(it) }
+    }) { Text(updateButtonLabel(state)) }
+    (state as? SettingsViewModel.UpdateState.Downloading)?.let { ProgressBar(it.progress) }
+    updateStatusLine(state, channel)?.let { Caption(it) }
 }
+
+private fun updateButtonLabel(s: SettingsViewModel.UpdateState): String = when (s) {
+    SettingsViewModel.UpdateState.Checking -> "Checking…"
+    is SettingsViewModel.UpdateState.Available -> "Download ${s.latest.versionName}"
+    is SettingsViewModel.UpdateState.Downloading -> "Downloading… ${(s.progress * PERCENT).toInt()}%"
+    is SettingsViewModel.UpdateState.Ready -> "Install ${s.latest.versionName}"
+    is SettingsViewModel.UpdateState.NeedsPermission -> "Install ${s.latest.versionName}"
+    is SettingsViewModel.UpdateState.Installing -> "Installing…"
+    else -> "Check for updates"
+}
+
+private fun updateStatusLine(s: SettingsViewModel.UpdateState, channel: String): String? = when (s) {
+    SettingsViewModel.UpdateState.Idle, SettingsViewModel.UpdateState.Checking, is SettingsViewModel.UpdateState.Downloading -> null
+    is SettingsViewModel.UpdateState.UpToDate -> "You have the latest $channel build (${s.versionName})."
+    is SettingsViewModel.UpdateState.Available ->
+        "${s.latest.versionName} (build ${s.latest.versionCode}) is available. The download is checked against its checksum."
+    is SettingsViewModel.UpdateState.Ready ->
+        s.problem ?: "Downloaded and verified. Install asks the TV to confirm, then Clickarr restarts on the new build."
+    is SettingsViewModel.UpdateState.NeedsPermission ->
+        "Allow Clickarr to install apps on the TV's settings page that just opened, then press Install again. " +
+            "Fire TV: My Fire TV, Developer options, Install unknown apps."
+    is SettingsViewModel.UpdateState.Installing -> s.note
+    is SettingsViewModel.UpdateState.Failed -> s.message
+}
+
+private const val PERCENT = 100
+
+@Composable
+private fun ProgressBar(progress: Float) {
+    Box(
+        Modifier.fillMaxWidth(PROGRESS_WIDTH).height(6.dp).clip(RoundedCornerShape(3.dp)).background(ClickarrColors.BgCell),
+    ) {
+        Box(Modifier.fillMaxWidth(progress.coerceIn(0f, 1f)).fillMaxHeight().background(ClickarrColors.AccentPrimary))
+    }
+}
+
+private const val PROGRESS_WIDTH = 0.6f
