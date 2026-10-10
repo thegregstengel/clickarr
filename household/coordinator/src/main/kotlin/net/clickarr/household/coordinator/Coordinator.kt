@@ -175,10 +175,15 @@ class Coordinator(
             pin == null -> "Pairing window closed"
             session == null -> "Unknown pairing session"
             session.expiresAt <= now -> "Pairing session expired".also { sessions.remove(req.sessionId) }
-            Pairing.verify(Pairing.proof(pin.pin, session.nonce, req.sessionId, session.joinerFingerprint, fingerprint()), req.proof) -> null
+            proofMatches(pin.pin, session, req) -> null
             else -> wrongPin(req.sessionId, session)
         }
         return if (failure == null) Outcome.Success(session!!) else Outcome.Failure(ClickarrError.Unauthorized(failure))
+    }
+
+    private fun proofMatches(pin: String, session: PairSession, req: PairCompleteRequest): Boolean {
+        val expected = Pairing.proof(pin, session.nonce, req.sessionId, session.joinerFingerprint, fingerprint())
+        return Pairing.verify(expected, req.proof)
     }
 
     private fun wrongPin(sessionId: String, session: PairSession): String {
