@@ -97,7 +97,7 @@ class HouseholdService @Inject constructor(
     val driveConfigured: Boolean get() = googleOAuth.configured
     val drive: DriveSync by lazy {
         val auth = GoogleDeviceAuth(googleOAuth, okHttp, secrets)
-        DriveSync(auth, DriveAppData(okHttp) { auth.accessToken() }, store, db, registry, systemClock, scope)
+        DriveSync(auth, DriveAppData(okHttp, token = { auth.accessToken() }), store, db, registry, systemClock, scope)
     }
 
     private val _role = MutableStateFlow<Role>(Role.None)

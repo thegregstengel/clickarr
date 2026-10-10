@@ -181,9 +181,13 @@ class DriveSync(
     private suspend fun push(state: HouseholdState, fileId: String?): Outcome<Unit> {
         val body = ProtocolJson.encodeToString(HouseholdState.serializer(), state)
         val r = if (fileId == null) drive.create(FILE_NAME, body, state.revision) else drive.update(fileId, body, state.revision)
-        return r.map {
-            db.syncState().put(SyncStateEntity(KEY_BASE, state.revision.toString()))
-            setPending(emptyList())
+        return when (r) {
+            is Outcome.Failure -> r
+            is Outcome.Success -> {
+                db.syncState().put(SyncStateEntity(KEY_BASE, state.revision.toString()))
+                setPending(emptyList())
+                Outcome.Success(Unit)
+            }
         }
     }
 

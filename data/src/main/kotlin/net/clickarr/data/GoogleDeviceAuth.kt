@@ -87,15 +87,19 @@ class GoogleDeviceAuth(private val config: GoogleOAuthConfig, private val okHttp
         val expiry = secrets.get(KEY_EXPIRY)?.toLongOrNull() ?: 0L
         if (cached != null && System.currentTimeMillis() < expiry - EXPIRY_MARGIN_MS) return Outcome.Success(cached)
         val refresh = secrets.get(KEY_REFRESH) ?: return Outcome.Failure(ClickarrError.Unauthorized("Not signed in to Google"))
-        return post(
+        val refreshed = post(
             TOKEN_URL,
             mapOf(
                 "client_id" to config.clientId, "client_secret" to config.clientSecret,
                 "refresh_token" to refresh, "grant_type" to "refresh_token",
             ),
-        ).map { body ->
-            storeTokens(body)
-            body.str("access_token")
+        )
+        return when (refreshed) {
+            is Outcome.Failure -> refreshed
+            is Outcome.Success -> {
+                storeTokens(refreshed.value)
+                Outcome.Success(refreshed.value.str("access_token"))
+            }
         }
     }
 
