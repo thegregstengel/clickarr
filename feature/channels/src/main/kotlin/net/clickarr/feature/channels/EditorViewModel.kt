@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.minutes
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -69,7 +68,7 @@ class EditorViewModel @Inject constructor(
         val name: String,
         val number: Int,
         val order: OrderingMode = OrderingMode.SEQUENTIAL,
-        val rounding: Duration? = 30.minutes,
+        val rounding: Duration? = null,
         val icon: ChannelIcon? = null,
         /** Set when editing an existing channel. */
         val editing: Channel? = null,

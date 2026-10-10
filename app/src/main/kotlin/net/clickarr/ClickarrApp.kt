@@ -46,8 +46,8 @@ private fun AppContent(onExit: () -> Unit, viewModel: AppViewModel) {
         return
     }
     val nav = rememberNavController()
-    // With a server but no channels, the Channels tab is the only useful place to land; the player would be black.
-    val start = remember { if (!hasServer) Routes.SETUP else if (hadChannels) Routes.PLAYER else Routes.shell() }
+    // With a server but no channels, Settings, Channels is the only useful place to land; the player would be black.
+    val start = remember { if (!hasServer) Routes.SETUP else if (hadChannels) Routes.PLAYER else Routes.shell("settings", "channels") }
     // Settings, Appearance, Size: the design is drawn for 1080p at xhdpi, which fills a TV edge to edge.
     val base = LocalDensity.current
     CompositionLocalProvider(LocalDensity provides Density(base.density * uiScale, base.fontScale)) {
@@ -59,7 +59,7 @@ private fun AppContent(onExit: () -> Unit, viewModel: AppViewModel) {
 private fun AppNav(nav: NavHostController, start: String, onExit: () -> Unit) {
     NavHost(navController = nav, startDestination = start) {
         composable(Routes.SETUP) {
-            SetupScreen(onDone = { nav.navigate(Routes.shell()) { popUpTo(Routes.SETUP) { inclusive = true } } })
+            SetupScreen(onDone = { nav.navigate(Routes.shell("settings", "channels")) { popUpTo(Routes.SETUP) { inclusive = true } } })
         }
         composable(Routes.PLAYER) {
             PlayerScreen(
@@ -69,15 +69,21 @@ private fun AppNav(nav: NavHostController, start: String, onExit: () -> Unit) {
         }
         composable(
             Routes.SHELL,
-            arguments = listOf(navArgument("tab") { type = NavType.StringType; defaultValue = "channels" }),
+            arguments = listOf(
+                navArgument("tab") { type = NavType.StringType; defaultValue = "guide" },
+                navArgument("section") { type = NavType.StringType; nullable = true; defaultValue = null },
+            ),
         ) { entry ->
             ShellScreen(
-                initialTab = entry.arguments?.getString("tab") ?: "channels",
-                onWatch = { nav.navigate(Routes.PLAYER) { popUpTo(Routes.PLAYER) { inclusive = true } } },
-                onCreateChannel = { nav.navigate(Routes.editor()) },
-                onEditChannel = { nav.navigate(Routes.editor(it.value)) },
-                onDisconnected = { nav.navigate(Routes.SETUP) { popUpTo(0) { inclusive = true } } },
-                onExit = onExit,
+                initialTab = entry.arguments?.getString("tab") ?: "guide",
+                initialSection = entry.arguments?.getString("section"),
+                callbacks = ShellCallbacks(
+                    onWatch = { nav.navigate(Routes.PLAYER) { popUpTo(Routes.PLAYER) { inclusive = true } } },
+                    onCreateChannel = { nav.navigate(Routes.editor()) },
+                    onEditChannel = { nav.navigate(Routes.editor(it.value)) },
+                    onDisconnected = { nav.navigate(Routes.SETUP) { popUpTo(0) { inclusive = true } } },
+                    onExit = onExit,
+                ),
             )
         }
         composable(

@@ -66,8 +66,8 @@ object ClickarrPalettes {
     /** For bright rooms: off-white and light grays, never pure white, with darker accents for contrast. */
     val Light = ClickarrPalette(
         name = "light", label = "Light", isLight = true,
-        bgBase = Color(0xFFE6E9EF), bgPanel = Color(0xFFEFF1F5), bgSurface = Color(0xFFDDE2EA), bgCell = Color(0xFFCFD6E1),
-        bgCellBorder = Color(0xFFB8C2D0), bgElevated = Color(0xFFC4CCD9),
+        bgBase = Color(0xFFCDD2DA), bgPanel = Color(0xFFDADFE6), bgSurface = Color(0xFFC3C9D3), bgCell = Color(0xFFB6BDC9),
+        bgCellBorder = Color(0xFFA0A9B8), bgElevated = Color(0xFFAEB6C3),
         accentPrimary = Color(0xFF1479FD), accentPrimaryDeep = Color(0xFFBFD6FA), accentGlow = Color(0xFF0A6ED8),
         accentCyan = Color(0xFF00A7C4), accentViolet = Color(0xFF6A3FE0), accentMagenta = Color(0xFF9A22E0),
         statusOk = Color(0xFF0B9A4A), statusWarn = Color(0xFFB36B00), statusError = Color(0xFFD12F3F),

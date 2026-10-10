@@ -30,9 +30,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.tv.material3.Text
+import net.clickarr.ui.design.R as DesignR
+import net.clickarr.feature.settings.SettingsActions
+import androidx.tv.material3.Icon
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
 import net.clickarr.core.common.Log
 import net.clickarr.core.model.ChannelId
-import net.clickarr.feature.channels.ChannelsScreen
 import net.clickarr.feature.guide.GuideScreen
 import net.clickarr.feature.settings.SettingsScreen
 import net.clickarr.spike.SpikeApp
@@ -43,30 +50,36 @@ import net.clickarr.ui.design.ClickarrLogoHorizontal
 import net.clickarr.ui.design.ClickarrTextStyles
 import net.clickarr.ui.design.clickarrFocusable
 
-private enum class ShellTab(val label: String) { GUIDE("Guide"), CHANNELS("Channels"), FAVORITES("Favorites"), SETTINGS("Settings") }
+private enum class ShellTab(val label: String) { GUIDE("Guide"), FAVORITES("Favorites"), SETTINGS("Settings") }
+
+/** What the shell asks the app to do. */
+class ShellCallbacks(
+    val onWatch: () -> Unit,
+    val onCreateChannel: () -> Unit,
+    val onEditChannel: (ChannelId) -> Unit,
+    val onDisconnected: () -> Unit,
+    val onExit: () -> Unit,
+)
 
 /**
- * The tabbed shell behind Back from the player (design language 4, "Shell"). Guide lands in the next
- * increment; Settings holds the Phase 0 spikes until they have verdicts.
+ * The tabbed shell behind Back from the player (design language 4, "Shell"): Guide and Favorites in the
+ * row, a settings cog at the far right. Channels are managed under Settings, Channels.
  */
 @Composable
 fun ShellScreen(
     initialTab: String,
-    onWatch: () -> Unit,
-    onCreateChannel: () -> Unit,
-    onEditChannel: (ChannelId) -> Unit,
-    onDisconnected: () -> Unit,
-    onExit: () -> Unit,
+    initialSection: String?,
+    callbacks: ShellCallbacks,
     viewModel: AppViewModel = hiltViewModel(),
 ) {
     val channelCount by viewModel.channelCount.collectAsState()
-    var tab by rememberSaveable { mutableStateOf(ShellTab.entries.firstOrNull { it.name.equals(initialTab, true) } ?: ShellTab.CHANNELS) }
+    var tab by rememberSaveable { mutableStateOf(ShellTab.entries.firstOrNull { it.name.equals(initialTab, true) } ?: ShellTab.GUIDE) }
     var spikes by rememberSaveable { mutableStateOf(false) }
     BackHandler {
         when {
             spikes -> spikes = false
-            channelCount > 0 -> onWatch()
-            else -> onExit()
+            channelCount > 0 -> callbacks.onWatch()
+            else -> callbacks.onExit()
         }
     }
     if (spikes) {
@@ -97,22 +110,37 @@ fun ShellScreen(
         Row(
             Modifier.fillMaxWidth().padding(horizontal = ClickarrDimens.SafeArea, vertical = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(32.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             ClickarrLogoHorizontal(markSize = 40.dp)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ShellTab.entries.forEach { t -> ShellTabPill(t, selected = tab == t, onFocus = { select(t) }, onSelect = { tab = t }) }
+                listOf(ShellTab.GUIDE, ShellTab.FAVORITES).forEach { t ->
+                    ShellTabPill(t, selected = tab == t, onFocus = { select(t) }, onSelect = { switched = switched || t != tab; tab = t })
+                }
             }
+            Spacer(Modifier.weight(1f))
+            ShellTabPill(
+                ShellTab.SETTINGS,
+                selected = tab == ShellTab.SETTINGS,
+                onFocus = { select(ShellTab.SETTINGS) },
+                onSelect = { switched = switched || tab != ShellTab.SETTINGS; tab = ShellTab.SETTINGS },
+                modifier = Modifier.testTag("shell.settings"),
+            )
         }
         Box(Modifier.fillMaxSize()) {
             when (tab) {
-                ShellTab.GUIDE -> GuideScreen(onWatch = onWatch, takeFocus = !switched)
-                ShellTab.CHANNELS -> ChannelsScreen(onCreate = onCreateChannel, onEdit = onEditChannel, onWatch = onWatch)
-                ShellTab.FAVORITES -> GuideScreen(onWatch = onWatch, onlyFavorites = true, takeFocus = !switched)
+                ShellTab.GUIDE -> GuideScreen(onWatch = callbacks.onWatch, takeFocus = !switched)
+                ShellTab.FAVORITES -> GuideScreen(onWatch = callbacks.onWatch, onlyFavorites = true, takeFocus = !switched)
                 ShellTab.SETTINGS -> SettingsScreen(
                     appVersion = BuildConfig.VERSION_NAME,
-                    onDisconnected = onDisconnected,
-                    onOpenSpikes = { spikes = true },
-                    onExit = onExit,
+                    initialSection = initialSection,
+                    actions = SettingsActions(
+                        onDisconnected = callbacks.onDisconnected,
+                        onOpenSpikes = { spikes = true },
+                        onExit = callbacks.onExit,
+                        onCreateChannel = callbacks.onCreateChannel,
+                        onEditChannel = callbacks.onEditChannel,
+                    ),
                 )
             }
         }
@@ -121,13 +149,11 @@ fun ShellScreen(
 
 /** Tab per design language 3, "Tab": rest muted, selected deep accent, focused accent, both with a ring. */
 @Composable
-private fun ShellTabPill(t: ShellTab, selected: Boolean, onFocus: () -> Unit, onSelect: () -> Unit) {
+private fun ShellTabPill(t: ShellTab, selected: Boolean, onFocus: () -> Unit, onSelect: () -> Unit, modifier: Modifier = Modifier) {
     val interaction = remember { MutableInteractionSource() }
-    Text(
-        t.label,
-        style = ClickarrTextStyles.ScreenTitle,
-        color = if (selected) ClickarrColors.TextPrimary else ClickarrColors.TextSecondary,
-        modifier = Modifier
+    val color = if (selected) ClickarrColors.TextPrimary else ClickarrColors.TextSecondary
+    Box(
+        modifier
             .clickarrFocusable(interaction, radius = ClickarrDimens.RadiusCell, idleColor = ClickarrColors.BgBase, selected = selected)
             .onFocusChanged { if (it.isFocused) onFocus() }
             .onKeyEvent { e ->
@@ -137,7 +163,14 @@ private fun ShellTabPill(t: ShellTab, selected: Boolean, onFocus: () -> Unit, on
             }
             .focusable(interactionSource = interaction)
             .padding(horizontal = 20.dp, vertical = 10.dp),
-    )
+        contentAlignment = Alignment.Center,
+    ) {
+        if (t == ShellTab.SETTINGS) {
+            Icon(painterResource(DesignR.drawable.ic_ui_settings), contentDescription = t.label, Modifier.size(30.dp), tint = color)
+        } else {
+            Text(t.label, style = ClickarrTextStyles.ScreenTitle, color = color)
+        }
+    }
 }
 
 private const val TAG = "Shell"

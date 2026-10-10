@@ -76,6 +76,14 @@ class FirstRunFlowTest {
         }
     }
 
+    /** The settings cog has no text; focus it by tag and press OK like a remote. */
+    private fun openSettings() {
+        compose.onNodeWithTag("shell.settings").requestFocus()
+        compose.waitForIdle()
+        device.pressDPadCenter()
+        compose.waitForIdle()
+    }
+
     /** Focus a control the way a remote would, which scrolls it into view, and check it is really on screen. */
     private fun reach(text: String) {
         val node = compose.onAllNodes(hasText(text, substring = false)).onFirst()
@@ -110,7 +118,7 @@ class FirstRunFlowTest {
         shot("05-details")
         click("Create channel")
 
-        waitForText("Create channel") // back on the Channels tab
+        waitForText("Create channel") // back on Settings, Channels
         waitForText("The Office (US)")
 
         // A second channel so the guide has two rows to move between.
@@ -126,7 +134,12 @@ class FirstRunFlowTest {
         waitForText("Create channel")
         waitForText("Parks and Recreation")
         shot("06-channels-list")
-        click("The Office (US)")
+        // Tune from the guide: OK on the Guide tab keeps focus in the row; Down enters on the current program.
+        click("Guide")
+        waitForText("Today")
+        device.pressKeyCode(KeyEvent.KEYCODE_DPAD_DOWN)
+        compose.waitForIdle()
+        device.pressDPadCenter()
 
         waitForText("THE OFFICE (US)", timeoutMs = 30_000)
         waitForText("S1E", timeoutMs = 30_000) // the schedule resolved to an episode
@@ -148,7 +161,7 @@ class FirstRunFlowTest {
         shot("08c-guide-details")
         click("Close")
 
-        click("Settings")
+        openSettings()
         waitForText("This TV")
         shot("09-settings-general")
         click("Media Server")
@@ -208,9 +221,7 @@ class FirstRunFlowTest {
         val created = otherTv.coordinator.state.value.channels.single { it.name == "The Office (US)" }
 
         // Edit it: focus the row for the preview card, open the editor, rename and renumber.
-        compose.onAllNodes(hasText("The Office (US)", substring = false)).onFirst().requestFocus()
-        waitForText("Edit channel")
-        click("Edit channel")
+        click("The Office (US)") // a row in Settings, Channels opens the editor
         waitForText("Save changes")
         compose.onNodeWithTag("editor.name").performTextClearance()
         compose.onNodeWithTag("editor.name").performTextInput("Office Reruns")

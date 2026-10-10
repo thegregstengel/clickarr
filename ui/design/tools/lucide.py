@@ -108,12 +108,19 @@ def kotlin() -> str:
     )
 
 
+# Icons the interface itself uses (not channel glyphs): written as ic_ui_<name>.xml, no registry entry.
+UI_ICONS = ["settings"]
+
+
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     for name, _ in GLYPHS:
         svg = fetch(name)
         (OUT / f"ic_glyph_{name.replace('-', '_')}.xml").write_text(drawable(name, svg))
         print("wrote", name, file=sys.stderr)
+    for name in UI_ICONS:
+        (OUT / f"ic_ui_{name.replace('-', '_')}.xml").write_text(drawable(name, fetch(name)))
+        print("wrote ui", name, file=sys.stderr)
     KT.write_text(kotlin())
 
 

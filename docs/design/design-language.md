@@ -259,7 +259,7 @@ Used for filters in the channel editor (genres, decades). 40 dp tall, `radius.ba
 
 ### Shell (top bar)
 
-Height 96 dp inside the safe area. Left: logo pill (mark 40 dp + wordmark, `bg.surface` at 70 %, `radius.badge`). Center: tabs Guide · Channels · Favorites · Settings. Right: clock. The shell is present on Guide, Channels, Favorites, and Settings; it is not present on the player or in setup. Back from any tab returns to the player.
+Height 96 dp inside the safe area. Left: logo pill (mark 40 dp + wordmark, `bg.surface` at 70 %, `radius.badge`). Then tabs Guide · Favorites. Right: a settings cog (Lucide `settings`, 30 dp) that opens Settings. Channels are managed under Settings, Channels. The shell is present on Guide, Favorites, and Settings; it is not present on the player or in setup. Back from any tab returns to the player.
 
 ### Playback overlay
 

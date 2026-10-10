@@ -17,6 +17,7 @@ import net.clickarr.core.common.Clock
 import net.clickarr.core.common.Outcome
 import net.clickarr.core.common.Log
 import net.clickarr.core.model.Channel
+import net.clickarr.core.model.ChannelId
 import net.clickarr.core.model.ServerInfo
 import net.clickarr.core.scheduling.SCHEDULER_VERSION
 import net.clickarr.core.scheduling.ScheduleStrategy
@@ -54,6 +55,9 @@ class SettingsViewModel @Inject constructor(
 
     val channelList: StateFlow<List<Channel>> =
         channels.channels.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val favorites: StateFlow<Set<ChannelId>> =
+        channels.favorites.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptySet())
 
     private val _message = MutableStateFlow<String?>(null)
     val message: StateFlow<String?> = _message.asStateFlow()

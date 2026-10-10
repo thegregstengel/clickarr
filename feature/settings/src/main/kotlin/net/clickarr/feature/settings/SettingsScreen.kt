@@ -30,20 +30,34 @@ import androidx.tv.material3.Button
 import androidx.tv.material3.ListItem
 import androidx.tv.material3.Text
 import net.clickarr.ui.design.ClickarrColors
+import net.clickarr.ui.design.GlyphIcon
+import net.clickarr.core.model.ChannelIcon
+import net.clickarr.core.model.ChannelId
+import androidx.compose.ui.Alignment
 import net.clickarr.ui.design.ClickarrPalettes
 import net.clickarr.ui.design.ClickarrDimens
 import net.clickarr.ui.design.ClickarrTextStyles
+
+/** What Settings asks the app to do. */
+class SettingsActions(
+    val onDisconnected: () -> Unit,
+    val onOpenSpikes: () -> Unit,
+    val onExit: () -> Unit,
+    val onCreateChannel: () -> Unit,
+    val onEditChannel: (ChannelId) -> Unit,
+)
 
 /** Settings: left nav, right pane (design language 4, "Settings"). */
 @Composable
 fun SettingsScreen(
     appVersion: String,
-    onDisconnected: () -> Unit,
-    onOpenSpikes: () -> Unit,
-    onExit: () -> Unit,
+    initialSection: String?,
+    actions: SettingsActions,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
-    var section by rememberSaveable { mutableStateOf(SettingsSection.GENERAL) }
+    var section by rememberSaveable {
+        mutableStateOf(SettingsSection.entries.firstOrNull { it.name.equals(initialSection, true) } ?: SettingsSection.GENERAL)
+    }
     Row(Modifier.fillMaxSize()) {
         // Lazy so the focused entry scrolls into view; eight rows do not fit above the fold at 1080p.
         LazyColumn(
@@ -65,13 +79,13 @@ fun SettingsScreen(
             Text(section.label, style = ClickarrTextStyles.ScreenTitle)
             when (section) {
                 SettingsSection.GENERAL -> GeneralPane(viewModel)
-                SettingsSection.SERVER -> ServerPane(viewModel, onDisconnected)
-                SettingsSection.CHANNELS -> ChannelsPane(viewModel)
+                SettingsSection.SERVER -> ServerPane(viewModel, actions.onDisconnected)
+                SettingsSection.CHANNELS -> ChannelsPane(viewModel, actions)
                 SettingsSection.APPEARANCE -> AppearancePane(viewModel)
                 SettingsSection.PLAYBACK -> PlaybackPane(viewModel)
                 SettingsSection.HOUSEHOLD -> HouseholdPane()
                 SettingsSection.DIAGNOSTICS -> DiagnosticsPane(viewModel)
-                SettingsSection.ABOUT -> AboutPane(appVersion, viewModel, onOpenSpikes, onExit)
+                SettingsSection.ABOUT -> AboutPane(appVersion, viewModel, actions.onOpenSpikes, actions.onExit)
             }
         }
     }
@@ -120,12 +134,35 @@ private fun ServerPane(vm: SettingsViewModel, onDisconnected: () -> Unit) {
 }
 
 @Composable
-private fun ChannelsPane(vm: SettingsViewModel) {
+private fun ChannelsPane(vm: SettingsViewModel, actions: SettingsActions) {
     val list by vm.channelList.collectAsState()
+    val favorites by vm.favorites.collectAsState()
     val message by vm.message.collectAsState()
-    Caption("${list.size} channel${if (list.size == 1) "" else "s"}.")
-    Button(onClick = vm::refreshAllLineups) { Text("Refresh all lineups from Plex") }
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Button(onClick = actions.onCreateChannel) { Text("Create channel") }
+        Button(onClick = vm::refreshAllLineups) { Text("Refresh all lineups from Plex") }
+    }
     message?.let { Caption(it) }
+    if (list.isEmpty()) {
+        Caption("No channels yet. Create one from a show, a whole library, a collection, or a playlist.")
+    }
+    // Select a channel to edit it. Stars are set from the guide's channel column.
+    list.forEach { ch ->
+        ListItem(
+            selected = false,
+            onClick = { actions.onEditChannel(ch.id) },
+            headlineContent = { Text(ch.name, style = ClickarrTextStyles.RowTitle) },
+            leadingContent = {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(ch.number.toString(), style = ClickarrTextStyles.RowTitle, modifier = Modifier.width(56.dp))
+                    (ch.icon as? ChannelIcon.Glyph)?.let { GlyphIcon(it.name, 32.dp) }
+                }
+            },
+            trailingContent = {
+                if (ch.id in favorites) Text("★", style = ClickarrTextStyles.RowTitle, color = ClickarrColors.AccentGlow)
+            },
+        )
+    }
 }
 
 @Composable
