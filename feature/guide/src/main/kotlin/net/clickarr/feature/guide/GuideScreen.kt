@@ -1,6 +1,10 @@
 package net.clickarr.feature.guide
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.BringIntoViewSpec
+import androidx.compose.foundation.gestures.LocalBringIntoViewSpec
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.horizontalScroll
@@ -60,7 +64,14 @@ private val CHANNEL_COLUMN = 200.dp
 private val ROW_HEIGHT = 64.dp
 private val HEADER_HEIGHT = 40.dp
 
-/** Grid guide (design language 4, "Guide grid"). OK on a cell tunes to that channel. */
+/**
+ * Grid guide (design language 4, "Guide grid"). OK on a cell tunes to that channel.
+ *
+ * On TV, Compose's default bring-into-view spec scrolls a focused item to a pivot position, which
+ * would shift the whole grid every time focus moves. The guide manages its own horizontal scroll, so
+ * it opts out and uses the plain spec.
+ */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun GuideScreen(onWatch: () -> Unit, onlyFavorites: Boolean = false, viewModel: GuideViewModel = hiltViewModel()) {
     val window by viewModel.window.collectAsState()
@@ -72,6 +83,24 @@ fun GuideScreen(onWatch: () -> Unit, onlyFavorites: Boolean = false, viewModel: 
     val minutePx = with(density) { (ClickarrDimens.GuideHalfHourWidth / 30).toPx() }
     var focused by remember { mutableStateOf<Airing?>(null) }
 
+    val grid = GuideGrid(w, minutePx, scroll, focus)
+    CompositionLocalProvider(LocalBringIntoViewSpec provides BringIntoViewSpec.DefaultBringIntoViewSpec) {
+        GuideBody(grid, onlyFavorites, focused, { focused = it }) { ch -> viewModel.tune(ch, onWatch) }
+    }
+}
+
+@Composable
+private fun GuideBody(
+    grid: GuideGrid,
+    onlyFavorites: Boolean,
+    focused: Airing?,
+    onFocusAiring: (Airing) -> Unit,
+    onTune: (Channel) -> Unit,
+) {
+    val w = grid.window
+    val scroll = grid.scroll
+    val minutePx = grid.minutePx
+    val focus = grid.focus
     Column(Modifier.fillMaxSize().background(ClickarrColors.BgBase).padding(horizontal = ClickarrDimens.SafeArea / 2)) {
         TimeHeader(w.from, w.to, scroll)
         Box(Modifier.weight(1f)) {
@@ -88,10 +117,10 @@ fun GuideScreen(onWatch: () -> Unit, onlyFavorites: Boolean = false, viewModel: 
                     GuideRow(
                         row = row,
                         rowIndex = rowIndex,
-                        grid = GuideGrid(w, minutePx, scroll, focus),
+                        grid = grid,
                         isCurrent = row.channel.id.value == w.currentChannelId,
-                        onFocusAiring = { focused = it },
-                        onTune = { viewModel.tune(row.channel, onWatch) },
+                        onFocusAiring = onFocusAiring,
+                        onTune = { onTune(row.channel) },
                     )
                 }
             }
