@@ -90,6 +90,18 @@ class FirstRunFlowTest {
 
         waitForText("Create channel") // back on the Channels tab
         waitForText("The Office (US)")
+
+        // A second channel so the guide has two rows to move between.
+        click("Create channel")
+        waitForText("What goes on this channel?")
+        click("Shows")
+        waitForText("Parks and Recreation")
+        click("Parks and Recreation")
+        click("Continue")
+        waitForText("Channel number")
+        click("Create channel")
+        waitForText("Create channel")
+        waitForText("Parks and Recreation")
         shot("06-channels-list")
         click("The Office (US)")
 
@@ -100,6 +112,11 @@ class FirstRunFlowTest {
         device.pressKeyCode(KeyEvent.KEYCODE_DPAD_RIGHT)
         waitForText("Today")
         shot("08-guide")
+        // Down moves to the program on channel 3 that overlaps the focused time (design language 2.8).
+        device.pressKeyCode(KeyEvent.KEYCODE_DPAD_DOWN)
+        compose.waitForIdle()
+        Thread.sleep(SHOT_SETTLE_MS)
+        shot("08b-guide-down")
 
         click("Settings")
         waitForText("This TV")

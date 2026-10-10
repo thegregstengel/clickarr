@@ -102,7 +102,7 @@ Phase 1 and 2 (the MVP) prove the core experience. Everything else lands after.
 
 ## Status
 
-Pre-alpha, Phase 1 in progress. A nightly debug build exists and already does the core loop: sign in to Plex, create a channel from shows, a library with filters, a collection, or a playlist, and watch it with the overlay and a program guide. It is rough, untested on real hardware beyond CI, and changes daily. Get it from the [nightly pre-release](https://github.com/thegregstengel/clickarr/releases/tag/nightly) or `clickarr.net/nightly` in the Fire TV Downloader app. Phase 0 spikes (device measurements) still need to be run; they live under Settings in the app. Roadmap: [proposal section 20](docs/architecture-proposal.md#20-phased-mvp-roadmap).
+Pre-alpha, Phase 1 in progress. A nightly debug build exists and already does the core loop: sign in to Plex, create a channel from shows, a library with filters, a collection, or a playlist, and watch it with the overlay and a program guide. It runs end to end on an Android TV emulator in CI (see the Emulator workflow's screenshots), is untested on real hardware, and changes daily. Get it from the [nightly pre-release](https://github.com/thegregstengel/clickarr/releases/tag/nightly) or `clickarr.net/nightly` in the Fire TV Downloader app. Phase 0 spikes (device measurements) still need to be run; they live under Settings in the app. Roadmap: [proposal section 20](docs/architecture-proposal.md#20-phased-mvp-roadmap).
 
 ## Documentation
 

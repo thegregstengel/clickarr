@@ -45,7 +45,7 @@ See [architecture.md](architecture.md#module-map). Pure-Kotlin modules (`core:*`
 
 ## App flow (Phase 1)
 
-Launch goes to Plex sign-in when no server is connected, otherwise straight to the player on the last channel. Back from the player opens the shell (Guide, Channels, Settings). Channels has the create-channel wizard. Settings holds the Phase 0 spikes.
+Launch goes to Plex sign-in when no server is connected, otherwise straight to the player on the last channel. Back from the player opens the shell (Guide, Channels, Favorites, Settings). Channels has the create-channel wizard and the favorite toggle; Favorites is the guide filtered to favorites. Settings has General, Media Server (disconnect), Channels (refresh lineups), Appearance (overlay timeout), Playback (profile), Household (Phase 2 placeholder), Diagnostics (schedule math and recent redacted log, the thing to quote in bug reports), and About (version, Phase 0 spikes).
 
 ## Phase 0 spikes
 
