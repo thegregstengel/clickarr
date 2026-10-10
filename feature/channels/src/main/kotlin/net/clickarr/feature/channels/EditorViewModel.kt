@@ -12,6 +12,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import net.clickarr.core.common.Outcome
+import net.clickarr.core.model.Channel
+import net.clickarr.core.model.ChannelId
 import net.clickarr.core.model.Collection
 import net.clickarr.core.model.Library
 import net.clickarr.core.model.LibraryKind
@@ -27,7 +29,8 @@ import net.clickarr.provider.api.MediaProvider
 
 /**
  * Channel creation wizard. Steps: kind of source, pick the content, then name/number/order/rounding.
- * Everything comes from the connected Plex server through the provider contract.
+ * Everything comes from the connected Plex server through the provider contract. With [load] it edits
+ * an existing channel instead: same details form, plus refresh and delete.
  */
 @HiltViewModel
 class EditorViewModel @Inject constructor(
@@ -53,7 +56,11 @@ class EditorViewModel @Inject constructor(
         data class Saved(val name: String, val number: Int) : Step
         data class Failed(val message: String) : Step
         data object Loading : Step
+        /** The channel is gone (deleted); leave the editor. */
+        data object Closed : Step
     }
+
+    enum class EditAction { REFRESH_LINEUP, DELETE }
 
     data class Draft(
         val source: ProgrammingSource,
@@ -62,6 +69,8 @@ class EditorViewModel @Inject constructor(
         val number: Int,
         val order: OrderingMode = OrderingMode.SEQUENTIAL,
         val rounding: Duration? = 30.minutes,
+        /** Set when editing an existing channel. */
+        val editing: Channel? = null,
     )
 
     private val _step = MutableStateFlow<Step>(Step.ChooseKind)
@@ -180,6 +189,30 @@ class EditorViewModel @Inject constructor(
         }
     }
 
+    /** Open the details form for an existing channel. */
+    fun load(id: ChannelId) {
+        _step.value = Step.Loading
+        viewModelScope.launch {
+            val c = repository.byId(id) ?: return@launch fail("That channel no longer exists")
+            _step.value = Step.Details(Draft(c.source, c.name, c.name, c.number, c.order, c.slotRounding, editing = c))
+        }
+    }
+
+    fun act(action: EditAction) {
+        val c = (_step.value as? Step.Details)?.draft?.editing ?: return
+        _step.value = Step.Saving(c.name)
+        viewModelScope.launch {
+            _step.value = when (action) {
+                EditAction.DELETE -> runCatching { repository.delete(c.id) }
+                    .fold({ Step.Closed }, { Step.Failed(it.message ?: "Could not delete the channel") })
+                EditAction.REFRESH_LINEUP -> when (val r = repository.refreshLineup(c.id, applyNow = false)) {
+                    is Outcome.Success -> Step.Saved(r.value.name, r.value.number)
+                    is Outcome.Failure -> Step.Failed(r.error.message)
+                }
+            }
+        }
+    }
+
     fun updateDraft(transform: (Draft) -> Draft) {
         _step.update { s -> if (s is Step.Details) s.copy(draft = transform(s.draft)) else s }
     }
@@ -188,8 +221,12 @@ class EditorViewModel @Inject constructor(
         val s = _step.value as? Step.Details ?: return
         val d = s.draft
         _step.value = Step.Saving(d.name)
+        val name = d.name.ifBlank { d.suggestedName }
         viewModelScope.launch {
-            _step.value = when (val r = repository.create(d.number, d.name.ifBlank { d.suggestedName }, d.source, d.order, d.rounding)) {
+            val r = d.editing?.let { c ->
+                repository.update(c.copy(name = name, number = d.number, order = d.order, slotRounding = d.rounding))
+            } ?: repository.create(d.number, name, d.source, d.order, d.rounding)
+            _step.value = when (r) {
                 is Outcome.Success -> Step.Saved(r.value.name, r.value.number)
                 is Outcome.Failure -> Step.Failed(r.error.message)
             }

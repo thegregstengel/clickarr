@@ -23,6 +23,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.tv.material3.Button
 import androidx.tv.material3.ListItem
 import androidx.tv.material3.Text
+import net.clickarr.core.model.ChannelId
 import net.clickarr.ui.design.ClickarrColors
 import net.clickarr.ui.design.ClickarrDimens
 import net.clickarr.ui.design.ClickarrTextStyles
@@ -31,6 +32,7 @@ import net.clickarr.ui.design.ClickarrTextStyles
 @Composable
 fun ChannelsScreen(
     onCreate: () -> Unit,
+    onEdit: (ChannelId) -> Unit,
     onWatch: () -> Unit,
     viewModel: ChannelsViewModel = hiltViewModel(),
 ) {
@@ -73,7 +75,7 @@ fun ChannelsScreen(
                     p,
                     isFavorite = p.channel.id in favorites,
                     onToggleFavorite = { viewModel.toggleFavorite(p.channel.id) },
-                    onDelete = { viewModel.delete(p.channel.id) },
+                    onEdit = { onEdit(p.channel.id) },
                 )
             }
         }
@@ -81,7 +83,7 @@ fun ChannelsScreen(
 }
 
 @Composable
-private fun PreviewCard(p: ChannelsViewModel.Preview, isFavorite: Boolean, onToggleFavorite: () -> Unit, onDelete: () -> Unit) {
+private fun PreviewCard(p: ChannelsViewModel.Preview, isFavorite: Boolean, onToggleFavorite: () -> Unit, onEdit: () -> Unit) {
     Column(
         Modifier
             .width(560.dp)
@@ -99,7 +101,7 @@ private fun PreviewCard(p: ChannelsViewModel.Preview, isFavorite: Boolean, onTog
         p.next?.let { Text("Up next: ${it.entry.title}", style = ClickarrTextStyles.Caption, color = ClickarrColors.TextMuted) }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(top = 8.dp)) {
             Button(onClick = onToggleFavorite) { Text(if (isFavorite) "Remove from favorites" else "Add to favorites") }
-            Button(onClick = onDelete) { Text("Delete channel") }
+            Button(onClick = onEdit) { Text("Edit channel") }
         }
     }
 }

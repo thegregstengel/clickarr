@@ -118,9 +118,16 @@ class ChannelRepository @Inject constructor(
             Outcome.Success(channel)
         }
 
-    suspend fun update(channel: Channel) {
-        if (routed(Command.UpdateChannel(channel))) return
-        db.channels().upsert(channel.toEntity(clock.now()))
+    /** Edits that do not touch the lineup: name, number, icon, order, rounding. */
+    suspend fun update(channel: Channel): Outcome<Channel> {
+        val clash = db.channels().byNumber(channel.number)
+        if (clash != null && clash.id != channel.id.value) {
+            return Outcome.Failure(ClickarrError.Invalid("Channel ${channel.number} already exists"))
+        }
+        return household.apply(Command.UpdateChannel(channel)).flatMap { handled ->
+            if (!handled) db.channels().upsert(channel.toEntity(clock.now()))
+            Outcome.Success(channel)
+        }
     }
 
     suspend fun delete(id: ChannelId) {

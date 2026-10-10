@@ -17,29 +17,32 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.tv.material3.Button
 import androidx.tv.material3.ListItem
 import androidx.tv.material3.Text
 import kotlin.time.Duration.Companion.minutes
+import net.clickarr.core.model.ChannelId
 import net.clickarr.core.model.OrderingMode
 import net.clickarr.feature.channels.EditorViewModel.Step
 import net.clickarr.ui.design.ClickarrColors
 import net.clickarr.ui.design.ClickarrDimens
 import net.clickarr.ui.design.ClickarrTextStyles
 
-/** Create-channel wizard. One step per screen, D-pad friendly, nothing below 18 sp. */
+/** Create-channel wizard, or the editor for an existing channel. One step per screen, D-pad friendly. */
 @Composable
-fun ChannelEditorScreen(onDone: () -> Unit, viewModel: EditorViewModel = hiltViewModel()) {
+fun ChannelEditorScreen(channelId: String?, onDone: () -> Unit, viewModel: EditorViewModel = hiltViewModel()) {
     val step by viewModel.step.collectAsState()
-    LaunchedEffect(step) { if (step is Step.Saved) onDone() }
+    LaunchedEffect(channelId) { if (channelId != null) viewModel.load(ChannelId(channelId)) }
+    LaunchedEffect(step) { if (step is Step.Saved || step is Step.Closed) onDone() }
 
     Column(
         Modifier.fillMaxSize().background(ClickarrColors.BgBase).padding(ClickarrDimens.SafeArea),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Text("New channel", style = ClickarrTextStyles.ScreenTitle)
+        Text(if (channelId == null) "New channel" else "Edit channel", style = ClickarrTextStyles.ScreenTitle)
         when (val s = step) {
             Step.ChooseKind -> ChooseKind(viewModel)
             Step.Loading -> Text("Loading…", style = ClickarrTextStyles.Secondary, color = ClickarrColors.TextSecondary)
@@ -50,7 +53,8 @@ fun ChannelEditorScreen(onDone: () -> Unit, viewModel: EditorViewModel = hiltVie
             is Step.PickPlaylist -> Picker("Which playlist?", s.playlists, { it.name }) { viewModel.confirmPlaylist(it) }
             is Step.Details -> Details(s.draft, viewModel)
             is Step.Saving -> Text("Building the schedule for ${s.name}…", style = ClickarrTextStyles.Secondary)
-            is Step.Saved -> Text("Channel ${s.number} created", style = ClickarrTextStyles.Secondary)
+            is Step.Saved -> Text("Channel ${s.number} saved", style = ClickarrTextStyles.Secondary)
+            Step.Closed -> Unit
             is Step.Failed -> {
                 Text(s.message, style = ClickarrTextStyles.Secondary, color = ClickarrColors.StatusError)
                 Button(onClick = viewModel::restart) { Text("Start over") }
@@ -161,6 +165,7 @@ private fun Details(d: EditorViewModel.Draft, vm: EditorViewModel) {
             onValueChange = { v -> vm.updateDraft { it.copy(name = v) } },
             singleLine = true,
             textStyle = ClickarrTextStyles.RowTitle.copy(color = ClickarrColors.TextPrimary),
+            modifier = Modifier.testTag("editor.name"),
         )
     }
     Text("Channel number", style = ClickarrTextStyles.LabelAllCaps, color = ClickarrColors.TextMuted)
@@ -180,5 +185,19 @@ private fun Details(d: EditorViewModel.Draft, vm: EditorViewModel) {
         Chip("15 min", d.rounding == 15.minutes) { vm.updateDraft { it.copy(rounding = 15.minutes) } }
         Chip("30 min", d.rounding == 30.minutes) { vm.updateDraft { it.copy(rounding = 30.minutes) } }
     }
-    Button(onClick = vm::save, modifier = Modifier.padding(top = 8.dp)) { Text("Create channel") }
+    val editing = d.editing
+    if (editing == null) {
+        Button(onClick = vm::save, modifier = Modifier.padding(top = 8.dp)) { Text("Create channel") }
+    } else {
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(top = 8.dp)) {
+            Button(onClick = vm::save) { Text("Save changes") }
+            Button(onClick = { vm.act(EditorViewModel.EditAction.REFRESH_LINEUP) }) { Text("Refresh lineup from Plex") }
+            Button(onClick = { vm.act(EditorViewModel.EditAction.DELETE) }) { Text("Delete channel") }
+        }
+        Text(
+            "A refreshed lineup starts when the current program ends, so every TV switches together.",
+            style = ClickarrTextStyles.Caption,
+            color = ClickarrColors.TextMuted,
+        )
+    }
 }

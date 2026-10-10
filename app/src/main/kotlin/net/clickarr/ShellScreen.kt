@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.tv.material3.Text
 import net.clickarr.core.common.Log
+import net.clickarr.core.model.ChannelId
 import net.clickarr.feature.channels.ChannelsScreen
 import net.clickarr.feature.guide.GuideScreen
 import net.clickarr.feature.settings.SettingsScreen
@@ -53,6 +54,7 @@ fun ShellScreen(
     initialTab: String,
     onWatch: () -> Unit,
     onCreateChannel: () -> Unit,
+    onEditChannel: (ChannelId) -> Unit,
     onDisconnected: () -> Unit,
     onExit: () -> Unit,
     viewModel: AppViewModel = hiltViewModel(),
@@ -96,7 +98,7 @@ fun ShellScreen(
         Box(Modifier.fillMaxSize()) {
             when (tab) {
                 ShellTab.GUIDE -> GuideScreen(onWatch = onWatch)
-                ShellTab.CHANNELS -> ChannelsScreen(onCreate = onCreateChannel, onWatch = onWatch)
+                ShellTab.CHANNELS -> ChannelsScreen(onCreate = onCreateChannel, onEdit = onEditChannel, onWatch = onWatch)
                 ShellTab.FAVORITES -> GuideScreen(onWatch = onWatch, onlyFavorites = true)
                 ShellTab.SETTINGS -> SettingsScreen(
                     appVersion = BuildConfig.VERSION_NAME,

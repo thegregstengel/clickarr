@@ -48,13 +48,17 @@ fun ClickarrApp(onExit: () -> Unit, viewModel: AppViewModel = hiltViewModel()) {
             ShellScreen(
                 initialTab = entry.arguments?.getString("tab") ?: "channels",
                 onWatch = { nav.navigate(Routes.PLAYER) { popUpTo(Routes.PLAYER) { inclusive = true } } },
-                onCreateChannel = { nav.navigate(Routes.EDITOR) },
+                onCreateChannel = { nav.navigate(Routes.editor()) },
+                onEditChannel = { nav.navigate(Routes.editor(it.value)) },
                 onDisconnected = { nav.navigate(Routes.SETUP) { popUpTo(0) { inclusive = true } } },
                 onExit = onExit,
             )
         }
-        composable(Routes.EDITOR) {
-            ChannelEditorScreen(onDone = { nav.popBackStack() })
+        composable(
+            Routes.EDITOR,
+            arguments = listOf(navArgument("channel") { type = NavType.StringType; nullable = true; defaultValue = null }),
+        ) { entry ->
+            ChannelEditorScreen(channelId = entry.arguments?.getString("channel"), onDone = { nav.popBackStack() })
         }
     }
 }

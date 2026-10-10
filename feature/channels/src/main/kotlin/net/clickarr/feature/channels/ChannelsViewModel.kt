@@ -57,11 +57,4 @@ class ChannelsViewModel @Inject constructor(
             then()
         }
     }
-
-    fun delete(id: ChannelId) {
-        viewModelScope.launch {
-            repository.delete(id)
-            if (_preview.value?.channel?.id == id) _preview.value = null
-        }
-    }
 }

@@ -168,6 +168,37 @@ class FirstRunFlowTest {
         click("Channels")
         waitForText("Movies")
         shot("17-channels-synced")
+
+        // A member's edits go through the coordinator: create a channel here, see it come back in the sync.
+        click("Create channel")
+        waitForText("What goes on this channel?")
+        click("Shows")
+        waitForText("The Office (US)")
+        click("The Office (US)")
+        click("Continue")
+        waitForText("Channel number")
+        click("Create channel")
+        waitForText("Create channel")
+        waitForText("The Office (US)")
+        shot("18-channel-via-coordinator")
+        check(otherTv.coordinator.state.value.channels.size == 2) { "coordinator should hold both channels" }
+
+        // Edit it: focus the row for the preview card, open the editor, rename and renumber.
+        compose.onAllNodes(hasText("The Office (US)", substring = false)).onFirst().requestFocus()
+        waitForText("Edit channel")
+        click("Edit channel")
+        waitForText("Save changes")
+        compose.onNodeWithTag("editor.name").performTextClearance()
+        compose.onNodeWithTag("editor.name").performTextInput("Office Reruns")
+        click("+")
+        shot("19-edit-channel")
+        click("Save changes")
+        waitForText("Office Reruns")
+        waitForText("22")
+        shot("20-channels-edited")
+        check(otherTv.coordinator.state.value.channels.any { it.name == "Office Reruns" && it.number == 22 }) {
+            "coordinator should have the edited channel"
+        }
     }
 
     companion object {
