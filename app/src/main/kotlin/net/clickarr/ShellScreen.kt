@@ -77,8 +77,16 @@ fun ShellScreen(
     // its content, a text field closes), Compose hands focus to the first focusable, which is the Guide tab, and
     // that must not change tabs. A key press within the last moment is the signal that the viewer did it.
     val lastKeyAt = remember { longArrayOf(0L) }
+    // The tab opened from the player gets focus inside it; after that, moving across the row keeps focus on the
+    // row until Down is pressed, so Guide and Favorites do not pull focus into the grid as they go by.
+    var switched by rememberSaveable { mutableStateOf(false) }
     fun select(t: ShellTab) {
-        if (SystemClock.uptimeMillis() - lastKeyAt[0] <= TAB_FOCUS_WINDOW_MS) tab = t else Log.d(TAG) { "ignored stray focus on ${t.name}" }
+        if (SystemClock.uptimeMillis() - lastKeyAt[0] <= TAB_FOCUS_WINDOW_MS) {
+            if (t != tab) switched = true
+            tab = t
+        } else {
+            Log.d(TAG) { "ignored stray focus on ${t.name}" }
+        }
     }
     Column(
         Modifier
@@ -97,9 +105,9 @@ fun ShellScreen(
         }
         Box(Modifier.fillMaxSize()) {
             when (tab) {
-                ShellTab.GUIDE -> GuideScreen(onWatch = onWatch)
+                ShellTab.GUIDE -> GuideScreen(onWatch = onWatch, takeFocus = !switched)
                 ShellTab.CHANNELS -> ChannelsScreen(onCreate = onCreateChannel, onEdit = onEditChannel, onWatch = onWatch)
-                ShellTab.FAVORITES -> GuideScreen(onWatch = onWatch, onlyFavorites = true)
+                ShellTab.FAVORITES -> GuideScreen(onWatch = onWatch, onlyFavorites = true, takeFocus = !switched)
                 ShellTab.SETTINGS -> SettingsScreen(
                     appVersion = BuildConfig.VERSION_NAME,
                     onDisconnected = onDisconnected,

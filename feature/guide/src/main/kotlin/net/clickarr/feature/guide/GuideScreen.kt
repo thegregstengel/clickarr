@@ -86,7 +86,12 @@ private val TIME_JUMP = 3.hours
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun GuideScreen(onWatch: () -> Unit, onlyFavorites: Boolean = false, viewModel: GuideViewModel = hiltViewModel()) {
+fun GuideScreen(
+    onWatch: () -> Unit,
+    onlyFavorites: Boolean = false,
+    takeFocus: Boolean = true,
+    viewModel: GuideViewModel = hiltViewModel(),
+) {
     val window by viewModel.window.collectAsState()
     val all = window ?: return
     val w = if (onlyFavorites) all.copy(rows = all.rows.filter { it.channel.id.value in all.favorites }) else all
@@ -105,7 +110,7 @@ fun GuideScreen(onWatch: () -> Unit, onlyFavorites: Boolean = false, viewModel: 
         onToggleFavorite = { ch -> viewModel.toggleFavorite(ch.id) },
     )
     CompositionLocalProvider(LocalBringIntoViewSpec provides PlainBringIntoViewSpec) {
-        GuideBody(grid, onlyFavorites, focused, details, actions)
+        GuideBody(grid, onlyFavorites, takeFocus, focused, details, actions)
     }
 }
 
@@ -121,6 +126,7 @@ private class GuideActions(
 private fun GuideBody(
     grid: GuideGrid,
     onlyFavorites: Boolean,
+    takeFocus: Boolean,
     focused: Airing?,
     details: Pair<Channel, Airing>?,
     actions: GuideActions,
@@ -129,7 +135,23 @@ private fun GuideBody(
     val scroll = grid.scroll
     val minutePx = grid.minutePx
     val focus = grid.focus
-    Column(Modifier.fillMaxSize().background(ClickarrColors.BgBase).padding(horizontal = ClickarrDimens.SafeArea / 2)) {
+    // Entering the grid from the tab row lands wherever Compose's search puts it; the first cell to gain focus
+    // on entry hands it to the current program instead, so Down from a tab always opens on what is on now.
+    val entered = remember { booleanArrayOf(false) }
+    fun currentRow() = w.rows.indexOfFirst { it.channel.id.value == w.currentChannelId }.takeIf { it >= 0 } ?: 0
+    val onEnter: () -> Unit = {
+        if (!entered[0]) {
+            entered[0] = true
+            focus.requestAt(currentRow(), w.now)
+        }
+    }
+    Column(
+        Modifier
+            .fillMaxSize()
+            .background(ClickarrColors.BgBase)
+            .padding(horizontal = ClickarrDimens.SafeArea / 2)
+            .onFocusChanged { if (!it.hasFocus) entered[0] = false },
+    ) {
         TimeHeader(w.from, w.to, scroll)
         Box(Modifier.weight(1f)) {
             if (w.rows.isEmpty()) {
@@ -149,13 +171,16 @@ private fun GuideBody(
                         isCurrent = row.channel.id.value == w.currentChannelId,
                         isFavorite = row.channel.id.value in w.favorites,
                         actions = actions,
+                        onEnter = onEnter,
                     )
                 }
             }
             // Initial focus: the program airing now on the current channel, else the first row's current program.
-            LaunchedEffect(w.rows.size, w.currentChannelId) {
-                val rowIndex = w.rows.indexOfFirst { it.channel.id.value == w.currentChannelId }.takeIf { it >= 0 } ?: 0
-                focus.requestAt(rowIndex, w.now)
+            LaunchedEffect(w.rows.size, w.currentChannelId, takeFocus) {
+                if (takeFocus) {
+                    entered[0] = true
+                    focus.requestAt(currentRow(), w.now)
+                }
             }
             NowLine(w, minutePx, scroll.value)
             details?.let { (ch, a) ->
@@ -251,6 +276,7 @@ private fun GuideRow(
     isCurrent: Boolean,
     isFavorite: Boolean,
     actions: GuideActions,
+    onEnter: () -> Unit,
 ) {
     val window = grid.window
     val minutePx = grid.minutePx
@@ -260,7 +286,7 @@ private fun GuideRow(
     val scope = rememberCoroutineScope()
     val density = LocalDensity.current
     Row(Modifier.fillMaxWidth().height(ROW_HEIGHT).padding(vertical = ClickarrDimens.GuideCellGutter / 2)) {
-        ChannelCell(row.channel, isCurrent, isFavorite) { actions.onToggleFavorite(row.channel) }
+        ChannelCell(row.channel, isCurrent, isFavorite, onEnter) { actions.onToggleFavorite(row.channel) }
         Box(Modifier.fillMaxSize().clipToBounds().horizontalScroll(scroll)) {
             Layout(
                 content = {
@@ -276,6 +302,7 @@ private fun GuideRow(
                                     focus.cellAt(rowIndex + 1, focusTime)?.let { c -> down = focus.requester(rowIndex + 1, c) }
                                 },
                             onFocus = {
+                                onEnter()
                                 actions.onFocusAiring(airing)
                                 // Keep the focused cell inside the visible window.
                                 val leftPx = ((focusTime - window.from).inWholeMinutes * minutePx).toInt()
@@ -315,7 +342,13 @@ private fun GuideRow(
 
 /** Number, name, glyph, and a star. OK on the cell toggles the channel as a favorite (the Favorites tab). */
 @Composable
-private fun ChannelCell(channel: Channel, isCurrent: Boolean, isFavorite: Boolean, onToggleFavorite: () -> Unit) {
+private fun ChannelCell(
+    channel: Channel,
+    isCurrent: Boolean,
+    isFavorite: Boolean,
+    onEnter: () -> Unit,
+    onToggleFavorite: () -> Unit,
+) {
     val interaction = remember { MutableInteractionSource() }
     Row(
         Modifier
@@ -327,6 +360,7 @@ private fun ChannelCell(channel: Channel, isCurrent: Boolean, isFavorite: Boolea
                 idleColor = if (isCurrent) ClickarrColors.AccentPrimaryDeep else ClickarrColors.BgPanel,
                 selected = isCurrent,
             )
+            .onFocusChanged { if (it.isFocused) onEnter() }
             .onKeyEvent { e ->
                 val select = e.type == KeyEventType.KeyDown && (e.key == Key.DirectionCenter || e.key == Key.Enter)
                 if (select) onToggleFavorite()
