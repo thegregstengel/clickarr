@@ -109,6 +109,9 @@ To try it with two devices on one LAN: on TV A open Settings, Sync, Create a hou
 read the code. On TV B open Settings, Sync, Join a household, pick TV A from the list (or type its address),
 enter the code, Join. Both TVs now show the same channels and the same program at the same offset.
 
+Coordinator migration is manual: on a member, Settings, Sync, "Make this TV the coordinator" promotes it from its
+cached state; dissolve the household on the old coordinator and join the other TVs to the new one.
+
 The emulator test also exercises the member side without a second device: `app/src/androidTest/.../TestCoordinator.kt`
 runs a coordinator with one movie channel inside the test process on a loopback port, and `FirstRunFlowTest` dissolves
 the emulator's own household, joins that coordinator by address and PIN, and checks the synced channel shows up on the

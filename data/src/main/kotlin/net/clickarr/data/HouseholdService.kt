@@ -360,6 +360,26 @@ class HouseholdService @Inject constructor(
         client?.let { syncOnce(it) }
     }
 
+    /**
+     * Manual coordinator migration (proposal Phase 4): this member becomes the coordinator from its cached
+     * copy of the state. The old coordinator should be dissolved; the other TVs leave and join this one.
+     */
+    suspend fun promoteToCoordinator(): Outcome<Unit> {
+        if (_role.value !is Role.Member) return Outcome.Failure(ClickarrError.Invalid("Only a member can take over"))
+        val state = store.loadState() ?: return Outcome.Failure(ClickarrError.Invalid("No household state to take over"))
+        memberJob?.cancel(); memberJob = null
+        client = null
+        secrets.remove(MEMBER_TOKEN)
+        store.saveState(state.copy(household = state.household.copy(coordinator = selfId), revision = state.revision + 1))
+        db.household().get()?.let {
+            db.household().upsert(
+                it.copy(role = RoomCoordinatorStore.ROLE_COORDINATOR, coordinatorDeviceId = selfId.value, coordinatorBaseUrl = null),
+            )
+        }
+        Log.i(TAG) { "promoted to coordinator" }
+        return startCoordinator()
+    }
+
     // ---- Shared ----
 
     /**
@@ -380,12 +400,6 @@ class HouseholdService @Inject constructor(
                 is Outcome.Failure -> Outcome.Failure(offlineMessage(r, sent.error))
             }
         }
-    }
-
-    private fun offlineMessage(role: Role.Member, error: ClickarrError): ClickarrError {
-        if (error !is ClickarrError.Unreachable) return error
-        val host = role.baseUrl.removePrefix("http://")
-        return ClickarrError.Unreachable("$host (household coordinator) is offline. You can still watch; changes need it online.")
     }
 
     suspend fun leave() {
@@ -416,4 +430,10 @@ class HouseholdService @Inject constructor(
         private const val MEMBER_TOKEN = "household:member-token"
         val PIN_LIFETIME = Pairing.PIN_LIFETIME_SECONDS.seconds
     }
+}
+
+private fun offlineMessage(role: HouseholdService.Role.Member, error: ClickarrError): ClickarrError {
+    if (error !is ClickarrError.Unreachable) return error
+    val host = role.baseUrl.removePrefix("https://").removePrefix("http://")
+    return ClickarrError.Unreachable("$host (household coordinator) is offline. You can still watch; changes need it online.")
 }

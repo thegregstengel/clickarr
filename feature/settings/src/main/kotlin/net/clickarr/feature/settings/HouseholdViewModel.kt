@@ -77,6 +77,8 @@ class HouseholdViewModel @Inject constructor(
 
     fun leave() = viewModelScope.launch { service.leave() }
 
+    fun promote() = act { service.promoteToCoordinator() }
+
     private fun act(block: suspend () -> Outcome<Unit>) {
         viewModelScope.launch {
             _message.value = when (val r = block()) {

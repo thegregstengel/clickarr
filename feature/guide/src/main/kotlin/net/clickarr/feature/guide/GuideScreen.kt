@@ -53,6 +53,8 @@ import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -391,7 +393,9 @@ private fun ChannelCell(
             if (isFavorite) "★" else "☆",
             style = ClickarrTextStyles.RowTitle,
             color = if (isFavorite) ClickarrColors.AccentGlow else ClickarrColors.TextMuted,
-            modifier = Modifier.padding(start = 8.dp),
+            modifier = Modifier.padding(start = 8.dp).semantics {
+                contentDescription = if (isFavorite) "Favorite. Press OK to remove." else "Not a favorite. Press OK to add."
+            },
         )
     }
 }

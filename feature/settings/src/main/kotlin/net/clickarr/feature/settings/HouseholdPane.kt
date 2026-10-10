@@ -208,7 +208,9 @@ private fun MemberSection(
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Button(onClick = vm::syncNow, modifier = primary) { Text("Sync now") }
         Button(onClick = { swap(vm::leave) }) { Text("Leave household") }
+        Button(onClick = { swap(vm::promote) }) { Text("Make this TV the coordinator") }
     }
+    Caption("Taking over keeps the channels this TV has. Dissolve the household on the old coordinator, then join the other TVs here.")
     DevicesList(devices, vm, canRemove = false)
 }
 
