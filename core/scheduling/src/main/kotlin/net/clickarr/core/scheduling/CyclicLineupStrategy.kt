@@ -7,6 +7,7 @@ import kotlin.time.Duration.Companion.seconds
 import kotlinx.datetime.Instant
 import net.clickarr.core.model.Airing
 import net.clickarr.core.model.Channel
+import net.clickarr.core.model.EpisodeRuns
 import net.clickarr.core.model.LineupSnapshot
 import net.clickarr.core.model.OrderingMode
 
@@ -68,12 +69,15 @@ class CyclicLineupStrategy : ScheduleStrategy {
     }
 
     private fun layout(channel: Channel, lineup: LineupSnapshot, geometry: Geometry, cycle: Long): CycleLayout {
-        val key = LayoutKey(lineup.id.value, channel.seed, channel.order, channel.slotRounding, cycle)
+        val key = LayoutKey(lineup.id.value, channel.seed, channel.order, channel.slotRounding, channel.runs, cycle)
         layouts[key]?.let { return it }
         val n = lineup.entries.size
-        val perm = when (channel.order) {
-            OrderingMode.SEQUENTIAL -> IntArray(n) { it }
-            OrderingMode.SHUFFLE -> DeterministicRandom.forCycle(channel.seed, cycle).permutation(n)
+        val runs = channel.runs
+        val random = DeterministicRandom.forCycle(channel.seed, cycle)
+        val perm = when {
+            runs != null -> EpisodeRunOrder.permutation(lineup.entries, channel.order, runs, random)
+            channel.order == OrderingMode.SEQUENTIAL -> IntArray(n) { it }
+            else -> random.permutation(n)
         }
         val prefix = LongArray(n + 1)
         for (i in 0 until n) prefix[i + 1] = prefix[i] + geometry.slotsMs[perm[i]]
@@ -85,7 +89,14 @@ class CyclicLineupStrategy : ScheduleStrategy {
 
     private class Geometry(val slotsMs: LongArray, val cycleLengthMs: Long)
 
-    private data class LayoutKey(val lineupId: String, val seed: Long, val order: OrderingMode, val rounding: Duration?, val cycle: Long)
+    private data class LayoutKey(
+        val lineupId: String,
+        val seed: Long,
+        val order: OrderingMode,
+        val rounding: Duration?,
+        val runs: EpisodeRuns?,
+        val cycle: Long,
+    )
 
     private class CycleLayout(val perm: IntArray, val prefixMs: LongArray) {
         /** Largest i with prefix[i] <= offset, i.e. the slot containing offset. */

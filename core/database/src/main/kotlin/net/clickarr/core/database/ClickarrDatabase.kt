@@ -19,7 +19,7 @@ import androidx.room.RoomDatabase
         HouseholdDeviceEntity::class,
         HouseholdServerEntity::class,
     ],
-    version = 3,
+    version = 4,
     // Schema export is enabled in Phase 4 (reproducible builds), together with migration tests.
     exportSchema = false,
 )

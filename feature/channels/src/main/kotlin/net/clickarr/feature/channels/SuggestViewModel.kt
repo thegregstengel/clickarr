@@ -54,7 +54,7 @@ class SuggestViewModel @Inject constructor(
             chosen.forEachIndexed { i, sug ->
                 _step.value = Step.Creating(i, chosen.size)
                 val number = repository.nextFreeNumber()
-                val r = repository.create(number, sug.name, sug.source, sug.order, sug.slotRounding, sug.icon)
+                val r = repository.create(number, sug.name, sug.source, sug.order, sug.slotRounding, sug.icon, sug.runs)
                 if (r is Outcome.Failure) failed += "${sug.name}: ${r.error.message}"
             }
             _step.value = Step.Done(chosen.size - failed.size, failed)

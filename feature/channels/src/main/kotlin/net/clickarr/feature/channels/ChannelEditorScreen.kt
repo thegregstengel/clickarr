@@ -34,6 +34,7 @@ import androidx.tv.material3.Text
 import kotlin.time.Duration.Companion.minutes
 import net.clickarr.core.model.ChannelIcon
 import net.clickarr.core.model.ChannelId
+import net.clickarr.core.model.EpisodeRuns
 import net.clickarr.core.model.OrderingMode
 import net.clickarr.feature.channels.EditorViewModel.Step
 import net.clickarr.ui.design.ClickarrColors
@@ -247,6 +248,16 @@ private fun DetailsFields(d: EditorViewModel.Draft, vm: EditorViewModel) {
         Chip("In order", d.order == OrderingMode.SEQUENTIAL) { vm.updateDraft { it.copy(order = OrderingMode.SEQUENTIAL) } }
         Chip("Shuffle", d.order == OrderingMode.SHUFFLE) { vm.updateDraft { it.copy(order = OrderingMode.SHUFFLE) } }
     }
+    Text("Episodes in a row", style = ClickarrTextStyles.LabelAllCaps, color = ClickarrColors.TextMuted)
+    Text(
+        "How many episodes of one show play back to back, in aired order, before the channel moves on.",
+        style = ClickarrTextStyles.Caption,
+        color = ClickarrColors.TextMuted,
+    )
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Chip("One at a time", d.runs == null) { vm.updateDraft { it.copy(runs = null) } }
+        RUN_CHOICES.forEach { (label, runs) -> Chip(label, d.runs == runs) { vm.updateDraft { it.copy(runs = runs) } } }
+    }
     Text("Time slots", style = ClickarrTextStyles.LabelAllCaps, color = ClickarrColors.TextMuted)
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Chip("Back to back", d.rounding == null) { vm.updateDraft { it.copy(rounding = null) } }
@@ -272,3 +283,9 @@ private fun DetailsFields(d: EditorViewModel.Draft, vm: EditorViewModel) {
 }
 
 private const val PICKED_PREVIEW = 8
+private val RUN_CHOICES = listOf(
+    "2 in a row" to EpisodeRuns(2, 2),
+    "3 in a row" to EpisodeRuns(3, 3),
+    "2 to 4" to EpisodeRuns(2, 4),
+    "3 to 6" to EpisodeRuns(3, 6),
+)

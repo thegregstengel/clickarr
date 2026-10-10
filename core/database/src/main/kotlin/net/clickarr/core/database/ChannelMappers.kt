@@ -5,6 +5,7 @@ import kotlinx.datetime.Instant
 import net.clickarr.core.model.Channel
 import net.clickarr.core.model.ChannelIcon
 import net.clickarr.core.model.ChannelId
+import net.clickarr.core.model.EpisodeRuns
 import net.clickarr.core.model.LineupEntry
 import net.clickarr.core.model.LineupSnapshot
 import net.clickarr.core.model.LineupSnapshotId
@@ -23,6 +24,8 @@ fun Channel.toEntity(updatedAt: Instant) = ChannelEntity(
     orderMode = order.name,
     slotRoundingMs = slotRounding?.inWholeMilliseconds,
     seed = seed,
+    runsMin = runs?.min,
+    runsMax = runs?.max,
     lineupId = lineup.value,
     anchorEpochMs = anchor.toEpochMilliseconds(),
     pendingLineupId = pendingLineup?.value,
@@ -40,6 +43,7 @@ fun ChannelEntity.toModel() = Channel(
     order = OrderingMode.valueOf(orderMode),
     slotRounding = slotRoundingMs?.milliseconds,
     seed = seed,
+    runs = if (runsMin != null && runsMax != null) EpisodeRuns(runsMin, runsMax) else null,
     lineup = LineupSnapshotId(lineupId),
     anchor = Instant.fromEpochMilliseconds(anchorEpochMs),
     pendingLineup = pendingLineupId?.let(::LineupSnapshotId),
@@ -50,7 +54,9 @@ fun ChannelEntity.toModel() = Channel(
 fun LineupSnapshot.toEntities(): Pair<LineupSnapshotEntity, List<LineupEntryEntity>> =
     LineupSnapshotEntity(id.value, channelId.value, createdAt.toEpochMilliseconds(), contentHash, entries.size) to
         entries.mapIndexed { i, e ->
-            LineupEntryEntity(id.value, i, e.ref.provider.value, e.ref.id.value, e.duration.inWholeMilliseconds, e.title, e.subtitle)
+            LineupEntryEntity(
+                id.value, i, e.ref.provider.value, e.ref.id.value, e.duration.inWholeMilliseconds, e.title, e.subtitle, e.group,
+            )
         }
 
 fun toLineup(snapshot: LineupSnapshotEntity, entries: List<LineupEntryEntity>) = LineupSnapshot(
@@ -58,7 +64,9 @@ fun toLineup(snapshot: LineupSnapshotEntity, entries: List<LineupEntryEntity>) =
     channelId = ChannelId(snapshot.channelId),
     createdAt = Instant.fromEpochMilliseconds(snapshot.createdAtEpochMs),
     entries = entries.sortedBy { it.position }.map {
-        LineupEntry(MediaRef(ProviderId(it.providerId), NativeItemId(it.nativeId)), it.durationMs.milliseconds, it.title, it.subtitle)
+        LineupEntry(
+            MediaRef(ProviderId(it.providerId), NativeItemId(it.nativeId)), it.durationMs.milliseconds, it.title, it.subtitle, it.groupKey,
+        )
     },
     contentHash = snapshot.contentHash,
 )

@@ -80,6 +80,8 @@ data class ChannelEntity(
     val orderMode: String,
     val slotRoundingMs: Long?,
     val seed: Long,
+    val runsMin: Int?,
+    val runsMax: Int?,
     val lineupId: String,
     val anchorEpochMs: Long,
     val pendingLineupId: String?,
@@ -109,6 +111,7 @@ data class LineupEntryEntity(
     val durationMs: Long,
     val title: String,
     val subtitle: String?,
+    val groupKey: String?,
 )
 
 /** Single row (id = 1): this install's household membership. */

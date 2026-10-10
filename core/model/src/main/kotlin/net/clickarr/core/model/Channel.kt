@@ -87,6 +87,8 @@ data class Channel(
     val slotRounding: Duration? = null,
     /** Fixed at creation. Drives shuffle permutations. */
     val seed: Long,
+    /** Episodes of one show in a row, or null for one at a time (scheduler version 2). */
+    val runs: EpisodeRuns? = null,
     /** The lineup currently in effect. */
     val lineup: LineupSnapshotId,
     /** Cycle 0 of [lineup] begins here. */
@@ -103,7 +105,21 @@ data class LineupEntry(
     val duration: Duration,
     val title: String,
     val subtitle: String? = null,
+    /** Entries that belong together in order (a show's episodes): the key is the show's id. Movies have none. */
+    val group: String? = null,
 )
+
+/**
+ * How many entries of one group play back to back before the channel moves on: between [min] and [max],
+ * chosen per run from the channel's seed. With shuffle the runs are shuffled; in order they alternate
+ * between groups. Episodes inside a run always stay in aired order.
+ */
+@Serializable
+data class EpisodeRuns(val min: Int, val max: Int) {
+    init {
+        require(min >= 1 && max >= min) { "runs need 1 <= min <= max" }
+    }
+}
 
 /**
  * The frozen, ordered list of items a channel cycles through. Two devices holding the same

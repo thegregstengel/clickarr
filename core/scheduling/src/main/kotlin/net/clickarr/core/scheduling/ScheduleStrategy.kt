@@ -22,4 +22,4 @@ interface ScheduleStrategy {
  * Bumped only when a change would make an older build compute a different schedule from the same
  * inputs. Household members refuse state stamped with a newer version (proposal 9.1).
  */
-const val SCHEDULER_VERSION: Int = 1
+const val SCHEDULER_VERSION: Int = 2

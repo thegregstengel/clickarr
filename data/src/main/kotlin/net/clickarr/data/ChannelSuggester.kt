@@ -6,6 +6,7 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 import net.clickarr.core.common.Outcome
 import net.clickarr.core.model.ChannelIcon
+import net.clickarr.core.model.EpisodeRuns
 import net.clickarr.core.model.Library
 import net.clickarr.core.model.LibraryKind
 import net.clickarr.core.model.MediaFilter
@@ -32,6 +33,7 @@ class ChannelSuggester @Inject constructor(private val registry: ProviderRegistr
         val slotRounding: Duration?,
         /** Why it is on the list, for the picker: "14 comedies", "Your Lord of the Rings collection". */
         val reason: String,
+        val runs: EpisodeRuns? = null,
     )
 
     suspend fun suggest(): Outcome<List<Suggestion>> {
@@ -96,7 +98,7 @@ class ChannelSuggester @Inject constructor(private val registry: ProviderRegistr
                 val filter = MediaFilter(genres = setOf(genre))
                 Suggestion(
                     genreName(genre, unit), ProgrammingSource.Library(lib.ref, filter), glyph(GENRE_GLYPHS[genre.lowercase()] ?: "tv"),
-                    OrderingMode.SHUFFLE, rounding, "$count $unit tagged $genre",
+                    OrderingMode.SHUFFLE, rounding, "$count $unit tagged $genre", runs = showRuns(unit),
                 )
             }
 
@@ -109,9 +111,12 @@ class ChannelSuggester @Inject constructor(private val registry: ProviderRegistr
                 val name = "${decade}s ${unit.replaceFirstChar { it.uppercase() }}"
                 Suggestion(
                     name, ProgrammingSource.Library(lib.ref, MediaFilter(decadeStart = decade)),
-                    glyph("history"), OrderingMode.SHUFFLE, rounding, "$count $unit from the ${decade}s",
+                    glyph("history"), OrderingMode.SHUFFLE, rounding, "$count $unit from the ${decade}s", runs = showRuns(unit),
                 )
             }
+
+    /** Shuffled shows play two or three episodes in a row; movies are one at a time. */
+    private fun showRuns(unit: String): EpisodeRuns? = if (unit == "shows") EpisodeRuns(2, SHOW_RUN_MAX) else null
 
     private fun genreName(genre: String, unit: String): String = when (unit) {
         "movies" -> "$genre Movies"
@@ -144,6 +149,7 @@ class ChannelSuggester @Inject constructor(private val registry: ProviderRegistr
         private const val MIN_MOVIES_FOR_ALL = 10
         private const val MAX_ITEMS_SCANNED = 2_000
         private const val DECADE = 10
+        private const val SHOW_RUN_MAX = 3
         private val GENRE_GLYPHS = mapOf(
             "comedy" to "laugh", "drama" to "drama", "horror" to "ghost", "science fiction" to "rocket", "sci-fi" to "rocket",
             "action" to "swords", "adventure" to "compass", "romance" to "heart", "animation" to "baby", "children" to "baby",

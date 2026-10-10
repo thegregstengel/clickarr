@@ -15,6 +15,7 @@ import net.clickarr.core.model.Channel
 import net.clickarr.core.model.ChannelIcon
 import net.clickarr.core.model.ChannelId
 import net.clickarr.core.model.Collection
+import net.clickarr.core.model.EpisodeRuns
 import net.clickarr.core.model.Library
 import net.clickarr.core.model.LibraryKind
 import net.clickarr.core.model.MediaFilter
@@ -70,6 +71,7 @@ class EditorViewModel @Inject constructor(
         val order: OrderingMode = OrderingMode.SEQUENTIAL,
         val rounding: Duration? = null,
         val icon: ChannelIcon? = null,
+        val runs: EpisodeRuns? = null,
         /** Set when editing an existing channel. */
         val editing: Channel? = null,
     )
@@ -195,7 +197,7 @@ class EditorViewModel @Inject constructor(
         _step.value = Step.Loading
         viewModelScope.launch {
             val c = repository.byId(id) ?: return@launch fail("That channel no longer exists")
-            _step.value = Step.Details(Draft(c.source, c.name, c.name, c.number, c.order, c.slotRounding, c.icon, editing = c))
+            _step.value = Step.Details(Draft(c.source, c.name, c.name, c.number, c.order, c.slotRounding, c.icon, c.runs, editing = c))
         }
     }
 
@@ -225,8 +227,10 @@ class EditorViewModel @Inject constructor(
         val name = d.name.ifBlank { d.suggestedName }
         viewModelScope.launch {
             val r = d.editing?.let { c ->
-                repository.update(c.copy(name = name, number = d.number, order = d.order, slotRounding = d.rounding, icon = d.icon))
-            } ?: repository.create(d.number, name, d.source, d.order, d.rounding, d.icon)
+                repository.update(
+                    c.copy(name = name, number = d.number, order = d.order, slotRounding = d.rounding, icon = d.icon, runs = d.runs),
+                )
+            } ?: repository.create(d.number, name, d.source, d.order, d.rounding, d.icon, d.runs)
             _step.value = when (r) {
                 is Outcome.Success -> Step.Saved(r.value.name, r.value.number)
                 is Outcome.Failure -> Step.Failed(r.error.message)
