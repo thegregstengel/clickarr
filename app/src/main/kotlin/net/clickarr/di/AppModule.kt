@@ -22,6 +22,7 @@ import net.clickarr.core.scheduling.ScheduleStrategy
 import net.clickarr.core.secrets.SecretStore
 import net.clickarr.data.DevicePrefs
 import net.clickarr.provider.api.ClientIdentity
+import net.clickarr.playback.media3.DeviceProfiles
 import net.clickarr.provider.api.DeviceProfile
 import net.clickarr.provider.plex.PlexAuth
 import net.clickarr.provider.plex.PlexProviderFactory
@@ -57,10 +58,10 @@ object AppModule {
     @Singleton
     fun strategy(): ScheduleStrategy = CyclicLineupStrategy()
 
-    /** Conservative until the device probe lands in Phase 3 (proposal 10.5). */
+    /** What this device can decode and show, probed once at startup (proposal 10.5). */
     @Provides
     @Singleton
-    fun deviceProfile(): DeviceProfile = DeviceProfile.Conservative
+    fun deviceProfile(@ApplicationContext context: Context): DeviceProfile = DeviceProfiles.probe(context)
 
     @Provides
     @Singleton
