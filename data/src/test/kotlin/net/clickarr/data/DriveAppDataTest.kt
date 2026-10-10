@@ -40,7 +40,8 @@ class DriveAppDataTest {
     @Test
     fun `create uploads metadata and content as one related multipart body`() = runBlocking {
         server.enqueue(MockResponse().setBody("""{"id":"new","appProperties":{"revision":"1"}}"""))
-        val file = drive.create("household-state.json", """{"revision":1}""", 1).shouldBeInstanceOf<Outcome.Success<DriveAppData.File>>().value
+        val created = drive.create("household-state.json", """{"revision":1}""", 1)
+        val file = created.shouldBeInstanceOf<Outcome.Success<DriveAppData.File>>().value
         file.id shouldBe "new"
         val request = server.takeRequest()
         request.getHeader("Content-Type") shouldContain "multipart/related"
