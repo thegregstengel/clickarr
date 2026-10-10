@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
@@ -26,12 +27,15 @@ import net.clickarr.ui.design.ClickarrColors
 fun ClickarrApp(onExit: () -> Unit, viewModel: AppViewModel = hiltViewModel()) {
     val ready by viewModel.ready.collectAsState()
     val hasServer by viewModel.hasServer.collectAsState()
+    val hadChannels by viewModel.hadChannelsAtStart.collectAsState()
     if (!ready) {
         Box(Modifier.fillMaxSize().background(ClickarrColors.BgBase))
         return
     }
     val nav = rememberNavController()
-    NavHost(navController = nav, startDestination = if (hasServer) Routes.PLAYER else Routes.SETUP) {
+    // With a server but no channels, the Channels tab is the only useful place to land; the player would be black.
+    val start = remember { if (!hasServer) Routes.SETUP else if (hadChannels) Routes.PLAYER else Routes.shell() }
+    NavHost(navController = nav, startDestination = start) {
         composable(Routes.SETUP) {
             SetupScreen(onDone = { nav.navigate(Routes.shell()) { popUpTo(Routes.SETUP) { inclusive = true } } })
         }

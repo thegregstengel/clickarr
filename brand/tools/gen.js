@@ -237,8 +237,16 @@ png('png/logo-horizontal-on-dark-1600.png', horizontalSvg({ bg: true, height: 20
 write('android/ic_launcher_foreground.svg', adaptiveForegroundSvg());
 png('android/ic_launcher_foreground-432.png', adaptiveForegroundSvg(), 432);
 write('android/ic_launcher_background.txt', `${C.bg}\n`);
-const densities = { mdpi: 48, hdpi: 72, xhdpi: 96, xxhdpi: 144, xxxhdpi: 192 };
-for (const [d, px] of Object.entries(densities)) png(`android/mipmap-${d}/ic_launcher.png`, legacyIconSvg(px), px);
+// Fire TV draws a sideloaded app's android:icon (not its banner) inside the 16:9 rounded tile on the home
+// screen, so the launcher icon itself is the rounded lockup. Larger than the nominal density sizes on purpose:
+// the tile is drawn at several hundred pixels wide. Android TV's launcher still uses the banner.
+function tileIconSvg(W) {
+  const H = Math.round(W * 9 / 16);
+  return bannerSvg(W, H).replace(`<rect width="${W}" height="${H}" fill="url(#bn-bg)"/>`,
+    `<rect width="${W}" height="${H}" rx="${Math.round(H * 0.09)}" fill="url(#bn-bg)"/>`);
+}
+const densities = { mdpi: 160, hdpi: 240, xhdpi: 320, xxhdpi: 480, xxxhdpi: 640 };
+for (const [d, px] of Object.entries(densities)) png(`android/mipmap-${d}/ic_launcher.png`, tileIconSvg(px), px);
 png('android/ic_launcher-512.png', legacyIconSvg(512), 512);               // Play/Amazon listing icon
 write('android/banner.svg', bannerSvg(320, 180));
 png('android/drawable-xhdpi/banner.png', bannerSvg(320, 180), 320);        // Android TV banner spec: 320x180 @ xhdpi

@@ -52,7 +52,11 @@ fun FillerCard(state: TuneState, now: Instant, reason: String?, showHeader: Bool
                 Text("Nothing scheduled", style = ClickarrTextStyles.ProgramTitle)
             } else if (channel == null) {
                 Text("No channels yet", style = ClickarrTextStyles.ProgramTitle)
-                Text("Press Back to create one.", style = ClickarrTextStyles.Secondary, color = ClickarrColors.TextSecondary)
+                Text(
+                    "Press Back for the Channels tab and choose Create channel.",
+                    style = ClickarrTextStyles.Secondary,
+                    color = ClickarrColors.TextSecondary,
+                )
             }
         }
     }

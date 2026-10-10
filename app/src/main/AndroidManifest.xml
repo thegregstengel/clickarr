@@ -22,6 +22,7 @@
 
         <activity
             android:name=".MainActivity"
+            android:banner="@drawable/banner"
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode"
             android:exported="true"
             android:launchMode="singleTask"

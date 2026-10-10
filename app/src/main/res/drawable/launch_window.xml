@@ -1,5 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Window background while the first frame composes: the mark over the wordmark, centred on the brand dark. -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:drawable="@color/bg_base" />
-    <item android:gravity="center" android:width="160dp" android:height="160dp" android:drawable="@drawable/ic_clickarr_mark" />
+    <item
+        android:gravity="center"
+        android:width="144dp"
+        android:height="144dp"
+        android:bottom="72dp"
+        android:drawable="@drawable/ic_clickarr_mark" />
+    <item
+        android:gravity="center"
+        android:width="236dp"
+        android:height="54dp"
+        android:top="168dp"
+        android:drawable="@drawable/ic_clickarr_wordmark" />
 </layer-list>

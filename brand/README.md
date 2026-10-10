@@ -17,7 +17,7 @@ The wordmark is set in Inter Display Black and outlined to paths, so no SVG here
 |---|---|
 | `svg/` | Masters. `logo-mark` (TV), `logo-mark-mono` (single color, uses `currentColor`), `wordmark`, `logo-horizontal`, `logo-stacked`, each with on-dark variants where useful. |
 | `png/` | General-purpose exports of the masters. |
-| `android/` | `ic_launcher_foreground.svg` (adaptive icon foreground, 108 dp canvas, mark inside the 66 dp safe zone), `ic_launcher_background.txt` (the background color), legacy `mipmap-*/ic_launcher.png`, `ic_launcher-512.png` for store listings, and the TV banner at 320×180 (the Android TV spec size) plus 1280×720 and 1920×1080. |
+| `android/` | `mipmap-*/ic_launcher.png`, the launcher icon as a rounded 16:9 lockup (Fire TV draws a sideloaded app's icon, not its banner, in the home-screen tile, so the icon is the tile; the app ships no adaptive icon for the same reason), `ic_launcher_foreground.svg` and `ic_launcher_background.txt` kept for store listings that want a square adaptive icon, `ic_launcher-512.png` for store listings, and the TV banner at 320×180 (the Android TV spec size) plus 1280×720 and 1920×1080. |
 | `web/` | `favicon.ico` (16/32/48), `favicon.svg`, PNG icons at common sizes, `apple-touch-icon.png`, and `og-image.png` (1200×630) for link previews. |
 
 ## Colors

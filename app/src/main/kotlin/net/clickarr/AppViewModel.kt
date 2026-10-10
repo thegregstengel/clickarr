@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -31,9 +32,14 @@ class AppViewModel @Inject constructor(
     val channelCount: StateFlow<Int> = channels.channels.map { it.size }
         .stateIn(viewModelScope, SharingStarted.Eagerly, 0)
 
+    /** Whether any channel existed when the app came up; decides the first screen. */
+    private val _hadChannelsAtStart = MutableStateFlow(false)
+    val hadChannelsAtStart: StateFlow<Boolean> = _hadChannelsAtStart.asStateFlow()
+
     init {
         viewModelScope.launch {
             registry.load()
+            _hadChannelsAtStart.value = channels.channels.first().isNotEmpty()
             _ready.value = true
             household.start()
         }
