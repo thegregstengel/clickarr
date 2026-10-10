@@ -145,23 +145,9 @@ class Coordinator(
     }
 
     suspend fun pairComplete(req: PairCompleteRequest): Outcome<PairCompleteResponse> {
-        val pin = activePin?.takeIf { it.expiresAt > clock.now() }
-            ?: return Outcome.Failure(ClickarrError.Unauthorized("Pairing window closed"))
-        val session = sessions[req.sessionId] ?: return Outcome.Failure(ClickarrError.NotFound("Unknown pairing session"))
-        if (session.expiresAt <= clock.now()) {
-            sessions.remove(req.sessionId)
-            return Outcome.Failure(ClickarrError.Unauthorized("Pairing session expired"))
-        }
-        val expected = Pairing.proof(pin.pin, session.nonce, req.sessionId, session.joinerFingerprint, fingerprint())
-        if (!Pairing.verify(expected, req.proof)) {
-            session.attempts++
-            if (session.attempts >= Pairing.MAX_ATTEMPTS) {
-                sessions.remove(req.sessionId)
-                activePin = null
-                Log.w(TAG) { "pairing aborted after ${Pairing.MAX_ATTEMPTS} wrong PINs" }
-                return Outcome.Failure(ClickarrError.Unauthorized("Too many wrong PINs; start again from the other TV"))
-            }
-            return Outcome.Failure(ClickarrError.Unauthorized("Wrong PIN"))
+        val session = when (val check = validatePairing(req)) {
+            is Outcome.Success -> check.value
+            is Outcome.Failure -> return check
         }
         // Success: one PIN pairs one device.
         sessions.remove(req.sessionId)
@@ -178,6 +164,29 @@ class Coordinator(
         }
         Log.i(TAG) { "paired ${session.deviceName}" }
         return Outcome.Success(PairCompleteResponse(state.value.household.id, token, fingerprint(), state.value))
+    }
+
+    /** Window open, session known and fresh, proof correct (with the three-attempt rule). */
+    private fun validatePairing(req: PairCompleteRequest): Outcome<PairSession> {
+        val pin = activePin?.takeIf { it.expiresAt > clock.now() }
+            ?: return Outcome.Failure(ClickarrError.Unauthorized("Pairing window closed"))
+        val session = sessions[req.sessionId] ?: return Outcome.Failure(ClickarrError.NotFound("Unknown pairing session"))
+        if (session.expiresAt <= clock.now()) {
+            sessions.remove(req.sessionId)
+            return Outcome.Failure(ClickarrError.Unauthorized("Pairing session expired"))
+        }
+        val expected = Pairing.proof(pin.pin, session.nonce, req.sessionId, session.joinerFingerprint, fingerprint())
+        if (Pairing.verify(expected, req.proof)) return Outcome.Success(session)
+        session.attempts++
+        val message = if (session.attempts >= Pairing.MAX_ATTEMPTS) {
+            sessions.remove(req.sessionId)
+            activePin = null
+            Log.w(TAG) { "pairing aborted after ${Pairing.MAX_ATTEMPTS} wrong PINs" }
+            "Too many wrong PINs; start again from the other TV"
+        } else {
+            "Wrong PIN"
+        }
+        return Outcome.Failure(ClickarrError.Unauthorized(message))
     }
 
     private suspend fun commit(next: HouseholdState) {

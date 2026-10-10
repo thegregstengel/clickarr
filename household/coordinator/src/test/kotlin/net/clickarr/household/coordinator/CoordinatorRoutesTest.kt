@@ -62,7 +62,7 @@ class CoordinatorRoutesTest {
         kotlinx.serialization.serializer<T>(), kotlinx.coroutines.runBlocking { bodyAsText() },
     )
 
-    private suspend fun ApplicationTestBuilder.pair(c: Coordinator, pin: String, deviceId: String = "bedroom"): PairCompleteResponse {
+    private suspend fun ApplicationTestBuilder.pair(pin: String, deviceId: String = "bedroom"): PairCompleteResponse {
         val start = client.post("/v1/pair/start") {
             contentType(ContentType.Application.Json)
             setBody(ProtocolJson.encodeToString(PairStartRequest.serializer(), PairStartRequest(DeviceId(deviceId), "Bedroom", "bed-fp")))
@@ -101,7 +101,7 @@ class CoordinatorRoutesTest {
         val c = coordinator(store)
         application { coordinatorRoutes(c) }
         val pin = c.beginAcceptingJoins().pin
-        val paired = pair(c, pin)
+        val paired = pair(pin)
         paired.coordinatorFingerprint shouldBe "coord-fp"
         paired.state.devices.map { it.name } shouldBe listOf("Living Room", "Bedroom")
         store.tokens.size shouldBe 1
@@ -175,7 +175,7 @@ class CoordinatorRoutesTest {
         val store = InMemoryCoordinatorStore()
         val c = coordinator(store)
         application { coordinatorRoutes(c) }
-        val token = pair(c, c.beginAcceptingJoins().pin).deviceToken
+        val token = pair(c.beginAcceptingJoins().pin).deviceToken
         client.get("/v1/state") { header("Authorization", "Bearer $token") }.status shouldBe HttpStatusCode.OK
         c.apply(Command.RemoveDevice(DeviceId("bedroom")), livingRoom)
         client.get("/v1/state") { header("Authorization", "Bearer $token") }.status shouldBe HttpStatusCode.Unauthorized

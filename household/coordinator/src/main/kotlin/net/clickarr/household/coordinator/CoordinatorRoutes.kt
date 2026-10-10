@@ -8,6 +8,7 @@ import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.request.header
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
+import io.ktor.server.routing.Route
 import io.ktor.server.routing.RoutingCall
 import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
@@ -37,83 +38,91 @@ import net.clickarr.household.protocol.ProtocolJson
 fun Application.coordinatorRoutes(coordinator: Coordinator) {
     install(ContentNegotiation) { json(ProtocolJson) }
     install(WebSockets)
-
     routing {
         get("/v1/info") { call.respond(coordinator.info()) }
+        pairingRoutes(coordinator)
+        stateRoutes(coordinator)
+        commandRoutes(coordinator)
+        eventRoutes(coordinator)
+    }
+}
 
-        post("/v1/pair/start") {
-            val req = call.receive<PairStartRequest>()
-            call.respondOutcome(coordinator.pairStart(req))
+private fun Route.pairingRoutes(coordinator: Coordinator) {
+    post("/v1/pair/start") {
+        val req = call.receive<PairStartRequest>()
+        call.respondOutcome(coordinator.pairStart(req))
+    }
+    post("/v1/pair/complete") {
+        val req = call.receive<PairCompleteRequest>()
+        call.respondOutcome(coordinator.pairComplete(req))
+    }
+}
+
+private fun Route.stateRoutes(coordinator: Coordinator) {
+    get("/v1/state") {
+        val device = call.authenticated(coordinator) ?: return@get
+        coordinator.markSeen(device)
+        val state = coordinator.tick()
+        val etag = "\"${state.revision}\""
+        if (call.request.header("If-None-Match") == etag) {
+            call.respond(HttpStatusCode.NotModified)
+        } else {
+            call.response.headers.append("ETag", etag)
+            call.respond(state)
         }
-
-        post("/v1/pair/complete") {
-            val req = call.receive<PairCompleteRequest>()
-            call.respondOutcome(coordinator.pairComplete(req))
+    }
+    get("/v1/lineups/{id}") {
+        call.authenticated(coordinator) ?: return@get
+        val id = call.parameters["id"]
+        val lineup = coordinator.state.value.lineups.firstOrNull { it.id.value == id }
+        if (lineup == null) {
+            call.respond(HttpStatusCode.NotFound, ErrorResponse(ErrorResponse.NOT_FOUND, "No lineup $id"))
+        } else {
+            call.respond(lineup)
         }
+    }
+    get("/v1/devices") {
+        call.authenticated(coordinator) ?: return@get
+        call.respond(coordinator.state.value.devices)
+    }
+}
 
-        get("/v1/state") {
-            val device = call.authenticated(coordinator) ?: return@get
-            coordinator.markSeen(device)
-            val state = coordinator.tick()
-            val etag = "\"${state.revision}\""
-            if (call.request.header("If-None-Match") == etag) {
-                call.respond(HttpStatusCode.NotModified)
-            } else {
-                call.response.headers.append("ETag", etag)
-                call.respond(state)
+private fun Route.commandRoutes(coordinator: Coordinator) {
+    post("/v1/commands") {
+        val device = call.authenticated(coordinator) ?: return@post
+        val command = call.receive<Command>()
+        call.respondCommand(coordinator.apply(command, device))
+    }
+    delete("/v1/devices/{id}") {
+        val device = call.authenticated(coordinator) ?: return@delete
+        val target = DeviceId(call.parameters["id"].orEmpty())
+        call.respondCommand(coordinator.apply(Command.RemoveDevice(target), device))
+    }
+}
+
+private fun Route.eventRoutes(coordinator: Coordinator) {
+    webSocket("/v1/events") {
+        val token = call.request.queryParameters["token"] ?: call.request.header("Authorization")?.removePrefix("Bearer ")
+        if (coordinator.authenticate(token) == null) {
+            close()
+            return@webSocket
+        }
+        val pings = flow {
+            while (true) {
+                delay(PING_INTERVAL_MS)
+                emit(Event.Ping(coordinator.info().now))
             }
         }
+        merge(coordinator.events, pings)
+            .onEach { send(Frame.Text(ProtocolJson.encodeToString(Event.serializer(), it))) }
+            .collect()
+    }
+}
 
-        get("/v1/lineups/{id}") {
-            call.authenticated(coordinator) ?: return@get
-            val id = call.parameters["id"]
-            val lineup = coordinator.state.value.lineups.firstOrNull { it.id.value == id }
-            if (lineup == null) {
-                call.respond(HttpStatusCode.NotFound, ErrorResponse(ErrorResponse.NOT_FOUND, "No lineup $id"))
-            } else {
-                call.respond(lineup)
-            }
-        }
-
-        post("/v1/commands") {
-            val device = call.authenticated(coordinator) ?: return@post
-            val command = call.receive<Command>()
-            when (val r = coordinator.apply(command, device)) {
-                is Outcome.Success -> call.respond(CommandResponse(r.value.revision))
-                is Outcome.Failure -> call.respondError(r.error)
-            }
-        }
-
-        get("/v1/devices") {
-            call.authenticated(coordinator) ?: return@get
-            call.respond(coordinator.state.value.devices)
-        }
-
-        delete("/v1/devices/{id}") {
-            val device = call.authenticated(coordinator) ?: return@delete
-            val target = DeviceId(call.parameters["id"].orEmpty())
-            when (val r = coordinator.apply(Command.RemoveDevice(target), device)) {
-                is Outcome.Success -> call.respond(CommandResponse(r.value.revision))
-                is Outcome.Failure -> call.respondError(r.error)
-            }
-        }
-
-        webSocket("/v1/events") {
-            val token = call.request.queryParameters["token"] ?: call.request.header("Authorization")?.removePrefix("Bearer ")
-            if (coordinator.authenticate(token) == null) {
-                close()
-                return@webSocket
-            }
-            val pings = flow {
-                while (true) {
-                    delay(PING_INTERVAL_MS)
-                    emit(Event.Ping(coordinator.info().now))
-                }
-            }
-            merge(coordinator.events, pings)
-                .onEach { send(Frame.Text(ProtocolJson.encodeToString(Event.serializer(), it))) }
-                .collect()
-        }
+private suspend fun RoutingCall.respondCommand(result: Outcome<net.clickarr.core.model.HouseholdState>) {
+    when (result) {
+        is Outcome.Success -> respond(CommandResponse(result.value.revision))
+        is Outcome.Failure -> respondError(result.error)
     }
 }
 
