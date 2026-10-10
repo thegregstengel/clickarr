@@ -41,6 +41,8 @@ jobs:
       - name: Assemble debug APK
         env:
           CLICKARR_VERSION_CODE: ${{ env.VERSION_CODE }}
+          CLICKARR_GOOGLE_CLIENT_ID: ${{ secrets.CLICKARR_GOOGLE_CLIENT_ID }}
+          CLICKARR_GOOGLE_CLIENT_SECRET: ${{ secrets.CLICKARR_GOOGLE_CLIENT_SECRET }}
         run: ./gradlew :app:assembleDebug --no-daemon
 
       - name: Describe the build for the in-app updater

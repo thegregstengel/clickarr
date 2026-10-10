@@ -75,7 +75,7 @@ fun SettingsScreen(
                 SettingsSection.SERVER -> ServerPane(viewModel, actions.onDisconnected)
                 SettingsSection.CHANNELS -> ChannelsPane(viewModel, actions)
                 SettingsSection.PLAYBACK -> PlaybackPane(viewModel)
-                SettingsSection.SYNC -> HouseholdPane()
+                SettingsSection.SYNC -> SyncPane()
                 SettingsSection.DIAGNOSTICS -> DiagnosticsPane(viewModel)
                 SettingsSection.ABOUT -> AboutPane(appVersion, appVersionCode, viewModel, actions)
             }

@@ -12,6 +12,9 @@ android {
         // CI sets CLICKARR_VERSION_CODE to the minutes since 2026-01-01 so every build is a newer version.
         versionCode = System.getenv("CLICKARR_VERSION_CODE")?.toIntOrNull() ?: 2
         versionName = "0.1.0-dev"
+        // Google OAuth client for Drive sync (ADR 0020); empty in builds without one, and the Sync pane says so.
+        buildConfigField("String", "GOOGLE_CLIENT_ID", "\"${System.getenv("CLICKARR_GOOGLE_CLIENT_ID").orEmpty()}\"")
+        buildConfigField("String", "GOOGLE_CLIENT_SECRET", "\"${System.getenv("CLICKARR_GOOGLE_CLIENT_SECRET").orEmpty()}\"")
     }
 
     // Release signing comes from the environment (docs/release.md). Without it, release builds stay unsigned.

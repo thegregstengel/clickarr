@@ -63,7 +63,10 @@ private fun Pick(s: Step.Pick, vm: SuggestViewModel) {
         Button(onClick = vm::createPicked) { Text("Create selected (${s.picked.size})") }
     }
     if (s.suggestions.isEmpty()) {
-        Text("Nothing to suggest yet: the library has no collections, playlists, or genres with enough titles.", style = ClickarrTextStyles.Secondary)
+        Text(
+            "Nothing to suggest yet: the library has no collections, playlists, or genres with enough titles.",
+            style = ClickarrTextStyles.Secondary,
+        )
     }
     LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         itemsIndexed(s.suggestions) { i, sug ->

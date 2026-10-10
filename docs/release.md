@@ -38,6 +38,13 @@ from the environment only when `CLICKARR_KEYSTORE_PATH` is set, so local release
 `clickarr.net/apk` redirects to the latest release's `clickarr.apk`, which is the URL to give Downloader.
 `clickarr.net/nightly` keeps pointing at the debug nightly.
 
+## Google Drive sync
+
+Create a Google Cloud project, enable the Google Drive API, publish an OAuth consent screen named Clickarr with the
+`drive.appdata` and `email` scopes, and create an OAuth client of type **TVs and Limited Input devices**. Add the id
+and secret as repository secrets `CLICKARR_GOOGLE_CLIENT_ID` and `CLICKARR_GOOGLE_CLIENT_SECRET`; CI passes them to
+every build. For the TV flow Google does not treat the client secret as confidential (SECURITY.md).
+
 ## In the app
 
 Settings, About, "Check for updates" asks the GitHub releases API for the latest tag and compares it with the

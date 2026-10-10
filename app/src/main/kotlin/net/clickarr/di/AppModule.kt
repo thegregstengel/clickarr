@@ -21,6 +21,7 @@ import net.clickarr.core.scheduling.CyclicLineupStrategy
 import net.clickarr.core.scheduling.ScheduleStrategy
 import net.clickarr.core.secrets.SecretStore
 import net.clickarr.data.DevicePrefs
+import net.clickarr.data.GoogleOAuthConfig
 import net.clickarr.provider.api.ClientIdentity
 import net.clickarr.playback.media3.DeviceProfiles
 import net.clickarr.provider.api.DeviceProfile
@@ -49,6 +50,10 @@ object AppModule {
     @Provides
     @Singleton
     fun prefs(@ApplicationContext context: Context): DevicePrefs = DevicePrefs(context)
+
+    @Provides
+    @Singleton
+    fun googleOAuth(): GoogleOAuthConfig = GoogleOAuthConfig(BuildConfig.GOOGLE_CLIENT_ID, BuildConfig.GOOGLE_CLIENT_SECRET)
 
     @Provides
     @Singleton

@@ -46,6 +46,8 @@ jobs:
       - name: Build the signed release APK
         env:
           CLICKARR_VERSION_CODE: ${{ env.VERSION_CODE }}
+          CLICKARR_GOOGLE_CLIENT_ID: ${{ secrets.CLICKARR_GOOGLE_CLIENT_ID }}
+          CLICKARR_GOOGLE_CLIENT_SECRET: ${{ secrets.CLICKARR_GOOGLE_CLIENT_SECRET }}
           CLICKARR_KEYSTORE_PATH: ${{ runner.temp }}/release.jks
           CLICKARR_KEYSTORE_PASSWORD: ${{ secrets.CLICKARR_KEYSTORE_PASSWORD }}
           CLICKARR_KEY_ALIAS: ${{ secrets.CLICKARR_KEY_ALIAS }}

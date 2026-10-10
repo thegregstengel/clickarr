@@ -19,6 +19,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.map
+import net.clickarr.core.database.HouseholdDeviceEntity
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -71,6 +73,8 @@ class HouseholdService @Inject constructor(
     private val secrets: SecretStore,
     private val prefs: DevicePrefs,
     private val okHttp: OkHttpClient,
+    private val registry: ProviderRegistry,
+    private val googleOAuth: GoogleOAuthConfig,
     @net.clickarr.di.ApplicationScope private val scope: CoroutineScope,
 ) {
     sealed interface Role {
@@ -81,11 +85,20 @@ class HouseholdService @Inject constructor(
             val tls: Boolean = true,
         ) : Role
         data class Member(val baseUrl: String, val connected: Boolean, val lastSync: Instant?) : Role
+
+        /** Google Drive holds the household document (ADR 0020). */
+        data object Drive : Role
     }
 
     private val systemClock = Clock { KxClock.System.now() }
     private val store = RoomCoordinatorStore(db, secrets) { systemClock.now() }
     private val discovery = HouseholdDiscovery(context)
+
+    val driveConfigured: Boolean get() = googleOAuth.configured
+    val drive: DriveSync by lazy {
+        val auth = GoogleDeviceAuth(googleOAuth, okHttp, secrets)
+        DriveSync(auth, DriveAppData(okHttp) { auth.accessToken() }, store, db, registry, systemClock, scope)
+    }
 
     private val _role = MutableStateFlow<Role>(Role.None)
     val role: StateFlow<Role> = _role.asStateFlow()
@@ -104,11 +117,32 @@ class HouseholdService @Inject constructor(
 
     suspend fun start() {
         val h = db.household().get()
-        when (h?.role) {
-            RoomCoordinatorStore.ROLE_COORDINATOR -> startCoordinator()
-            RoomCoordinatorStore.ROLE_MEMBER -> startMember(h)
+        when {
+            h?.role == RoomCoordinatorStore.ROLE_COORDINATOR -> startCoordinator()
+            h?.role == RoomCoordinatorStore.ROLE_MEMBER -> startMember(h)
+            prefs.syncMode.first() == DevicePrefs.SYNC_DRIVE && googleOAuth.configured -> startDrive()
             else -> _role.value = Role.None
         }
+    }
+
+    // ---- Google Drive ----
+
+    /** Drive mode needs a household row to hang the state on; make one on first use. */
+    suspend fun startDrive() {
+        if (db.household().get() == null) {
+            val now = systemClock.now().toEpochMilliseconds()
+            db.household().upsert(
+                HouseholdEntity(
+                    householdId = UUID.randomUUID().toString(), name = "My Clickarr", coordinatorDeviceId = selfId.value,
+                    createdAtEpochMs = now, role = ROLE_DRIVE, revision = 1, schedulerVersion = SCHEDULER_VERSION,
+                    coordinatorBaseUrl = null, coordinatorFingerprint = null, lastSyncEpochMs = null,
+                ),
+            )
+            db.household().replaceDevices(listOf(HouseholdDeviceEntity(selfId.value, prefs.deviceNameNow(), now, now)))
+        }
+        prefs.setSyncMode(DevicePrefs.SYNC_DRIVE)
+        _role.value = Role.Drive
+        drive.start()
     }
 
     // ---- Coordinator ----
@@ -130,7 +164,7 @@ class HouseholdService @Inject constructor(
                 lastSyncEpochMs = now.toEpochMilliseconds(),
             ),
         )
-        val self = net.clickarr.core.database.HouseholdDeviceEntity(
+        val self = HouseholdDeviceEntity(
             selfId.value, prefs.deviceNameNow(), now.toEpochMilliseconds(), now.toEpochMilliseconds(),
         )
         db.household().replaceDevices(listOf(self))
@@ -334,6 +368,7 @@ class HouseholdService @Inject constructor(
      */
     suspend fun apply(command: Command): Outcome<Boolean> = when (val r = _role.value) {
         is Role.None -> Outcome.Success(false)
+        is Role.Drive -> drive.apply(command).map { true }
         is Role.Coordinator -> coordinator?.apply(command, selfId)?.map { true } ?: Outcome.Success(false)
         is Role.Member -> {
             val c = client ?: return Outcome.Failure(ClickarrError.Unreachable("Not connected to the household"))
@@ -354,6 +389,10 @@ class HouseholdService @Inject constructor(
     }
 
     suspend fun leave() {
+        if (_role.value is Role.Drive) {
+            drive.stop()
+            prefs.setSyncMode(DevicePrefs.SYNC_OFF)
+        }
         memberJob?.cancel(); memberJob = null
         tickJob?.cancel(); tickJob = null
         discovery.stopAdvertising()
@@ -373,6 +412,7 @@ class HouseholdService @Inject constructor(
 
     companion object {
         private const val TAG = "Household"
+        const val ROLE_DRIVE = "DRIVE"
         private const val MEMBER_TOKEN = "household:member-token"
         val PIN_LIFETIME = Pairing.PIN_LIFETIME_SECONDS.seconds
     }

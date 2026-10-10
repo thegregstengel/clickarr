@@ -22,6 +22,9 @@ dependencies {
     api(project(":household:discovery"))
     implementation(libs.ktor.server.cio)
     implementation(libs.androidx.core.ktx)
+
+    testImplementation(libs.okhttp.mockwebserver)
+    testImplementation(libs.kotlinx.coroutines.test)
     implementation(libs.androidx.room.ktx)
     implementation("org.slf4j:slf4j-simple:2.0.17")
     api(libs.okhttp)

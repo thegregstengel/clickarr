@@ -58,6 +58,13 @@ class DevicePrefs(context: Context) {
         store.edit { it[UI_SCALE] = scale.coerceIn(MIN_UI_SCALE, 1f) }
     }
 
+    /** Settings, Sync: off, local (a LAN household), or drive (Google Drive, ADR 0020). */
+    val syncMode: Flow<String> = store.data.map { it[SYNC_MODE] ?: SYNC_OFF }
+
+    suspend fun setSyncMode(mode: String) {
+        store.edit { it[SYNC_MODE] = mode }
+    }
+
     /** Which builds the updater offers: nightly or release (Settings, About and Updates). */
     val updateChannel: Flow<String> = store.data.map { it[UPDATE_CHANNEL] ?: DEFAULT_UPDATE_CHANNEL }
 
@@ -91,6 +98,10 @@ class DevicePrefs(context: Context) {
         private val THEME = stringPreferencesKey("theme")
         private val GUIDE_HOURS = intPreferencesKey("guide_hours")
         private val UPDATE_CHANNEL = stringPreferencesKey("update_channel")
+        private val SYNC_MODE = stringPreferencesKey("sync_mode")
+        const val SYNC_OFF = "off"
+        const val SYNC_LOCAL = "local"
+        const val SYNC_DRIVE = "drive"
         const val DEFAULT_UPDATE_CHANNEL = "nightly"
         const val DEFAULT_GUIDE_HOURS = 6
         const val MIN_GUIDE_HOURS = 3

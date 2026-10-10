@@ -20,10 +20,11 @@ the household protocol and database may still change between minor versions.
 - Settings, Appearance, Theme: Clickarr (navy), Dark, Light, and Dracula.
 - Shell is Guide and Favorites with a settings cog; channels are created and edited under Settings, Channels. New channels default to back-to-back slots.
 - Guide: the focused program scrolls its title and episode when they do not fit; OK on a channel cell stars it as a favorite.
+- Settings, Sync: Off, Local household, or Google Drive (ADR 0020). Drive mode signs in with a TV code, keeps the household document in Drive's app folder, replays local edits over a newer remote state, and refuses a backup from a different Plex server. Needs a Google client in the build.
+- Settings, Channels, Suggest channels: a practical starting lineup from your collections, genres, decades, and playlists.
+- Settings, About and Updates: nightly or release channel, check, download with checksum, and install.
+- Guide preview card with thumbnail and synopsis; player mini-guide on Left and Right.
 - Nightly debug builds at clickarr.net/nightly.
-
-### Planned
-- Google Drive sync as the alternative to a LAN household (ADR 0020): backup, restore, and TVs in different homes on one lineup.
 
 ### Security
 - Plex tokens stay in the Android Keystore on each device and are never synchronized between devices.
