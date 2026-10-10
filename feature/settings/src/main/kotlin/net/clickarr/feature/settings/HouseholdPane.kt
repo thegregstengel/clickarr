@@ -51,9 +51,9 @@ fun HouseholdPane(viewModel: HouseholdViewModel = hiltViewModel()) {
 
     // When a section is swapped out (create, join, leave), the focused button disappears with it and TV focus
     // would fall back to the shell's tab row, switching tabs. Hand focus to the new section's primary action.
-    val section = when (role) {
+    val section = when (val r = role) {
         HouseholdService.Role.None -> if (joining) "join" else "none"
-        is HouseholdService.Role.Coordinator -> if (role.pin != null) "coordinator-pin" else "coordinator"
+        is HouseholdService.Role.Coordinator -> if (r.pin != null) "coordinator-pin" else "coordinator"
         is HouseholdService.Role.Member -> "member"
     }
     val primaryFocus = remember { FocusRequester() }
