@@ -118,4 +118,4 @@ Clickarr is developed in the open and contributions are welcome once the Phase 1
 
 ## License
 
-MIT. See [LICENSE](LICENSE). Inter is bundled under the SIL Open Font License. Plex is a trademark of Plex, Inc.; Clickarr is an independent project and is not affiliated with or endorsed by Plex.
+MIT. See [LICENSE](LICENSE). Inter is bundled under the SIL Open Font License, and channel glyphs come from [Lucide](https://lucide.dev) (ISC); see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Plex is a trademark of Plex, Inc.; Clickarr is an independent project and is not affiliated with or endorsed by Plex.
