@@ -11,3 +11,7 @@
 
 # Ktor checks for an attached IntelliJ debugger through java.lang.management, which Android does not have.
 -dontwarn java.lang.management.**
+
+# Bouncy Castle: only its elliptic-curve maths is used (SPAKE2 pairing); the rest references APIs Android lacks.
+-dontwarn org.bouncycastle.**
+-dontwarn javax.naming.**

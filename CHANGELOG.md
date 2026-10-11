@@ -5,6 +5,11 @@ second release the same day); the household protocol, scheduler, and database ca
 
 ## [Unreleased]
 
+### Security
+- Pairing uses SPAKE2 (RFC 9382): a rogue device answering a typed coordinator address can no longer test PINs offline;
+  each attempt is one guess and three cancel the PIN. Household protocol version 2: both TVs need this build to pair;
+  TVs already paired keep working.
+
 ### Added
 - Captions, off by default. Turn them on in Settings, Playback, or hold OK while watching to switch them. Clickarr picks the program's subtitles in the TV's language; separate subtitle files and those
   inside the video both work, and a transcode has the chosen track burned in. Style follows the TV's caption settings.

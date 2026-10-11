@@ -16,7 +16,11 @@ import net.clickarr.core.model.ServerLocation
  * Household protocol v1 (proposal section 14). Unknown JSON fields are ignored and new fields are
  * optional, so additions never break older members; the major version changes only on incompatible change.
  */
-const val PROTOCOL_VERSION: Int = 1
+/** 2: pairing is SPAKE2 (ADR 0013, amended 2026-10-11). A joiner and a coordinator must both speak it to pair. */
+const val PROTOCOL_VERSION: Int = 2
+
+/** The oldest coordinator a joiner can pair with. */
+const val MIN_PAIRING_VERSION: Int = 2
 
 /** Default coordinator port; the NSD record carries the real one (proposal 12.2). */
 const val DEFAULT_PORT: Int = 47831
@@ -48,14 +52,17 @@ data class InfoResponse(
 
 // Pairing (proposal 13.4)
 
+/** [pake] is the joiner's SPAKE2 message (hex). */
 @Serializable
-data class PairStartRequest(val deviceId: DeviceId, val deviceName: String, val certFingerprint: String)
+data class PairStartRequest(val deviceId: DeviceId, val deviceName: String, val certFingerprint: String, val pake: String)
 
+/** [pake] is the coordinator's SPAKE2 message and [confirm] its confirmation code, both hex. */
 @Serializable
-data class PairStartResponse(val sessionId: String, val nonce: String, val expiresAt: Instant)
+data class PairStartResponse(val sessionId: String, val pake: String, val confirm: String, val expiresAt: Instant)
 
+/** [confirm] is the joiner's confirmation code (hex). */
 @Serializable
-data class PairCompleteRequest(val sessionId: String, val proof: String)
+data class PairCompleteRequest(val sessionId: String, val confirm: String)
 
 @Serializable
 data class PairCompleteResponse(

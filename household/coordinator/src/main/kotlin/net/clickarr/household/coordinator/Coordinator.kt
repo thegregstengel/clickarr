@@ -29,6 +29,7 @@ import net.clickarr.household.protocol.PairCompleteResponse
 import net.clickarr.household.protocol.PairStartRequest
 import net.clickarr.household.protocol.PairStartResponse
 import net.clickarr.household.protocol.Pairing
+import net.clickarr.household.protocol.Pairing.toHex
 
 /**
  * The household's single writer (ADR 0011). Holds the canonical state, applies commands through the
@@ -58,7 +59,7 @@ class Coordinator(
     private var activePin: ActivePin? = null
     private val sessions = ConcurrentHashMap<String, PairSession>()
 
-    /** [attempts] counts wrong proofs against this PIN across every session, so restarting a session buys nothing. */
+    /** [attempts] counts pairing attempts against this PIN across every session: each one is a single guess. */
     data class ActivePin(val pin: String, val expiresAt: Instant) {
         @Volatile
         var attempts: Int = 0
@@ -68,7 +69,8 @@ class Coordinator(
         val deviceId: DeviceId,
         val deviceName: String,
         val joinerFingerprint: String,
-        val nonce: String,
+        /** The joiner's confirmation this coordinator expects, hex. */
+        val expectedConfirm: String,
         val expiresAt: Instant,
     )
 
@@ -144,11 +146,17 @@ class Coordinator(
         val pin = activePin?.takeIf { it.expiresAt > clock.now() }
             ?: return Outcome.Failure(ClickarrError.Unauthorized("This household is not accepting new devices right now"))
         if (sessions.size >= MAX_SESSIONS) return Outcome.Failure(ClickarrError.Unauthorized("Too many devices are pairing at once"))
+        // Every start is one guess at the PIN (the joiner learns from B's confirmation whether it was right).
+        pin.attempts++
+        if (pin.attempts > Pairing.MAX_ATTEMPTS) return Outcome.Failure(ClickarrError.Unauthorized(cancelPin()))
+        val theirs = Pairing.fromHex(req.pake) ?: return Outcome.Failure(ClickarrError.Invalid("Malformed pairing message"))
         val sessionId = UUID.randomUUID().toString()
-        val session = PairSession(req.deviceId, req.deviceName, req.certFingerprint, Pairing.randomNonce(random), pin.expiresAt)
-        sessions[sessionId] = session
+        val pake = Pairing.coordinator(pin.pin, req.certFingerprint, fingerprint(), random)
+        val keys = runCatching { pake.finish(theirs, Pairing.aad(sessionId)) }.getOrNull()
+            ?: return Outcome.Failure(ClickarrError.Invalid("Malformed pairing message"))
+        sessions[sessionId] = PairSession(req.deviceId, req.deviceName, req.certFingerprint, keys.confirmA.toHex(), pin.expiresAt)
         Log.i(TAG) { "pairing started for ${req.deviceName}" }
-        return Outcome.Success(PairStartResponse(sessionId, session.nonce, session.expiresAt))
+        return Outcome.Success(PairStartResponse(sessionId, pake.message.toHex(), keys.confirmB.toHex(), pin.expiresAt))
     }
 
     suspend fun pairComplete(req: PairCompleteRequest): Outcome<PairCompleteResponse> {
@@ -182,21 +190,14 @@ class Coordinator(
             pin == null -> "Pairing window closed"
             session == null -> "Unknown pairing session"
             session.expiresAt <= now -> "Pairing session expired".also { sessions.remove(req.sessionId) }
-            proofMatches(pin.pin, session, req) -> null
-            else -> wrongPin(req.sessionId, pin)
+            Pairing.verify(session.expectedConfirm, req.confirm) -> null
+            // A joiner that passed B's confirmation but sends a wrong one of its own is not a typo: stop at once.
+            else -> cancelPin()
         }
         return if (failure == null) Outcome.Success(session!!) else Outcome.Failure(ClickarrError.Unauthorized(failure))
     }
 
-    private fun proofMatches(pin: String, session: PairSession, req: PairCompleteRequest): Boolean {
-        val expected = Pairing.proof(pin, session.nonce, req.sessionId, session.joinerFingerprint, fingerprint())
-        return Pairing.verify(expected, req.proof)
-    }
-
-    private fun wrongPin(sessionId: String, pin: ActivePin): String {
-        pin.attempts++
-        if (pin.attempts < Pairing.MAX_ATTEMPTS) return "Wrong PIN"
-        sessions.remove(sessionId)
+    private fun cancelPin(): String {
         sessions.clear()
         activePin = null
         Log.w(TAG) { "pairing aborted after ${Pairing.MAX_ATTEMPTS} wrong PINs" }

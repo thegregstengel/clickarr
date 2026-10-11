@@ -154,7 +154,7 @@ class HouseholdDiscovery(context: Context) {
     companion object {
         private const val TAG = "Discovery"
         const val SERVICE_TYPE = "_clickarr._tcp."
-        private const val PROTOCOL_VERSION_TXT = "1"
+        private const val PROTOCOL_VERSION_TXT = "2"
         private const val MAX_TXT_VALUE = 64
     }
 }

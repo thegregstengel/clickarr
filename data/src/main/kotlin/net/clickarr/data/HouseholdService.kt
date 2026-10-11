@@ -50,6 +50,7 @@ import net.clickarr.household.discovery.DiscoveredCoordinator
 import net.clickarr.household.discovery.HouseholdDiscovery
 import net.clickarr.household.protocol.Command
 import net.clickarr.household.protocol.Event
+import net.clickarr.household.protocol.MIN_PAIRING_VERSION
 import net.clickarr.household.protocol.PROTOCOL_VERSION
 import net.clickarr.household.protocol.PairCompleteResponse
 import net.clickarr.household.protocol.Pairing
@@ -293,6 +294,7 @@ class HouseholdService @Inject constructor(
         val observed = trust.observed
         val problem = when {
             info.protocolVersion > PROTOCOL_VERSION -> ClickarrError.Unsupported("Update Clickarr on this TV to join")
+            info.protocolVersion < MIN_PAIRING_VERSION -> ClickarrError.Unsupported("Update Clickarr on the other TV first")
             observed == null -> ClickarrError.Unauthorized("No TLS identity was observed for that TV")
             advertised != null && info.fingerprint.isNotBlank() && advertised != info.fingerprint ->
                 ClickarrError.Unauthorized("That TV's identity does not match what was advertised")

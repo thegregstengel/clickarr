@@ -38,6 +38,8 @@ import net.clickarr.household.protocol.PairCompleteResponse
 import net.clickarr.household.protocol.PairStartRequest
 import net.clickarr.household.protocol.PairStartResponse
 import net.clickarr.household.protocol.Pairing
+import net.clickarr.household.protocol.Pairing.toHex
+import net.clickarr.household.protocol.Spake2
 import net.clickarr.household.protocol.ProtocolJson
 import org.junit.jupiter.api.Test
 
@@ -62,15 +64,27 @@ class CoordinatorRoutesTest {
         kotlinx.serialization.serializer<T>(), kotlinx.coroutines.runBlocking { bodyAsText() },
     )
 
-    private suspend fun ApplicationTestBuilder.pair(pin: String, deviceId: String = "bedroom"): PairCompleteResponse {
-        val start = client.post("/v1/pair/start") {
+    /** Sends pair/start as the joiner would; returns the joiner's exchange and the coordinator's answer. */
+    private suspend fun ApplicationTestBuilder.start(pin: String, deviceId: String = "bedroom", fp: String = "bed-fp"):
+        Pair<Spake2, HttpResponse> {
+        val pake = Pairing.joiner(pin, fp, "coord-fp")
+        val r = client.post("/v1/pair/start") {
             contentType(ContentType.Application.Json)
-            setBody(ProtocolJson.encodeToString(PairStartRequest.serializer(), PairStartRequest(DeviceId(deviceId), "Bedroom", "bed-fp")))
-        }.body<PairStartResponse>()
-        val proof = Pairing.proof(pin, start.nonce, start.sessionId, "bed-fp", "coord-fp")
+            val request = PairStartRequest(DeviceId(deviceId), "Bedroom", fp, pake.message.toHex())
+            setBody(ProtocolJson.encodeToString(PairStartRequest.serializer(), request))
+        }
+        return pake to r
+    }
+
+    private suspend fun ApplicationTestBuilder.pair(pin: String, deviceId: String = "bedroom"): PairCompleteResponse {
+        val (pake, r) = start(pin, deviceId)
+        val started = r.body<PairStartResponse>()
+        val keys = pake.finish(Pairing.fromHex(started.pake)!!, Pairing.aad(started.sessionId))
+        Pairing.verify(keys.confirmB.toHex(), started.confirm) shouldBe true
         val done = client.post("/v1/pair/complete") {
             contentType(ContentType.Application.Json)
-            setBody(ProtocolJson.encodeToString(PairCompleteRequest.serializer(), PairCompleteRequest(start.sessionId, proof)))
+            val request = PairCompleteRequest(started.sessionId, keys.confirmA.toHex())
+            setBody(ProtocolJson.encodeToString(PairCompleteRequest.serializer(), request))
         }
         done.status shouldBe HttpStatusCode.OK
         return done.body()
@@ -135,23 +149,35 @@ class CoordinatorRoutesTest {
     }
 
     @Test
-    fun `wrong PINs are refused and the window closes after three`() = testApplication {
+    fun `a wrong PIN shows up at the joiner, and the PIN is cancelled after three attempts`() = testApplication {
         val c = coordinator()
         application { coordinatorRoutes(c) }
         c.beginAcceptingJoins()
-        val start = client.post("/v1/pair/start") {
-            contentType(ContentType.Application.Json)
-            setBody(ProtocolJson.encodeToString(PairStartRequest.serializer(), PairStartRequest(DeviceId("x"), "X", "x-fp")))
-        }.body<PairStartResponse>()
-        repeat(3) { i ->
-            val bad = Pairing.proof("000000", start.nonce, start.sessionId, "x-fp", "coord-fp")
-            val r = client.post("/v1/pair/complete") {
-                contentType(ContentType.Application.Json)
-                setBody(ProtocolJson.encodeToString(PairCompleteRequest.serializer(), PairCompleteRequest(start.sessionId, bad)))
-            }
-            r.status shouldBe HttpStatusCode.Unauthorized
-            if (i == 2) r.bodyAsText() shouldContain "Too many"
+        repeat(3) {
+            val (pake, r) = start("000000", "x", "x-fp")
+            r.status shouldBe HttpStatusCode.OK
+            val started = r.body<PairStartResponse>()
+            val keys = pake.finish(Pairing.fromHex(started.pake)!!, Pairing.aad(started.sessionId))
+            Pairing.verify(keys.confirmB.toHex(), started.confirm) shouldBe false
         }
+        val (_, fourth) = start("000000", "x", "x-fp")
+        fourth.status shouldBe HttpStatusCode.Unauthorized
+        fourth.bodyAsText() shouldContain "Too many"
+        client.get("/v1/info").body<InfoResponse>().acceptingJoins shouldBe false
+    }
+
+    @Test
+    fun `a forged confirmation at completion cancels the PIN at once`() = testApplication {
+        val c = coordinator()
+        application { coordinatorRoutes(c) }
+        val pin = c.beginAcceptingJoins().pin
+        val (_, r) = start(pin, "x", "x-fp")
+        val started = r.body<PairStartResponse>()
+        val done = client.post("/v1/pair/complete") {
+            contentType(ContentType.Application.Json)
+            setBody(ProtocolJson.encodeToString(PairCompleteRequest.serializer(), PairCompleteRequest(started.sessionId, "00".repeat(32))))
+        }
+        done.status shouldBe HttpStatusCode.Unauthorized
         client.get("/v1/info").body<InfoResponse>().acceptingJoins shouldBe false
     }
 
@@ -161,7 +187,7 @@ class CoordinatorRoutesTest {
         application { coordinatorRoutes(c) }
         val closed = client.post("/v1/pair/start") {
             contentType(ContentType.Application.Json)
-            setBody(ProtocolJson.encodeToString(PairStartRequest.serializer(), PairStartRequest(DeviceId("x"), "X", "x-fp")))
+            setBody(ProtocolJson.encodeToString(PairStartRequest.serializer(), PairStartRequest(DeviceId("x"), "X", "x-fp", "04")))
         }
         closed.status shouldBe HttpStatusCode.Unauthorized
 

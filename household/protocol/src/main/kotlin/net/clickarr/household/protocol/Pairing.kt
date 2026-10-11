@@ -1,37 +1,40 @@
 package net.clickarr.household.protocol
 
 import java.security.SecureRandom
-import javax.crypto.Mac
-import javax.crypto.spec.SecretKeySpec
 
 /**
- * PIN-bound proof for pairing (proposal 13.4). The joiner proves it knows the 6-digit PIN the
- * coordinator is displaying, bound to both TLS certificate fingerprints so a proof captured in one
- * session is useless in another:
+ * Pairing a TV into a household (ADR 0013, amended 2026-10-11). The coordinator shows a six-digit PIN; the joiner
+ * and the coordinator run [Spake2] with it, each naming the pair of TLS certificate fingerprints it saw, and
+ * prove the result to each other:
  *
- *   key   = HKDF-SHA256(ikm = PIN, salt = nonce, info = "clickarr-pair-v1")
- *   proof = HMAC-SHA256(key, sessionId || "|" || joinerFingerprint || "|" || coordinatorFingerprint)
+ *   1. joiner -> coordinator: pA                     (pair/start)
+ *   2. coordinator -> joiner: pB, B's confirmation   (the joiner checks it: a wrong PIN or a relay fails here)
+ *   3. joiner -> coordinator: A's confirmation       (pair/complete; the coordinator then issues the token)
  *
- * Both sides compute it; the coordinator compares in constant time and allows three attempts.
+ * Nothing on the wire lets anyone test PIN guesses offline. Each pair/start is one guess against the PIN, and the
+ * coordinator cancels the PIN after [MAX_ATTEMPTS].
  */
 object Pairing {
     const val PIN_LENGTH = 6
     const val MAX_ATTEMPTS = 3
     const val PIN_LIFETIME_SECONDS = 120
-    private const val INFO = "clickarr-pair-v1"
+    private const val AAD = "clickarr-pair-v2"
 
     fun randomPin(random: SecureRandom = SecureRandom()): String =
         (1..PIN_LENGTH).joinToString("") { random.nextInt(10).toString() }
 
-    fun randomNonce(random: SecureRandom = SecureRandom()): String = randomHex(16, random)
+    fun randomToken(random: SecureRandom = SecureRandom()): String = ByteArray(32).also(random::nextBytes).toHex()
 
-    fun randomToken(random: SecureRandom = SecureRandom()): String = randomHex(32, random)
+    /** The joiner's side; [coordinatorFingerprint] is the certificate it actually saw on the TLS connection. */
+    fun joiner(pin: String, joinerFingerprint: String, coordinatorFingerprint: String, random: SecureRandom = SecureRandom()): Spake2 =
+        Spake2.start(Spake2.Role.A, joinerFingerprint, coordinatorFingerprint, w(pin, joinerFingerprint, coordinatorFingerprint), random)
 
-    fun proof(pin: String, nonce: String, sessionId: String, joinerFingerprint: String, coordinatorFingerprint: String): String {
-        val key = hkdf(ikm = pin.toByteArray(), salt = nonce.toByteArray(), info = INFO.toByteArray(), length = 32)
-        val message = "$sessionId|$joinerFingerprint|$coordinatorFingerprint".toByteArray()
-        return hmac(key, message).toHex()
-    }
+    /** The coordinator's side; [coordinatorFingerprint] is its own certificate. */
+    fun coordinator(pin: String, joinerFingerprint: String, coordinatorFingerprint: String, random: SecureRandom = SecureRandom()): Spake2 =
+        Spake2.start(Spake2.Role.B, joinerFingerprint, coordinatorFingerprint, w(pin, joinerFingerprint, coordinatorFingerprint), random)
+
+    /** Associated data for the confirmation keys: the protocol label and the session, so a confirmation fits one session. */
+    fun aad(sessionId: String): ByteArray = "$AAD|$sessionId".toByteArray()
 
     fun verify(expected: String, presented: String): Boolean {
         val a = expected.toByteArray()
@@ -45,27 +48,12 @@ object Pairing {
     /** Formats a PIN as "482 913" for the coordinator's screen. */
     fun display(pin: String): String = pin.chunked(3).joinToString(" ")
 
-    private fun hmac(key: ByteArray, message: ByteArray): ByteArray =
-        Mac.getInstance("HmacSHA256").apply { init(SecretKeySpec(key, "HmacSHA256")) }.doFinal(message)
+    fun ByteArray.toHex(): String = joinToString("") { "%02x".format(it) }
 
-    /** RFC 5869 HKDF with SHA-256, extract then expand. */
-    private fun hkdf(ikm: ByteArray, salt: ByteArray, info: ByteArray, length: Int): ByteArray {
-        val prk = hmac(salt, ikm)
-        val out = ByteArray(length)
-        var previous = ByteArray(0)
-        var filled = 0
-        var counter = 1
-        while (filled < length) {
-            previous = hmac(prk, previous + info + byteArrayOf(counter.toByte()))
-            val n = minOf(previous.size, length - filled)
-            System.arraycopy(previous, 0, out, filled, n)
-            filled += n
-            counter++
-        }
-        return out
-    }
+    fun fromHex(s: String): ByteArray? = runCatching {
+        require(s.length % 2 == 0)
+        ByteArray(s.length / 2) { i -> s.substring(i * 2, i * 2 + 2).toInt(16).toByte() }
+    }.getOrNull()
 
-    private fun randomHex(bytes: Int, random: SecureRandom): String = ByteArray(bytes).also(random::nextBytes).toHex()
-
-    private fun ByteArray.toHex(): String = joinToString("") { "%02x".format(it) }
+    private fun w(pin: String, joiner: String, coordinator: String) = Spake2.pinScalar(pin.filter(Char::isDigit), joiner, coordinator)
 }

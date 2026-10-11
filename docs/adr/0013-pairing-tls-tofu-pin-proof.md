@@ -47,3 +47,18 @@ handling in Ktor and avoids Netty (spike C, finding C1). The member pins with `T
 uses the fingerprint seen on the wire. Plain HTTP remains only as an explicit fallback when the device cannot start
 TLS, advertised as `tls=0` and named in the Household pane.
 
+## Amendment, 2026-10-11: SPAKE2 and TLS only
+
+The HKDF/HMAC proof is replaced by SPAKE2 (RFC 9382, P-256, SHA-256, HKDF, HMAC), implemented in
+`household/protocol/Spake2.kt` and checked against the RFC's test vectors. With the old proof, a joiner that
+typed an address and so had no advertised fingerprint could be answered by a rogue device, which then held a
+PIN-derived value it could test all million PINs against offline. Under SPAKE2 no message allows an offline
+guess; each pairing attempt is one online guess, and the coordinator cancels the PIN after three.
+
+The exchange is three messages: pair/start carries pA; its answer carries pB and the coordinator's
+confirmation, which the joiner checks before anything else; pair/complete carries the joiner's confirmation,
+after which the token is issued. Both identities in the transcript are the TLS certificate fingerprints each
+side saw, so a relay between two TVs ends up with mismatched transcripts and fails confirmation. The plain-HTTP
+fallback described above was removed in the security review of 2026-10-10. Household protocol version 2;
+already-paired members are unaffected.
+

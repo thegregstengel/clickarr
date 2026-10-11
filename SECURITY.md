@@ -58,7 +58,8 @@ store, logging, settings lock, and CI. What changed as a result:
 - Reproducible release builds: two clean runners must produce byte-identical APKs apart from the ART baseline
   profile, a code-free startup hint whose generator is not deterministic (ADR 0017 amendment).
 
-Known and accepted: a typed coordinator address with no advertised key can be answered by a rogue TV that then
-holds a PIN-derived proof it can guess offline within the two-minute window; the fix is a PAKE, which is on the
-list. The Google client secret is in the APK by the nature of the TV device flow.
+Pairing now uses SPAKE2 (RFC 9382; ADR 0013 amendment of 2026-10-11): nothing a rogue device sees during pairing lets it
+test PINs offline, whether the joiner picked the coordinator from the list or typed its address. Each attempt is one
+guess, and three end the PIN. Still accepted: the Google client secret is in the APK by the nature of the TV
+device flow.
 
