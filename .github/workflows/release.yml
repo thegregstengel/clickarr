@@ -18,7 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - name: Version from the tag (calendar: vYYYY.M.D, or vYYYY.M.D.N for another release the same day)
+      - name: Version from the tag, vYYYY.M.D or vYYYY.M.D.N for another release the same day
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           echo "$VERSION" | grep -Eq '^20[0-9]{2}\.[1-9][0-9]?\.[1-9][0-9]?(\.[0-9]+)?(-[A-Za-z0-9.]+)?$' \
