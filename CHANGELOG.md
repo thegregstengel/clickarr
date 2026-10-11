@@ -5,6 +5,10 @@ second release the same day); the household protocol, scheduler, and database ca
 
 ## [Unreleased]
 
+Nothing yet.
+
+## 2026.10.11.2
+
 ### Changed
 - New installs check the Release channel for updates by default; nightly is one choice away in Settings, About.
 
