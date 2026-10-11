@@ -110,11 +110,11 @@
 
   <section class="hero">
     <div class="wrap">
-      <span class="pill"><b>●</b> Open source, in development</span>
+      <span class="pill"><b>●</b> Open source. Nightly builds running on real Fire TV Sticks.</span>
       <h1>Turn your media library<br>into <span>television</span>.</h1>
       <p>Clickarr gives your Plex library a channel lineup, a program guide, and a remote. Something is always on. Just change the channel.</p>
       <div class="cta">
-        <a class="btn" href="https://github.com/thegregstengel/clickarr/releases">Download for Android TV &amp; Fire TV</a>
+        <a class="btn" href="https://github.com/thegregstengel/clickarr/releases/tag/nightly">Get the nightly for Android TV &amp; Fire TV</a>
         <a class="btn ghost" href="https://github.com/thegregstengel/clickarr">View on GitHub</a>
       </div>
       <div class="shot"><img src="assets/screen-player-overlay.png" alt="Clickarr playing The Office on channel 10 with the channel overlay visible" width="1540" height="1010"></div>
@@ -134,7 +134,7 @@
           <p class="lead" style="margin-bottom:16px">Build channels out of what you already own. Give each one a number, a name, and a schedule. Then tune in.</p>
           <ul>
             <li><b>Channel 10, Sitcoms.</b> The Office, Parks and Rec, Seinfeld, Community, all evening.</li>
-            <li><b>Channel 30, 1980s Movies.</b> Everything in your library from the decade, shuffled.</li>
+            <li><b>Channel 30, 80s Movies.</b> Everything in your library from the decade, shuffled.</li>
             <li><b>Channel 20, Middle-earth.</b> Your Lord of the Rings collection, in order, forever.</li>
             <li><b>Channel 50, Christmas.</b> A playlist that only matters in December.</li>
           </ul>
@@ -157,15 +157,16 @@ Parks and Rec is 22 minutes in.</pre>
   <section id="screens" style="background: var(--bg-panel)">
     <div class="wrap">
       <h2>What it looks like</h2>
-      <p class="lead">Screens from the app as it stands, taken on the Android TV emulator by the test suite on every push. The design mockups it grew from are in the repo.</p>
+      <p class="lead">Screens from the app as it stands, taken on the Android TV emulator by the test suite on every push. The same build runs on Fire TV Sticks every day.</p>
       <div class="grid">
-        <div class="tile"><img src="assets/screens/guide.png" alt="Program guide grid with a now-line and a preview card" loading="lazy"><div><h3>Guide</h3><p>Half-hour columns, a now-line, a preview card for the focused program, and stars on the channel column for favorites. Up and down follow the time column, OK tunes in.</p></div></div>
-        <div class="tile"><img src="assets/screens/editor.png" alt="Channel editor with name, number, icon palette, order, and time slots" loading="lazy"><div><h3>Channels</h3><p>Build a channel from shows, a whole library with genre and decade filters, a collection, or a playlist. Or let Clickarr suggest a starting lineup from what you own.</p></div></div>
-        <div class="tile"><img src="assets/screens/household.png" alt="Household settings showing a member connected to a coordinator" loading="lazy"><div><h3>Household</h3><p>Several TVs share one lineup and agree on the schedule over your own Wi-Fi, paired with a PIN over TLS. No extra server, no cloud account.</p></div></div>
+        <div class="tile"><img src="assets/screens/guide.png" alt="Program guide grid with a now-line and a preview card" loading="lazy"><div><h3>Guide</h3><p>Two hours across, a now-line, a preview card with artwork and synopsis for the focused program, and stars on the channel column for favorites. Up and down follow the time column, OK tunes in.</p></div></div>
+        <div class="tile"><img src="assets/screens/editor.png" alt="Channel editor with name, number, icon palette, order, and time slots" loading="lazy"><div><h3>Channels</h3><p>Build a channel from shows, a whole library with genre and decade filters, a collection, or a playlist. In order or shuffled, with two or three episodes of a show in a row if you like, back to back or on the half hour.</p></div></div>
+        <div class="tile"><img src="assets/screens/household.png" alt="Household settings showing a member connected to a coordinator" loading="lazy"><div><h3>Household</h3><p>Several TVs share one lineup and agree on the schedule over your own Wi-Fi, paired with a PIN over TLS. No extra server, no cloud account. Or sync through Google Drive for TVs in different homes.</p></div></div>
         <div class="tile"><img src="assets/screens/player.png" alt="Player overlay with channel number, program, episode, and Up Next" loading="lazy"><div><h3>Player</h3><p>Tune in and you are mid-episode, like television. The overlay shows the channel, the program, where you are in the slot, and what is up next.</p></div></div>
         <div class="tile"><img src="assets/screens/suggest.png" alt="Suggested channels list built from the library" loading="lazy"><div><h3>Suggest channels</h3><p>Clickarr reads your library once and proposes a starting lineup the way you would make it by hand: a rerun channel for each show you have the most of, your collections, the genres and decades you have plenty of, a shuffled movie channel, and a playlist. Untick what you do not want; nothing is created until you say so.</p></div></div>
-        <div class="tile"><img src="assets/screens/setup.png" alt="First-run screen with a Connect to your media server card" loading="lazy"><div><h3>Setup</h3><p>Sign in to Plex with a code on your phone, or type an address and token. Your sign-in stays on the TV.</p></div></div>
+        <div class="tile"><img src="assets/screens/setup.png" alt="First-run screen with a Connect to your media server card" loading="lazy"><div><h3>Setup</h3><p>Sign in to Plex with a code on your phone, or type an address and token. Your sign-in stays on the TV, in its own Keystore, and is never synced.</p></div></div>
       </div>
+      <p class="lead" style="margin-top:32px">Also in the nightly: a mini-guide inside the player, numeric channel entry, four themes and three sizes, a clock with automatic network time and a time zone, a settings lock code, a Favorites tab you can hide, episodes marked watched in Plex only when you actually sat through them, and lineups that re-read your library once a day so new episodes join on their own.</p>
     </div>
   </section>
 
@@ -176,10 +177,10 @@ Parks and Rec is 22 minutes in.</pre>
       <div class="feat">
         <div class="f"><span class="k">1</span><h3>Video goes server to TV</h3><p>Clickarr never proxies media. Your server keeps doing direct play or transcoding; Clickarr asks for the right item at the right offset.</p></div>
         <div class="f"><span class="k">2</span><h3>Schedules are math, not files</h3><p>A channel is a function from time to program. Every TV computes the same answer from the same lineup, so nothing drifts and nothing needs syncing in real time.</p></div>
-        <div class="f"><span class="k">3</span><h3>Households, your way</h3><p>TVs pair over the LAN with a PIN, one coordinating and the others caching the lineup. Or choose Google Drive sync instead, for backup and for TVs in different homes on the same Plex server. Planned.</p></div>
+        <div class="f"><span class="k">3</span><h3>Households, your way</h3><p>TVs pair over the LAN with a PIN, one coordinating and the others caching the lineup. Or choose Google Drive sync instead, for backup and for TVs in different homes on the same Plex server.</p></div>
         <div class="f"><span class="k">4</span><h3>Your tokens stay put</h3><p>Each TV signs in to Plex itself. Household sync shares channels, never credentials.</p></div>
         <div class="f"><span class="k">5</span><h3>Fire TV first-class</h3><p>No Google Play Services anywhere. Sideload the APK on a Fire Stick and it just runs.</p></div>
-        <div class="f"><span class="k">6</span><h3>Open source, MIT</h3><p>Clean-room, permissively licensed, built in public with architecture decisions written down.</p></div>
+        <div class="f"><span class="k">6</span><h3>Open source, MIT</h3><p>Clean-room, permissively licensed, built in public with architecture decisions written down. Release builds are reproducible and checked twice in CI.</p></div>
       </div>
     </div>
   </section>
@@ -197,13 +198,13 @@ Parks and Rec is 22 minutes in.</pre>
         <h2>Where it's at</h2>
         <ol>
           <li>Architecture proposal, design language, brand, scaffold and CI: <b>done</b></li>
-          <li>Phase 0, technical spikes on real Fire TV and Android TV hardware: <b>awaiting device runs</b></li>
           <li>Phase 1, one TV, sign in to Plex, build channels, watch with a guide: <b>done, in the nightly</b></li>
-          <li>Phase 2, two TVs that agree on what's on: <b>done on the emulator, awaiting a two-TV test on real hardware</b></li>
-          <li class="now">Phase 3, the channel editor, guide polish, themes, in-app updates, and the first public release: <b>in progress, running on real Fire TV sticks</b></li>
-          <li>Phase 4, Google Drive sync as the alternative to a LAN household, coordinator migration, F-Droid</li>
+          <li>Phase 2, two TVs that agree on what's on: <b>done, verified on two Fire TV Sticks</b></li>
+          <li class="now">Phase 3, editor, guide polish, themes, suggested channels, daily lineup refresh, watched state to Plex, settings lock, in-app updates: <b>done in the nightly; the first tagged release is next</b></li>
+          <li>Phase 4, Google Drive sync (built, awaiting a Google client), coordinator migration (done), reproducible builds (done), F-Droid metadata (ready), accessibility pass</li>
+          <li>Later, time blocks and day-parts, fixed-time programs, holiday overrides, interstitials, an Amazon Appstore listing</li>
         </ol>
-        <p style="margin:24px 0 0;color:var(--text-2)">Follow along on <a href="https://github.com/thegregstengel/clickarr">GitHub</a>. Releases appear there as sideloadable APKs; <code>clickarr.net/apk</code> will always point at the latest.</p>
+        <p style="margin:24px 0 0;color:var(--text-2)">In the nightly today: Fire TV Downloader, <code>clickarr.net/nightly</code>. It updates itself from Settings, About after that. Releases will appear on <a href="https://github.com/thegregstengel/clickarr">GitHub</a> as sideloadable APKs; <code>clickarr.net/apk</code> will point at the latest.</p>
       </div>
     </div>
   </section>
