@@ -79,7 +79,7 @@ class DevicePrefs(context: Context) {
         store.edit { it[SYNC_MODE] = mode }
     }
 
-    /** Which builds the updater offers: nightly or release (Settings, About and Updates). */
+    /** Which builds the updater offers: nightly or release (Settings, About). */
     val updateChannel: Flow<String> = store.data.map { it[UPDATE_CHANNEL] ?: DEFAULT_UPDATE_CHANNEL }
 
     suspend fun setUpdateChannel(channel: String) {

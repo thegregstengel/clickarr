@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import net.clickarr.core.common.AppTime
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -135,23 +134,6 @@ private fun Caption(text: String) = Text(text, style = ClickarrTextStyles.Second
 @Composable
 private fun Label(text: String) = Text(text, style = ClickarrTextStyles.LabelAllCaps, color = ClickarrColors.TextMuted)
 
-/** Zone and automatic network time, for a TV whose clock drifts. */
-@Composable
-private fun TimeBlock(g: SettingsViewModel.General, vm: SettingsViewModel) {
-    Label("Time")
-    val zone = g.timeZoneId ?: "${AppTime.zone.id} (device)"
-    Caption("Now ${AppTime.timeOfDay(vm.now())}, $zone. Automatic time checks a public time server so the guide lines up.")
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Chip("Automatic time", selected = g.autoTime) { vm.setAutoTime(true) }
-        Chip("Device clock", selected = !g.autoTime) { vm.setAutoTime(false) }
-    }
-    Label("Time zone")
-    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        item { Chip("Device", selected = g.timeZoneId == null) { vm.setTimeZone(null) } }
-        items(ZONES) { (label, id) -> Chip(label, selected = g.timeZoneId == id) { vm.setTimeZone(id) } }
-    }
-}
-
 private fun refreshCaption(r: SettingsViewModel.RefreshInfo): String {
     val last = r.lastAt?.let { at ->
         val local = AppTime.local(at)
@@ -190,26 +172,29 @@ private fun GeneralPane(vm: SettingsViewModel, park: FocusPark) {
     Label("This TV")
     Text(g.deviceName.ifBlank { "Clickarr TV" }, style = ClickarrTextStyles.RowTitle)
     Caption("Device id ${g.deviceId.take(8)}. The name is what other TVs in a household will see.")
+    Label("Appearance")
+    PickerRow("Theme", ClickarrPalettes.all.map { PickerOption(it.name, it.label) }, g.theme) { vm.setTheme(it) }
+    PickerRow("Size", SIZES, g.uiScale, caption = "How large everything is drawn. Small fits the most on screen.") { vm.setUiScale(it) }
+    PickerRow("Overlay stays for", OVERLAY_SECONDS.map { PickerOption(it * MS_PER_S, "$it seconds") }, g.overlayTimeoutMs) {
+        vm.setOverlayTimeout(it)
+    }
+    Label("Time")
+    Caption("Now ${AppTime.timeOfDay(vm.now())}. Automatic time checks a public time server so the guide lines up with the clock.")
+    PickerRow("Clock", CLOCKS, g.autoTime) { vm.setAutoTime(it) }
+    PickerRow("Time zone", zoneOptions(), g.timeZoneId) { vm.setTimeZone(it) }
     LockBlock(vm.lock, park)
-    TimeBlock(g, vm)
-    Label("Theme")
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        ClickarrPalettes.all.forEach { p -> Chip(p.label, selected = g.theme == p.name) { vm.setTheme(p.name) } }
-    }
-    Label("Size")
-    Caption("How large everything is drawn. Small fits the most on screen.")
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        listOf("Small" to 0.55f, "Medium" to 0.65f, "Large" to 0.75f).forEach { (label, scale) ->
-            Chip(label, selected = g.uiScale == scale) { vm.setUiScale(scale) }
-        }
-    }
-    Label("Overlay stays for")
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        listOf(3, 5, 8).forEach { s ->
-            Chip("$s seconds", selected = g.overlayTimeoutMs == s * 1000) { vm.setOverlayTimeout(s * 1000) }
-        }
-    }
 }
+
+private const val MS_PER_S = 1_000
+private val OVERLAY_SECONDS = listOf(3, 5, 8)
+private val SIZES = listOf(PickerOption(0.55f, "Small"), PickerOption(0.65f, "Medium"), PickerOption(0.75f, "Large"))
+private val CLOCKS = listOf(
+    PickerOption(true, "Automatic", "Checked against a public time server at start and every few hours"),
+    PickerOption(false, "Device clock", "Trust the TV's own clock"),
+)
+
+private fun zoneOptions(): List<PickerOption<String?>> =
+    listOf(PickerOption<String?>(null, "Device", AppTime.zone.id)) + ZONES.map { (label, id) -> PickerOption<String?>(id, label, id) }
 
 @Composable
 private fun ServerPane(vm: SettingsViewModel, onDisconnected: () -> Unit) {

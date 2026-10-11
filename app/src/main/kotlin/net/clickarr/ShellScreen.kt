@@ -84,13 +84,7 @@ fun ShellScreen(
     val showFavorites by viewModel.favoritesTab.collectAsState()
     LaunchedEffect(showFavorites) { if (!showFavorites && tab == ShellTab.FAVORITES) tab = ShellTab.GUIDE }
     var spikes by rememberSaveable { mutableStateOf(false) }
-    BackHandler {
-        when {
-            spikes -> spikes = false
-            channelCount > 0 -> callbacks.onWatch()
-            else -> callbacks.onExit()
-        }
-    }
+    BackHandler { shellBack(spikes, channelCount, callbacks) { spikes = false } }
     if (spikes) {
         SpikeApp(SpikeArgs())
         return
@@ -142,6 +136,15 @@ fun ShellScreen(
                 )
             }
         }
+    }
+}
+
+/** Back from the shell: close the spikes if they are up, otherwise back to the player, or out when there is nothing to play. */
+private fun shellBack(spikes: Boolean, channelCount: Int, callbacks: ShellCallbacks, closeSpikes: () -> Unit) {
+    when {
+        spikes -> closeSpikes()
+        channelCount > 0 -> callbacks.onWatch()
+        else -> callbacks.onExit()
     }
 }
 

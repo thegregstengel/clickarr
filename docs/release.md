@@ -67,7 +67,7 @@ every build. For the TV flow Google does not treat the client secret as confiden
 
 ## In the app
 
-Settings, About and Updates, "Check for updates" reads `version.json` from the nightly or the latest release and
+Settings, About, "Check for updates" reads `version.json` from the nightly or the latest release and
 compares its version code with the running build. It runs only when pressed; Clickarr does not check on its own.
 Download verifies the APK's SHA-256 against `version.json`, and Install streams it into a package-installer
 session, so the system's verdict (confirmed, cancelled, blocked source, key mismatch) comes back as a sentence

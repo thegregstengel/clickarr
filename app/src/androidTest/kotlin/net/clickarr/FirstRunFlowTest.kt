@@ -190,15 +190,18 @@ class FirstRunFlowTest {
         click("Diagnostics")
         waitForText("scheduler version")
         shot("11-settings-diagnostics")
-        click("About & Updates")
+        click("About")
         waitForText("MIT licensed")
         shot("12-settings-about")
         click("General")
         waitForText("Theme")
+        click("Theme") // opens the picker
         click("Dracula")
-        waitForText("Dracula")
+        waitForText("Dracula") // the row shows the new value once the picker closes
         shot("12b-general-dracula")
+        click("Theme")
         click("Clickarr") // back to the default palette for the rest of the run
+        waitForText("Appearance")
 
         // Settings lock: set 1234 (twice), leave, come back to the gate, unlock, remove the code again.
         click("Set a code")

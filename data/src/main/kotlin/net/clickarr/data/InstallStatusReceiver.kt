@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import net.clickarr.core.common.Log
 
-/** What the system installer has said about the update in progress (Settings, About and Updates). */
+/** What the system installer has said about the update in progress (Settings, About). */
 object InstallEvents {
     sealed interface Status {
         data object Idle : Status

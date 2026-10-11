@@ -26,7 +26,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 
 /**
- * Updates from GitHub releases, on request only (Settings, About and Updates); the app never checks on
+ * Updates from GitHub releases, on request only (Settings, About); the app never checks on
  * its own. CI publishes a `version.json` next to each APK with the version code, SHA-256, and the signing
  * certificate's digest, so the app can tell newer from older, verify the download, and say up front when a
  * build is signed with a key the system would refuse to update over.
