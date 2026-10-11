@@ -64,7 +64,8 @@ internal fun LockGate(lock: LockController, park: FocusPark, firstKey: FocusRequ
         Text("Settings are locked", style = ClickarrTextStyles.ScreenTitle)
         LockCaption("Enter the ${SettingsLock.LENGTH}-digit code for this TV.")
         Dots(entry.length)
-        DigitPad(firstKey = firstKey, entered = entry.length, park = park, onDigit = lock::digit, onClear = lock::clear)
+        DigitPad(firstKey = firstKey, entered = entry.length, park = park, onDigit = lock::digit)
+        PadActions(onClear = lock::clear, onCancel = null)
         message?.let { Text(it, style = ClickarrTextStyles.Secondary, color = ClickarrColors.StatusWarn) }
     }
 }
@@ -110,8 +111,8 @@ internal fun LockBlock(lock: LockController, park: FocusPark) {
             }
             LockCaption(prompt)
             Dots(entry.length)
-            DigitPad(firstKey = firstKey, entered = entry.length, park = park, onDigit = lock::digit, onClear = lock::clear)
-            Button(onClick = { park.park(); lock.cancelSetup() }) { Text("Cancel") }
+            DigitPad(firstKey = firstKey, entered = entry.length, park = park, onDigit = lock::digit)
+            PadActions(onClear = lock::clear, onCancel = { park.park(); lock.cancelSetup() })
         }
     }
     message?.let { LockCaption(it) }
@@ -134,7 +135,7 @@ private fun Dots(filled: Int) {
  * TalkBack. The last digit of a code may make the pad disappear, so that press parks focus first.
  */
 @Composable
-private fun DigitPad(firstKey: FocusRequester, entered: Int, park: FocusPark, onDigit: (Int) -> Unit, onClear: () -> Unit) {
+private fun DigitPad(firstKey: FocusRequester, entered: Int, park: FocusPark, onDigit: (Int) -> Unit) {
     val press: (Int) -> Unit = { d ->
         if (entered == SettingsLock.LENGTH - 1) park.park()
         onDigit(d)
@@ -151,10 +152,16 @@ private fun DigitPad(firstKey: FocusRequester, entered: Int, park: FocusPark, on
                 }
             }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = onClear, modifier = Modifier.width(KEY_WIDTH)) { Text("Clear") }
-            Button(onClick = { press(0) }, modifier = Modifier.width(KEY_WIDTH).semantics { contentDescription = "Key 0" }) { Text("0") }
-        }
+        Button(onClick = { press(0) }, modifier = Modifier.width(KEY_WIDTH).semantics { contentDescription = "Key 0" }) { Text("0") }
+    }
+}
+
+/** Clear, and Cancel when there is something to cancel: ordinary pill buttons on their own row under the pad. */
+@Composable
+private fun PadActions(onClear: () -> Unit, onCancel: (() -> Unit)?) {
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Button(onClick = onClear) { Text("Clear") }
+        if (onCancel != null) Button(onClick = onCancel) { Text("Cancel") }
     }
 }
 
