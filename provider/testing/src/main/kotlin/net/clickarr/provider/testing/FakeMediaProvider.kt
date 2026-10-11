@@ -99,7 +99,12 @@ class FakeMediaProvider(
         is ProgrammingSource.Union -> source.sources.flatMap { resolveInternal(it) }.distinctBy { it.ref }
     }
 
-    override suspend fun playbackSource(item: MediaRef, profile: DeviceProfile, startAt: Duration): Outcome<PlaybackSource> {
+    override suspend fun playbackSource(
+        item: MediaRef,
+        profile: DeviceProfile,
+        startAt: Duration,
+        captions: net.clickarr.provider.api.CaptionRequest?,
+    ): Outcome<PlaybackSource> {
         failWith?.let { return Outcome.Failure(it) }
         val playable = library.playables.firstOrNull { it.ref == item }
             ?: return Outcome.Failure(ClickarrError.NotFound("No item ${item.id.value}"))

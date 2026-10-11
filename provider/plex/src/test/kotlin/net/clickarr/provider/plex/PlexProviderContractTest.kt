@@ -18,6 +18,7 @@ import net.clickarr.core.model.ProviderId
 import net.clickarr.core.model.ProviderKind
 import net.clickarr.core.model.ServerInfo
 import net.clickarr.provider.api.ArtworkSize
+import net.clickarr.provider.api.CaptionRequest
 import net.clickarr.provider.api.ClientIdentity
 import net.clickarr.provider.plex.fixtures.PlexFixtureServer
 import net.clickarr.provider.api.DeviceProfile
@@ -119,6 +120,28 @@ class PlexProviderContractTest : MediaProviderContractTest() {
         hls.startAt shouldBe kotlin.time.Duration.ZERO
         p.endPlayback(hls).value()
         fixtures.requests.last().path!! shouldContain "/video/:/transcode/universal/stop?session=${hls.sessionId}"
+    }
+
+    @Test
+    fun `direct play carries separate text subtitle files; image formats are left to the container`() = runTest {
+        val direct = plex().playbackSource(ref("104"), DeviceProfile.Conservative, 0.minutes).value()
+        direct.shouldBeInstanceOf<PlaybackSource.DirectPlay>()
+        direct.subtitles.size shouldBe 1
+        direct.subtitles.single().url shouldContain "/library/streams/9402"
+        direct.subtitles.single().url shouldContain "X-Plex-Token=secret-token"
+        direct.subtitles.single().mimeType shouldBe "application/x-subrip"
+        direct.subtitles.single().language shouldBe "eng"
+    }
+
+    @Test
+    fun `a transcode burns the chosen subtitle in when captions are on, and asks for none when they are off`() = runTest {
+        val on = plex().playbackSource(ref("103"), DeviceProfile.Conservative, 0.minutes, CaptionRequest("eng")).value()
+        on.url shouldContain "subtitles=burn"
+        on.url shouldContain "subtitleStreamID=9304"
+        fixtures.requests.any { it.method == "PUT" && it.path!!.startsWith("/library/parts/2003?subtitleStreamID=9304") } shouldBe true
+        val off = plex().playbackSource(ref("103"), DeviceProfile.Conservative, 0.minutes).value()
+        off.url shouldContain "subtitles=none"
+        off.url shouldNotContain "subtitleStreamID"
     }
 
     @Test

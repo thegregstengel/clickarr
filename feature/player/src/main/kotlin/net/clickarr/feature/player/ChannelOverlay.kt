@@ -33,7 +33,7 @@ import net.clickarr.ui.design.ClickarrTextStyles
 
 /** Bottom overlay: channel badge, name, program, slot time, progress, Up Next (design language 4). */
 @Composable
-fun ChannelOverlay(state: TuneState, now: Instant, digits: String) {
+fun ChannelOverlay(state: TuneState, now: Instant, digits: String, captionsOn: Boolean = false) {
     val channel = state.channel ?: return
     val airing = state.airing
     Box(
@@ -42,11 +42,14 @@ fun ChannelOverlay(state: TuneState, now: Instant, digits: String) {
             .background(Brush.verticalGradient(0.45f to Color.Transparent, 1f to ClickarrColors.BgBase.copy(alpha = 0.85f))),
     ) {
         ClickarrLogoPill(Modifier.align(Alignment.TopStart).padding(ClickarrDimens.SafeArea))
-        Text(
-            clock(now),
-            style = ClickarrTextStyles.ScreenTitle.tabular(),
-            modifier = Modifier.align(Alignment.TopEnd).padding(ClickarrDimens.SafeArea),
-        )
+        Column(
+            Modifier.align(Alignment.TopEnd).padding(ClickarrDimens.SafeArea),
+            horizontalAlignment = Alignment.End,
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(clock(now), style = ClickarrTextStyles.ScreenTitle.tabular())
+            CaptionHint(captionsOn)
+        }
         Row(
             Modifier.align(Alignment.BottomStart).fillMaxWidth().padding(ClickarrDimens.SafeArea),
             verticalAlignment = Alignment.Bottom,
@@ -110,6 +113,36 @@ private fun UpNextCard(next: Airing) {
         Text("Up Next", style = ClickarrTextStyles.Caption, color = ClickarrColors.TextSecondary)
         Text(next.entry.title, style = ClickarrTextStyles.RowTitle, maxLines = 1)
         Text(slotRange(next), style = ClickarrTextStyles.Secondary.tabular(), color = ClickarrColors.TextSecondary)
+    }
+}
+
+/** "CC" with its state, and how to switch it, under the clock while the overlay is up. */
+@Composable
+private fun CaptionHint(on: Boolean) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(
+            "CC",
+            style = ClickarrTextStyles.LabelAllCaps,
+            color = if (on) ClickarrColors.BgBase else ClickarrColors.TextSecondary,
+            modifier = Modifier
+                .background(if (on) ClickarrColors.TextPrimary else ClickarrColors.BgSurface, RoundedCornerShape(6.dp))
+                .padding(horizontal = 8.dp, vertical = 2.dp),
+        )
+        Text(if (on) "Hold OK to turn captions off" else "Hold OK for captions", style = ClickarrTextStyles.Caption)
+    }
+}
+
+/** A short "Captions on" or "Captions off" after switching, top centre, clear of the subtitles at the bottom. */
+@Composable
+fun CaptionNotice(text: String) {
+    Box(Modifier.fillMaxSize().padding(ClickarrDimens.SafeArea), contentAlignment = Alignment.TopCenter) {
+        Text(
+            text,
+            style = ClickarrTextStyles.RowTitle,
+            modifier = Modifier
+                .background(ClickarrColors.BgSurface.copy(alpha = 0.92f), RoundedCornerShape(ClickarrDimens.RadiusBadge))
+                .padding(horizontal = 24.dp, vertical = 12.dp),
+        )
     }
 }
 

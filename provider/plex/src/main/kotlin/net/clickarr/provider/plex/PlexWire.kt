@@ -88,6 +88,20 @@ internal data class PlexPart(
     val key: String? = null,
     val duration: Long? = null,
     val container: String? = null,
+    @SerialName("Stream") val streams: List<PlexStream> = emptyList(),
+)
+
+/** One track of a part. streamType 1 is video, 2 audio, 3 subtitle; a subtitle with a [key] is a separate file. */
+@Serializable
+internal data class PlexStream(
+    val id: Long = 0,
+    val streamType: Int = 0,
+    val codec: String? = null,
+    val languageCode: String? = null,
+    val displayTitle: String? = null,
+    val key: String? = null,
+    val forced: Boolean = false,
+    val selected: Boolean = false,
 )
 
 // plex.tv account API (api/v2)

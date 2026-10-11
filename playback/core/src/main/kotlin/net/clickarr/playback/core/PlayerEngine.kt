@@ -22,6 +22,12 @@ interface PlayerEngine {
 
     fun seekTo(position: Duration)
 
+    /**
+     * Show or hide captions, preferring [language] (ISO 639-2). Returns false when the loaded source cannot switch
+     * on its own (a transcode with captions burned in) and has to be loaded again for the change to show.
+     */
+    fun setCaptions(enabled: Boolean, language: String?): Boolean
+
     /** Current playback position within the loaded item, or null if nothing is loaded. */
     fun position(): Duration?
 

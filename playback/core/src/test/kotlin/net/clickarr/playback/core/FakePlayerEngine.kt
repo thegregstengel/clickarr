@@ -47,6 +47,13 @@ class FakePlayerEngine(private val nowMs: () -> Long = { 0L }) : PlayerEngine {
         baseTime = nowMs()
     }
 
+    var captions = false
+
+    override fun setCaptions(enabled: Boolean, language: String?): Boolean {
+        captions = enabled
+        return true
+    }
+
     override fun position(): Duration? = basePos?.let { if (isPlaying) it + (nowMs() - baseTime).milliseconds else it }
 
     /** Simulate a buffering stall: the position falls behind the wall clock by [by]. */

@@ -25,6 +25,7 @@ import net.clickarr.playback.core.TuneController
 import net.clickarr.playback.core.TuneState
 import net.clickarr.playback.core.WatchReporter
 import net.clickarr.playback.media3.Media3PlayerEngine
+import net.clickarr.provider.api.CaptionRequest
 
 /**
  * Owns the player engine and the tune controller for the lifetime of the player screen.
@@ -38,6 +39,10 @@ class PlayerViewModel @Inject constructor(
 ) : ViewModel() {
     val engine = Media3PlayerEngine(context, deps.okHttp, "Clickarr")
 
+    /** Captions on or off; starts from Settings, Playback (or the TV's own setting), switched by holding OK. */
+    val captions: StateFlow<Boolean> = deps.prefs.captions.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    private val captionLanguage: String? = runCatching { java.util.Locale.getDefault().isO3Language }.getOrNull()
+
     private val controller = TuneController(
         strategy = deps.strategy,
         lineups = { deps.channels.lineup(it) },
@@ -46,6 +51,7 @@ class PlayerViewModel @Inject constructor(
         engine = engine,
         clock = deps.clock,
         scope = viewModelScope,
+        captions = { if (captions.value) CaptionRequest(captionLanguage) else null },
     )
 
     val tune: StateFlow<TuneState> = controller.state
@@ -64,7 +70,31 @@ class PlayerViewModel @Inject constructor(
 
     init {
         reporter.start(controller.state)
+        viewModelScope.launch { captions.collect { on -> engine.setCaptions(on, captionLanguage) } }
     }
+
+    /** "Captions on" for a moment after the viewer switches them. */
+    private val _notice = MutableStateFlow<String?>(null)
+    val notice: StateFlow<String?> = _notice.asStateFlow()
+    private var noticeJob: Job? = null
+
+    fun toggleCaptions() {
+        val on = !captions.value
+        viewModelScope.launch {
+            deps.prefs.setCaptions(on)
+            // Captions burned into a transcode need a fresh one; text tracks switch in place.
+            if (!engine.setCaptions(on, captionLanguage)) controller.retune()
+        }
+        noticeJob?.cancel()
+        _notice.value = if (on) "Captions on" else "Captions off"
+        noticeJob = viewModelScope.launch {
+            delay(NOTICE_MS)
+            _notice.value = null
+        }
+    }
+
+    /** OK: a short press shows or hides the overlay, a hold switches captions. */
+    val ok = OkKeyGesture(onTap = { toggleOverlay() }, onHold = { toggleCaptions() })
 
     val channels: StateFlow<List<Channel>> =
         deps.channels.channels.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
@@ -204,3 +234,4 @@ class PlayerViewModel @Inject constructor(
 }
 
 private const val MINI_GUIDE_AHEAD = 3
+private const val NOTICE_MS = 2_000L

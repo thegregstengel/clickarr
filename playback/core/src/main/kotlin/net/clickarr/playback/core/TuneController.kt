@@ -22,6 +22,7 @@ import net.clickarr.core.model.LineupSnapshot
 import net.clickarr.core.model.LineupSnapshotId
 import net.clickarr.core.model.ProviderId
 import net.clickarr.core.scheduling.ScheduleStrategy
+import net.clickarr.provider.api.CaptionRequest
 import net.clickarr.provider.api.DeviceProfile
 import net.clickarr.provider.api.MediaProvider
 import net.clickarr.provider.api.PlaybackSource
@@ -49,6 +50,8 @@ class TuneController(
     private val clock: Clock,
     private val scope: CoroutineScope,
     private val config: TuneConfig = TuneConfig(),
+    /** Captions wanted for the next load, or null (Settings, Playback, and hold OK in the player). */
+    private val captions: () -> CaptionRequest? = { null },
 ) {
     private val debounce get() = config.debounce
     private val driftInterval get() = config.driftInterval
@@ -161,7 +164,7 @@ class TuneController(
     private suspend fun loadContent(airing: Airing, offset: Duration): Outcome<Unit> {
         val provider = providers(airing.entry.ref.provider)
             ?: return Outcome.Failure(ClickarrError.Unsupported("No server for ${airing.entry.ref.provider.value}"))
-        return when (val source = provider.playbackSource(airing.entry.ref, profile, offset)) {
+        return when (val source = provider.playbackSource(airing.entry.ref, profile, offset, captions())) {
             is Outcome.Success -> {
                 currentSource = source.value
                 currentProvider = provider

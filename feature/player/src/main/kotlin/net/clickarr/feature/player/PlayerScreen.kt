@@ -52,6 +52,8 @@ fun PlayerScreen(
     val tune by viewModel.tune.collectAsState()
     val overlayVisible by viewModel.overlayVisible.collectAsState()
     val digits by viewModel.digits.collectAsState()
+    val captionsOn by viewModel.captions.collectAsState()
+    val notice by viewModel.notice.collectAsState()
     val miniGuide by viewModel.miniGuide.collectAsState()
     // Back arrives as a key on Fire OS but through the back dispatcher on newer Android (predictive back),
     // so it is handled here rather than in the key map: close the mini-guide, then the overlay, then leave.
@@ -101,16 +103,34 @@ fun PlayerScreen(
             enter = fadeIn(tween(ClickarrMotion.ENTER_MS)) + slideInVertically(tween(ClickarrMotion.ENTER_MS)) { it / 6 },
             exit = fadeOut(tween(ClickarrMotion.EXIT_MS)) + slideOutVertically(tween(ClickarrMotion.EXIT_MS)) { it / 6 },
         ) {
-            ChannelOverlay(tune, now = viewModel.now(), digits = digits)
+            ChannelOverlay(tune, now = viewModel.now(), digits = digits, captionsOn = captionsOn)
         }
+        notice?.let { CaptionNotice(it) }
         if (digits.isNotEmpty() && !overlayVisible) DigitBadge(digits)
         miniGuide?.let { MiniGuide(it, now = viewModel.now(), modifier = Modifier.align(Alignment.BottomCenter)) }
     }
 }
 
-/** Key-down events only; the mini-guide takes the keys while it is up. */
+/**
+ * Key-down events, except OK, which is a short press (the overlay) or a hold (captions) and so is decided on
+ * key-up. The remote's own captions key, where there is one, switches captions too. The mini-guide takes the
+ * keys while it is up.
+ */
 private fun playerKey(event: KeyEvent, vm: PlayerViewModel, miniOpen: Boolean, onOpenGuide: () -> Unit): Boolean {
+    val native = event.nativeKeyEvent
+    if (!miniOpen && (event.key == Key.DirectionCenter || event.key == Key.Enter)) {
+        when (event.type) {
+            KeyEventType.KeyDown -> vm.ok.down(native.eventTime, repeat = native.repeatCount > 0)
+            KeyEventType.KeyUp -> vm.ok.up()
+            else -> Unit
+        }
+        return true
+    }
     if (event.type != KeyEventType.KeyDown) return false
+    if (native.keyCode == android.view.KeyEvent.KEYCODE_CAPTIONS) {
+        vm.toggleCaptions()
+        return true
+    }
     return if (miniOpen) handleMiniGuideKey(event.key, vm) else handleKey(event.key, vm, onOpenGuide)
 }
 
@@ -119,7 +139,6 @@ private fun handleKey(key: Key, vm: PlayerViewModel, onOpenGuide: () -> Unit): B
     val action: (() -> Unit)? = when (key) {
         Key.DirectionUp, Key.ChannelUp -> vm::channelUp
         Key.DirectionDown, Key.ChannelDown -> vm::channelDown
-        Key.DirectionCenter, Key.Enter -> vm::toggleOverlay
         Key.Menu -> onOpenGuide
         Key.DirectionLeft, Key.DirectionRight -> vm::openMiniGuide
         Key.MediaPlayPause, Key.MediaPlay, Key.MediaPause -> vm::playPause

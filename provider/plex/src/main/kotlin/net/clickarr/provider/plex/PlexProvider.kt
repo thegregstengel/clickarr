@@ -28,6 +28,8 @@ import net.clickarr.provider.api.MediaProvider
 import net.clickarr.provider.api.Page
 import net.clickarr.provider.api.PageOf
 import net.clickarr.provider.api.PlaybackSource
+import net.clickarr.provider.api.Subtitle
+import net.clickarr.provider.api.CaptionRequest
 import net.clickarr.provider.api.PlaybackState
 import okhttp3.OkHttpClient
 
@@ -124,11 +126,17 @@ class PlexProvider(
             collectAll(shows) { episodes(it) }.map { fromShows -> direct + fromShows }
         }
 
-    override suspend fun playbackSource(item: MediaRef, profile: DeviceProfile, startAt: Duration): Outcome<PlaybackSource> =
+    override suspend fun playbackSource(
+        item: MediaRef,
+        profile: DeviceProfile,
+        startAt: Duration,
+        captions: CaptionRequest?,
+    ): Outcome<PlaybackSource> =
         http.get(url("/library/metadata/${item.id.value}"), PlexResponse.serializer()).flatMap { r ->
             val m = r.container.metadata.firstOrNull() ?: return@flatMap Outcome.Failure(ClickarrError.NotFound("No item ${item.id.value}"))
             val media = m.media.firstOrNull()
             val part = media?.parts?.firstOrNull()
+            val subtitles = PlexSubtitles.of(part)
             if (media != null && part?.key != null && profile.canDirectPlay(media)) {
                 Outcome.Success(
                     PlaybackSource.DirectPlay(
@@ -136,9 +144,16 @@ class PlexProvider(
                         headers = emptyMap(),
                         startAt = startAt,
                         mimeType = mimeFor(media.container),
+                        subtitles = sidecars(subtitles),
                     ),
                 )
             } else {
+                // A transcode starts at the offset on the server, so a separate subtitle file would be out of step;
+                // the chosen track is burned into the picture instead, and "none" keeps a Plex default out of it.
+                val burn = captions?.let { PlexSubtitles.choose(subtitles, it.language) }
+                if (burn != null && part?.id != null) {
+                    http.touch(url("/library/parts/${part.id}", "subtitleStreamID" to burn.id.toString(), "allParts" to "1"), "PUT")
+                }
                 val session = UUID.randomUUID().toString()
                 val hls = url(
                     "/video/:/transcode/universal/start.m3u8",
@@ -153,6 +168,8 @@ class PlexProvider(
                     "session" to session,
                     "videoResolution" to "${profile.maxWidth}x${profile.maxHeight}",
                     "maxVideoBitrate" to profile.maxBitrateKbps?.toString(),
+                    "subtitles" to if (burn != null) "burn" else "none",
+                    "subtitleStreamID" to burn?.id?.toString(),
                     "X-Plex-Client-Identifier" to identity.deviceId.value,
                     "X-Plex-Platform" to identity.platform,
                     "X-Plex-Product" to "Clickarr",
@@ -163,6 +180,13 @@ class PlexProvider(
                 )
             }
         }
+
+    /** Separate subtitle files the player can parse, each fetched through Plex with the token. */
+    private fun sidecars(streams: List<PlexStream>): List<Subtitle> = streams.mapNotNull { s ->
+        val key = s.key ?: return@mapNotNull null
+        val mime = PlexSubtitles.mimeType(s.codec) ?: return@mapNotNull null
+        Subtitle(url(key, "X-Plex-Token" to token).toString(), mime, s.languageCode, s.displayTitle)
+    }
 
     override suspend fun endPlayback(source: PlaybackSource): Outcome<Unit> = when (source) {
         is PlaybackSource.Hls -> http.touch(url("/video/:/transcode/universal/stop", "session" to source.sessionId))

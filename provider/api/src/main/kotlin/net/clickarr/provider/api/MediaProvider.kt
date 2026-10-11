@@ -53,8 +53,16 @@ interface MediaProvider {
      */
     suspend fun resolve(source: ProgrammingSource): Outcome<List<Playable>>
 
-    /** Decide how this device should play this item right now. Direct play is preferred. */
-    suspend fun playbackSource(item: MediaRef, profile: DeviceProfile, startAt: Duration): Outcome<PlaybackSource>
+    /**
+     * Decide how this device should play this item right now. Direct play is preferred. With [captions], the
+     * source carries the item's subtitles (as tracks the player can switch, or burned into a transcode).
+     */
+    suspend fun playbackSource(
+        item: MediaRef,
+        profile: DeviceProfile,
+        startAt: Duration,
+        captions: CaptionRequest? = null,
+    ): Outcome<PlaybackSource>
 
     /** Tell the server a playback session is over so it can release transcoder resources. */
     suspend fun endPlayback(source: PlaybackSource): Outcome<Unit>
@@ -114,6 +122,12 @@ data class DeviceProfile(
     }
 }
 
+/** Captions are wanted; [language] is the viewer's preferred ISO 639-2 code ("eng"), or null for any. */
+data class CaptionRequest(val language: String?)
+
+/** A subtitle file the player can load alongside the video. */
+data class Subtitle(val url: String, val mimeType: String, val language: String?, val label: String?)
+
 sealed interface PlaybackSource {
     val url: String
     val headers: Map<String, String>
@@ -126,6 +140,8 @@ sealed interface PlaybackSource {
         override val headers: Map<String, String>,
         override val startAt: Duration,
         val mimeType: String?,
+        /** Subtitle files that sit beside the video; subtitles inside the container are found by the player. */
+        val subtitles: List<Subtitle> = emptyList(),
     ) : PlaybackSource
 
     data class Hls(

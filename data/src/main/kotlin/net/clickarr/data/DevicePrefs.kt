@@ -26,6 +26,10 @@ private val Context.deviceStore: DataStore<Preferences> by preferencesDataStore(
 class DevicePrefs(context: Context) {
     private val store = context.applicationContext.deviceStore
 
+    /** The TV's own captions switch (Accessibility, Captions), the default until the viewer chooses in Clickarr. */
+    private val systemCaptions: Boolean =
+        (context.getSystemService(Context.CAPTIONING_SERVICE) as? android.view.accessibility.CaptioningManager)?.isEnabled == true
+
     /** Stable per install. Read once at startup, hence the single blocking read. */
     val deviceId: String by lazy {
         runBlocking {
@@ -109,6 +113,13 @@ class DevicePrefs(context: Context) {
         store.edit { it[FAVORITES_TAB] = on }
     }
 
+    /** Settings, Playback, Captions; hold OK in the player to switch. */
+    val captions: Flow<Boolean> = store.data.map { it[CAPTIONS] ?: systemCaptions }
+
+    suspend fun setCaptions(on: Boolean) {
+        store.edit { it[CAPTIONS] = on }
+    }
+
     /** Settings, General, Settings lock: the salted hash from [SettingsLock.record], or null when there is no code. */
     val settingsLock: Flow<String?> = store.data.map { it[SETTINGS_LOCK] }
 
@@ -158,6 +169,7 @@ class DevicePrefs(context: Context) {
         private val WATCH_REPORTING = stringPreferencesKey("watch_reporting")
         private val SETTINGS_LOCK = stringPreferencesKey("settings_lock")
         private val FAVORITES_TAB = booleanPreferencesKey("favorites_tab")
+        private val CAPTIONS = booleanPreferencesKey("captions")
         const val WATCH_OFF = "off"
         const val WATCH_WATCHED = "watched"
         const val WATCH_PROGRESS = "progress"

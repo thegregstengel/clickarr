@@ -213,6 +213,10 @@ class SettingsViewModel @Inject constructor(
 
     fun setWatchReporting(mode: String) = viewModelScope.launch { prefs.setWatchReporting(mode) }
 
+    val captions: StateFlow<Boolean> = prefs.captions.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    fun setCaptions(on: Boolean) = viewModelScope.launch { prefs.setCaptions(on) }
+
     /** Settings, General, Settings lock; see [LockController]. */
     val lock = LockController(prefs, viewModelScope) { SystemClock.elapsedRealtime() }
 

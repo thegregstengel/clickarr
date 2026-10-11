@@ -5,7 +5,10 @@ second release the same day); the household protocol, scheduler, and database ca
 
 ## [Unreleased]
 
-Nothing yet.
+### Added
+- Captions. Settings, Playback turns them on by default (starting from the TV's own captions setting), and holding OK while
+  watching switches them. Clickarr picks the program's subtitles in the TV's language; separate subtitle files and those
+  inside the video both work, and a transcode has the chosen track burned in. Style follows the TV's caption settings.
 
 ## 2026.10.11.2
 

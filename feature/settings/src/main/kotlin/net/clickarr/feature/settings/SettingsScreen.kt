@@ -274,6 +274,16 @@ private fun PlaybackPane(vm: SettingsViewModel) {
     Label("Direct play profile")
     Caption("Up to ${p.maxWidth}×${p.maxHeight}, video ${p.videoCodecs.joinToString()}, audio ${p.audioCodecs.joinToString()}.")
     Caption("Probed from this TV's decoders and display at startup. Anything outside it is transcoded by Plex.")
+    val captions by vm.captions.collectAsState()
+    Label("Captions")
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Chip("Off", selected = !captions) { vm.setCaptions(false) }
+        Chip("On", selected = captions) { vm.setCaptions(true) }
+    }
+    Caption(
+        "Shows the program's subtitles in this TV's language when it has them. Hold OK while watching to switch. " +
+            "Size, colour, and background follow the TV's own caption settings.",
+    )
     val watch by vm.watchReporting.collectAsState()
     Label("Tell Plex what you watched")
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
