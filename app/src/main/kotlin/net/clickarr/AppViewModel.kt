@@ -43,6 +43,7 @@ class AppViewModel @Inject constructor(
 
     val uiScale: StateFlow<Float> = prefs.uiScale.stateIn(viewModelScope, SharingStarted.Eagerly, DevicePrefs.DEFAULT_UI_SCALE)
     val theme: StateFlow<String> = prefs.theme.stateIn(viewModelScope, SharingStarted.Eagerly, DevicePrefs.DEFAULT_THEME)
+    val favoritesTab: StateFlow<Boolean> = prefs.favoritesTab.stateIn(viewModelScope, SharingStarted.Eagerly, true)
 
     /** Whether any channel existed when the app came up; decides the first screen. */
     private val _hadChannelsAtStart = MutableStateFlow(false)

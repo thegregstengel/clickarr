@@ -80,6 +80,9 @@ fun ShellScreen(
 ) {
     val channelCount by viewModel.channelCount.collectAsState()
     var tab by rememberSaveable { mutableStateOf(ShellTab.entries.firstOrNull { it.name.equals(initialTab, true) } ?: ShellTab.GUIDE) }
+    // Settings, Channels, Favorites tab: hidden for people with five channels who do not want a second list.
+    val showFavorites by viewModel.favoritesTab.collectAsState()
+    LaunchedEffect(showFavorites) { if (!showFavorites && tab == ShellTab.FAVORITES) tab = ShellTab.GUIDE }
     var spikes by rememberSaveable { mutableStateOf(false) }
     BackHandler {
         when {
@@ -113,7 +116,13 @@ fun ShellScreen(
             .background(ClickarrColors.BgBase)
             .onPreviewKeyEvent { lastKeyAt[0] = SystemClock.uptimeMillis(); false },
     ) {
-        ShellTopRow(tab, onFocusTab = ::select, onSelectTab = { t -> switched = switched || t != tab; tab = t }, now = viewModel::now)
+        ShellTopRow(
+            tab,
+            showFavorites = showFavorites,
+            onFocusTab = ::select,
+            onSelectTab = { t -> switched = switched || t != tab; tab = t },
+            now = viewModel::now,
+        )
         Box(Modifier.fillMaxSize()) {
             when (tab) {
                 ShellTab.GUIDE -> GuideScreen(onWatch = callbacks.onWatch, takeFocus = !switched)
@@ -138,7 +147,13 @@ fun ShellScreen(
 
 /** Logo, Guide and Favorites, and the settings cog at the far right. */
 @Composable
-private fun ShellTopRow(tab: ShellTab, onFocusTab: (ShellTab) -> Unit, onSelectTab: (ShellTab) -> Unit, now: () -> Instant) {
+private fun ShellTopRow(
+    tab: ShellTab,
+    showFavorites: Boolean,
+    onFocusTab: (ShellTab) -> Unit,
+    onSelectTab: (ShellTab) -> Unit,
+    now: () -> Instant,
+) {
     Row(
         Modifier.fillMaxWidth().padding(horizontal = ClickarrDimens.SafeArea, vertical = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(32.dp),
@@ -146,7 +161,7 @@ private fun ShellTopRow(tab: ShellTab, onFocusTab: (ShellTab) -> Unit, onSelectT
     ) {
         ClickarrLogoHorizontal(markSize = 40.dp)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf(ShellTab.GUIDE, ShellTab.FAVORITES).forEach { t ->
+            listOfNotNull(ShellTab.GUIDE, ShellTab.FAVORITES.takeIf { showFavorites }).forEach { t ->
                 ShellTabPill(t, selected = tab == t, onFocus = { onFocusTab(t) }, onSelect = { onSelectTab(t) })
             }
         }

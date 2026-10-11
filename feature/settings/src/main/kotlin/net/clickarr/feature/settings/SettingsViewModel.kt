@@ -204,6 +204,10 @@ class SettingsViewModel @Inject constructor(
 
     fun setAutoRefresh(on: Boolean) = viewModelScope.launch { prefs.setAutoRefresh(on) }
 
+    val favoritesTab: StateFlow<Boolean> = prefs.favoritesTab.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
+
+    fun setFavoritesTab(on: Boolean) = viewModelScope.launch { prefs.setFavoritesTab(on) }
+
     val watchReporting: StateFlow<String> =
         prefs.watchReporting.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DevicePrefs.DEFAULT_WATCH_REPORTING)
 

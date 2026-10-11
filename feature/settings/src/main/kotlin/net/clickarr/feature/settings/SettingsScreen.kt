@@ -251,6 +251,13 @@ private fun ChannelsPane(vm: SettingsViewModel, actions: SettingsActions) {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         listOf(3, 6, 12, 24).forEach { h -> Chip("$h hours", selected = g.guideHours == h) { vm.setGuideHours(h) } }
     }
+    val favoritesTab by vm.favoritesTab.collectAsState()
+    Label("Favorites tab")
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Chip("Show", selected = favoritesTab) { vm.setFavoritesTab(true) }
+        Chip("Hide", selected = !favoritesTab) { vm.setFavoritesTab(false) }
+    }
+    Caption("Hide takes Favorites out of the top row. Stars in the guide still work, for whenever you want it back.")
     if (list.isEmpty()) {
         Caption("No channels yet. Create one from a show, a whole library, a collection, or a playlist.")
     }

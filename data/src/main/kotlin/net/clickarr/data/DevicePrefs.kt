@@ -102,6 +102,13 @@ class DevicePrefs(context: Context) {
         }
     }
 
+    /** Settings, Channels: show the Favorites tab in the shell. Stars in the guide work either way. */
+    val favoritesTab: Flow<Boolean> = store.data.map { it[FAVORITES_TAB] ?: true }
+
+    suspend fun setFavoritesTab(on: Boolean) {
+        store.edit { it[FAVORITES_TAB] = on }
+    }
+
     /** Settings, General, Settings lock: the salted hash from [SettingsLock.record], or null when there is no code. */
     val settingsLock: Flow<String?> = store.data.map { it[SETTINGS_LOCK] }
 
@@ -150,6 +157,7 @@ class DevicePrefs(context: Context) {
         private val LAST_REFRESH_NOTE = stringPreferencesKey("last_auto_refresh_note")
         private val WATCH_REPORTING = stringPreferencesKey("watch_reporting")
         private val SETTINGS_LOCK = stringPreferencesKey("settings_lock")
+        private val FAVORITES_TAB = booleanPreferencesKey("favorites_tab")
         const val WATCH_OFF = "off"
         const val WATCH_WATCHED = "watched"
         const val WATCH_PROGRESS = "progress"

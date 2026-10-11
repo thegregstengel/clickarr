@@ -34,6 +34,8 @@ the household protocol and database may still change between minor versions.
 - Episodes in a row: a channel can play 2, 3, or a range of one show's episodes back to back in aired order, shuffled between runs or alternating shows in order (scheduler version 2).
 - Clock in the shell beside the settings cog; Settings, General, Time: zone and automatic network time (SNTP).
 - Guide shows two hours across the screen at any size and starts at the current half hour.
+- Settings, Channels, Favorites tab: Show or Hide. Hide takes Favorites out of the top row for lineups small enough not to
+  need it; the stars in the guide keep working.
 - Settings, General, Settings lock: a four-digit code (entered on an on-screen pad) that covers Settings and the channel editor
   whenever they are opened; the guide, favorites, and watching stay open. The code lives on one TV and is never synced;
   five wrong tries earn a thirty-second wait; clearing the app's data is the recovery for a forgotten code.
