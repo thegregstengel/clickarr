@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clickarr privacy</title>
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<style>
+  :root { color-scheme: dark; --bg:#05070F; --panel:#0A1220; --text:#F2F5FA; --text-2:#A9B4C8; --accent:#00ACFF; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; line-height:1.55; }
+  main { max-width: 760px; margin: 0 auto; padding: 48px 20px 80px; }
+  h1 { font-size: 2rem; margin: 0 0 8px; } h2 { font-size: 1.2rem; margin: 32px 0 8px; }
+  p, li { color: var(--text-2); } a { color: var(--accent); }
+  .meta { font-size: .9rem; color: var(--text-2); }
+</style>
+</head>
+<body>
+<main>
+  <p><a href="../">Clickarr</a></p>
+  <h1>Privacy</h1>
+  <p class="meta">Effective 11 October 2026. This policy covers the Clickarr app for Android TV, Google TV, and Fire TV, and the clickarr.net website.</p>
+
+  <h2>The short version</h2>
+  <p>Clickarr has no servers, no accounts, no analytics, and no advertising. It runs on your TV and talks to your own Plex server. Nothing about you is sent to the Clickarr project.</p>
+
+  <h2>What stays on your TV</h2>
+  <ul>
+    <li>Your Plex sign-in token, stored in the TV's Android Keystore. It never leaves the TV and is never synchronized to other devices.</li>
+    <li>Your channels, favorites, settings, and a short redacted diagnostic log.</li>
+  </ul>
+
+  <h2>Talking to your Plex server</h2>
+  <p>Clickarr requests library metadata, artwork, and video from the Plex server you signed into, and, if you turn it on, tells that server which episodes you watched. That traffic is between your TV and your server. Plex, Inc. is a separate company with its own privacy policy.</p>
+
+  <h2>Households on your Wi-Fi</h2>
+  <p>If you pair several TVs as a household, they exchange the channel lineup over your local network using TLS. They never exchange Plex credentials.</p>
+
+  <h2>Google Drive sync (optional)</h2>
+  <p>If you choose Google Drive sync, Clickarr asks Google for two permissions: to see your account's email address, so the Settings screen can show which account is linked, and to create and edit files that Clickarr itself created in your Google Drive (the <code>drive.file</code> scope). It keeps one small JSON file, your channel lineup, in a folder named Clickarr in your Drive. It cannot see any other file in your Drive. The sign-in token is stored in the TV's Keystore. Signing out revokes the token with Google and removes it from the TV. Deleting the Clickarr folder from your Drive removes the data; Clickarr's use of Google user data complies with the <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>, including the Limited Use requirements.</p>
+
+  <h2>Updates</h2>
+  <p>When you press Check for updates, Clickarr fetches a small version file and, if you choose, an APK from GitHub. That request carries no identifying information beyond what any download does.</p>
+
+  <h2>The website</h2>
+  <p>clickarr.net is a static site hosted by GitHub Pages, which keeps its own server logs under <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub's privacy statement</a>. The site sets no cookies and runs no analytics.</p>
+
+  <h2>Children</h2>
+  <p>Clickarr is not directed at children and collects no personal information from anyone.</p>
+
+  <h2>Changes and contact</h2>
+  <p>Changes to this policy are made in the project's public repository, where its history is visible. Questions go to the <a href="https://github.com/thegregstengel/clickarr/issues">issue tracker on GitHub</a>.</p>
+</main>
+</body>
+</html>
