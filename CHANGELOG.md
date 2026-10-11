@@ -1,7 +1,7 @@
 # Changelog
 
-Notable changes to Clickarr. The format follows Keep a Changelog; versions follow semver while pre-1.0 means
-the household protocol and database may still change between minor versions.
+Notable changes to Clickarr. The format follows Keep a Changelog. Versions are dates (`2026.10.11`, and `.2` for a
+second release the same day); the household protocol, scheduler, and database carry their own version numbers.
 
 ## [Unreleased]
 

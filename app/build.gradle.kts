@@ -9,9 +9,11 @@ android {
 
     defaultConfig {
         applicationId = "net.clickarr"
-        // CI sets CLICKARR_VERSION_CODE to the minutes since 2026-01-01 so every build is a newer version.
+        // CI sets CLICKARR_VERSION_CODE to the minutes since 2026-01-01 so every build is a newer version, and
+        // CLICKARR_VERSION_NAME to a calendar version (docs/release.md): "2026.10.11" for a release from its tag,
+        // "2026.10.11-nightly.407561" for a nightly. Nothing in source names a version; a local build is "dev".
         versionCode = System.getenv("CLICKARR_VERSION_CODE")?.toIntOrNull() ?: 2
-        versionName = "0.1.0-dev"
+        versionName = System.getenv("CLICKARR_VERSION_NAME")?.ifBlank { null } ?: "dev"
         // Google OAuth client for Drive sync (ADR 0020); empty in builds without one, and the Sync pane says so.
         buildConfigField("String", "GOOGLE_CLIENT_ID", "\"${System.getenv("CLICKARR_GOOGLE_CLIENT_ID").orEmpty()}\"")
         buildConfigField("String", "GOOGLE_CLIENT_SECRET", "\"${System.getenv("CLICKARR_GOOGLE_CLIENT_SECRET").orEmpty()}\"")
@@ -52,7 +54,6 @@ android {
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
-            versionNameSuffix = "-debug"
             if (!nightlyKeystorePath.isNullOrBlank()) {
                 signingConfig = signingConfigs.getByName("nightly")
                 // A published nightly must not be debuggable: run-as and JDWP would read the token store.

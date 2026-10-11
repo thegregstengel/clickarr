@@ -26,8 +26,11 @@ jobs:
         with:
           cache-read-only: ${{ github.ref != 'refs/heads/main' }}
 
-      - name: Version code for this build (minutes since 2026-01-01 UTC)
-        run: echo "VERSION_CODE=$(( ($(date +%s) - 1767225600) / 60 ))" >> "$GITHUB_ENV"
+      - name: Version for this build (code: minutes since 2026-01-01 UTC; name: today's date, nightly, code)
+        run: |
+          CODE=$(( ($(date +%s) - 1767225600) / 60 ))
+          echo "VERSION_CODE=$CODE" >> "$GITHUB_ENV"
+          echo "VERSION_NAME=$(date -u +%Y.%-m.%-d)-nightly.$CODE" >> "$GITHUB_ENV"
 
       # One long-lived key for every nightly (docs/release.md), so a nightly installs over the previous one.
       - name: Nightly signing key
@@ -53,6 +56,7 @@ jobs:
       - name: Assemble debug APK
         env:
           CLICKARR_VERSION_CODE: ${{ env.VERSION_CODE }}
+          CLICKARR_VERSION_NAME: ${{ env.VERSION_NAME }}
           CLICKARR_GOOGLE_CLIENT_ID: ${{ secrets.CLICKARR_GOOGLE_CLIENT_ID }}
           CLICKARR_GOOGLE_CLIENT_SECRET: ${{ secrets.CLICKARR_GOOGLE_CLIENT_SECRET }}
           CLICKARR_NIGHTLY_KEYSTORE_PATH: ${{ env.CLICKARR_NIGHTLY_KEYSTORE_PATH }}
@@ -68,7 +72,7 @@ jobs:
       - name: Describe the build for the in-app updater
         run: |
           APK=app/build/outputs/apk/debug/app-debug.apk
-          NAME="$(sed -n 's/.*versionName = "\(.*\)".*/\1/p' app/build.gradle.kts)-debug"
+          NAME="$VERSION_NAME"
           SHA="$(sha256sum "$APK" | cut -d' ' -f1)"
           SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
           APKSIGNER="$(find "$SDK/build-tools" -name apksigner -type f 2>/dev/null | sort -V | tail -1)"
@@ -121,6 +125,7 @@ jobs:
       - name: Build the unsigned release APK with a fixed version code
         env:
           CLICKARR_VERSION_CODE: "1"
+          CLICKARR_VERSION_NAME: "repro"
         run: ./gradlew :app:assembleRelease --no-daemon
       - name: Checksum
         run: sha256sum app/build/outputs/apk/release/app-release-unsigned.apk | cut -d' ' -f1 > "sha-${{ matrix.attempt }}.txt"

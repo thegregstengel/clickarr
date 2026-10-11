@@ -46,14 +46,18 @@ when it notices, because CI publishes the signer's certificate digest in `versio
 
 ## Cutting a release
 
-1. Move the `[Unreleased]` notes in `CHANGELOG.md` under a new `## [0.1.0] - 2026-10-20` heading.
-2. Set `versionName = "0.1.0"` in `app/build.gradle.kts` (`versionCode` is set by CI to the minutes since
-   2026-01-01, so every build, nightly or release, is a newer version). Pre-releases use a suffix,
-   `0.1.0-rc1`, and are marked as such on GitHub automatically.
-3. Commit, then tag and push: `git tag v0.1.0 && git push origin main v0.1.0`.
-4. The Release workflow checks the tag against `versionName`, builds `assembleRelease`, and publishes
-   `clickarr-0.1.0.apk`, a stable `clickarr.apk`, and `SHA256SUMS.txt` with the changelog section as notes.
-5. Back on main, set `versionName` to the next `-dev` version.
+Versions are dates. A release is `2026.10.11`; a second release on the same day is `2026.10.11.2`; a nightly is
+`2026.10.11-nightly.407561` (the date plus CI's build number). Nothing in source names a version: the tag is the
+version for a release, the calendar is the version for a nightly, and a local build calls itself `dev`.
+
+1. Move the `[Unreleased]` notes in `CHANGELOG.md` under a new `## 2026.10.11` heading and commit.
+2. Tag and push: `git tag v2026.10.11 && git push origin v2026.10.11`.
+3. The Release workflow takes the version from the tag, builds and signs `assembleRelease`, and publishes
+   `clickarr-2026.10.11.apk`, a stable `clickarr.apk`, `SHA256SUMS.txt`, and `version.json`, with the matching
+   changelog section as the notes. A tag with a suffix (`v2026.10.11-rc1`) is marked a pre-release.
+
+`versionCode` is the minutes since 2026-01-01 on every build, nightly or release, so the in-app updater always
+sees a later build as newer whatever its name.
 
 `clickarr.net/apk` redirects to the latest release's `clickarr.apk`, which is the URL to give Downloader.
 `clickarr.net/nightly` keeps pointing at the debug nightly.
