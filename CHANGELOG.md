@@ -11,6 +11,9 @@ second release the same day); the household protocol, scheduler, and database ca
   TVs already paired keep working.
 
 ### Added
+- "Coming up next" between programs on channels with 15, 30, or 60-minute slots: the next program's backdrop, time, and
+  synopsis, the rest of the evening, and the show's theme music, all from what Plex already has. Settings, Playback,
+  Between programs switches back to the countdown.
 - Captions, off by default. Turn them on in Settings, Playback, or hold OK while watching to switch them. Clickarr picks the program's subtitles in the TV's language; separate subtitle files and those
   inside the video both work, and a transcode has the chosen track burned in. Style follows the TV's caption settings.
 

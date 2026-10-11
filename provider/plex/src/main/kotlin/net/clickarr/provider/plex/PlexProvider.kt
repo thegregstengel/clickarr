@@ -193,6 +193,8 @@ class PlexProvider(
         is PlaybackSource.DirectPlay -> Outcome.Success(Unit)
     }
 
+    override fun themeUrl(ref: ArtworkRef): String = url(ref.path, "X-Plex-Token" to token).toString()
+
     override fun artworkUrl(ref: ArtworkRef, size: ArtworkSize): String = url(
         "/photo/:/transcode",
         "width" to size.width.toString(),

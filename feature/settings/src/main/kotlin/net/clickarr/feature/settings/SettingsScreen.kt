@@ -274,6 +274,16 @@ private fun PlaybackPane(vm: SettingsViewModel) {
     Label("Direct play profile")
     Caption("Up to ${p.maxWidth}×${p.maxHeight}, video ${p.videoCodecs.joinToString()}, audio ${p.audioCodecs.joinToString()}.")
     Caption("Probed from this TV's decoders and display at startup. Anything outside it is transcoded by Plex.")
+    val between by vm.betweenPrograms.collectAsState()
+    Label("Between programs")
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Chip("Coming up next", selected = between == DevicePrefs.BETWEEN_PROMO) { vm.setBetweenPrograms(DevicePrefs.BETWEEN_PROMO) }
+        Chip("Countdown", selected = between == DevicePrefs.BETWEEN_COUNTDOWN) { vm.setBetweenPrograms(DevicePrefs.BETWEEN_COUNTDOWN) }
+    }
+    Caption(
+        "On channels with 15, 30, or 60-minute slots, the gap before the next program shows its backdrop, time, and " +
+            "synopsis with the show's theme music, all from what Plex already has. Or a plain countdown.",
+    )
     val captions by vm.captions.collectAsState()
     Label("Captions")
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

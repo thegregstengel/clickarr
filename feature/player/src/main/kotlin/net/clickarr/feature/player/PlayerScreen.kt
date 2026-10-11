@@ -54,6 +54,7 @@ fun PlayerScreen(
     val digits by viewModel.digits.collectAsState()
     val captionsOn by viewModel.captions.collectAsState()
     val notice by viewModel.notice.collectAsState()
+    val promoState by viewModel.promo.collectAsState()
     val miniGuide by viewModel.miniGuide.collectAsState()
     // Back arrives as a key on Fire OS but through the back dispatcher on newer Android (predictive back),
     // so it is handled here rather than in the key map: close the mini-guide, then the overlay, then leave.
@@ -94,7 +95,10 @@ fun PlayerScreen(
         )
 
         val status = tune.status
-        if (status is TuneStatus.Filler || status is TuneStatus.Unavailable || tune.channel == null) {
+        val promo = promoState
+        if (status is TuneStatus.Filler && promo != null) {
+            PromoCard(promo, tune.channel.takeIf { !overlayVisible }, viewModel.now(), showText = !overlayVisible)
+        } else if (status is TuneStatus.Filler || status is TuneStatus.Unavailable || tune.channel == null) {
             FillerCard(tune, viewModel.now(), reason = (status as? TuneStatus.Unavailable)?.reason, showHeader = !overlayVisible)
         }
 

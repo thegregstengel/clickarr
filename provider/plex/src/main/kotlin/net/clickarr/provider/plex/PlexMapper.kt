@@ -34,7 +34,8 @@ internal class PlexMapper(private val provider: ProviderId) {
     fun artwork(m: PlexMetadata) = Artwork(
         poster = m.thumb?.let { ArtworkRef(provider, it) },
         thumb = m.thumb?.let { ArtworkRef(provider, it) },
-        backdrop = m.art?.let { ArtworkRef(provider, it) },
+        backdrop = (m.art ?: m.grandparentArt)?.let { ArtworkRef(provider, it) },
+        theme = (m.theme ?: m.grandparentTheme)?.let { ArtworkRef(provider, it) },
     )
 
     fun show(m: PlexMetadata) = Show(

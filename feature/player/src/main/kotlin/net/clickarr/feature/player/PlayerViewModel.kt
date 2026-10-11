@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import net.clickarr.core.model.Channel
+import net.clickarr.data.DevicePrefs
 import net.clickarr.data.PlayerDeps
 import net.clickarr.playback.core.TuneController
 import net.clickarr.playback.core.TuneState
@@ -68,7 +69,14 @@ class PlayerViewModel @Inject constructor(
         mode = { watchMode.value },
     )
 
+    /** Settings, Playback, Between programs: the "Coming up next" promo, or the plain countdown card. */
+    private val promoOn: StateFlow<Boolean> = deps.prefs.betweenPrograms.map { it == DevicePrefs.BETWEEN_PROMO }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, true)
+    private val promos = PromoDirector(context, deps, viewModelScope)
+    val promo: StateFlow<PromoDirector.Promo?> = promos.promo
+
     init {
+        promos.start(controller.state, promoOn)
         reporter.start(controller.state)
         viewModelScope.launch { captions.collect { on -> engine.setCaptions(on, captionLanguage) } }
     }
@@ -224,6 +232,7 @@ class PlayerViewModel @Inject constructor(
 
     override fun onCleared() {
         reporter.stop()
+        promos.release()
         controller.stop()
         engine.release()
     }

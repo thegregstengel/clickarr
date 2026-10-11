@@ -69,6 +69,9 @@ interface MediaProvider {
 
     fun artworkUrl(ref: ArtworkRef, size: ArtworkSize): String
 
+    /** A playable URL for an audio asset such as a show's theme music, or null when the provider has none. */
+    fun themeUrl(ref: ArtworkRef): String? = null
+
     /** Optional. Providers that cannot report progress return success without doing anything. */
     suspend fun reportProgress(item: MediaRef, position: Duration, state: PlaybackState): Outcome<Unit>
 

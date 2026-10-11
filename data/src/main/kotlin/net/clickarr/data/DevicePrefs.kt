@@ -109,6 +109,13 @@ class DevicePrefs(context: Context) {
         store.edit { it[FAVORITES_TAB] = on }
     }
 
+    /** Settings, Playback, Between programs: the "Coming up next" promo (default) or the countdown card. */
+    val betweenPrograms: Flow<String> = store.data.map { it[BETWEEN] ?: BETWEEN_PROMO }
+
+    suspend fun setBetweenPrograms(mode: String) {
+        store.edit { it[BETWEEN] = mode }
+    }
+
     /** Settings, Playback, Captions; off until the viewer turns them on here or by holding OK in the player. */
     val captions: Flow<Boolean> = store.data.map { it[CAPTIONS] ?: false }
 
@@ -166,6 +173,9 @@ class DevicePrefs(context: Context) {
         private val SETTINGS_LOCK = stringPreferencesKey("settings_lock")
         private val FAVORITES_TAB = booleanPreferencesKey("favorites_tab")
         private val CAPTIONS = booleanPreferencesKey("captions")
+        private val BETWEEN = stringPreferencesKey("between_programs")
+        const val BETWEEN_PROMO = "promo"
+        const val BETWEEN_COUNTDOWN = "countdown"
         const val WATCH_OFF = "off"
         const val WATCH_WATCHED = "watched"
         const val WATCH_PROGRESS = "progress"

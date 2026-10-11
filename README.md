@@ -60,7 +60,7 @@ Nightlies are signed with one long-lived key, so each one installs over the last
 
 Everything below is in the nightly and has been exercised on real Fire TV Sticks as well as the emulator.
 
-- **Channels** from shows, whole libraries with genre and decade filters, Plex collections, playlists, and hand-picked lists. In order or shuffled. Back to back, or padded to 15, 30, or 60-minute slots with a countdown card between programs.
+- **Channels** from shows, whole libraries with genre and decade filters, Plex collections, playlists, and hand-picked lists. In order or shuffled. Back to back, or padded to 15, 30, or 60-minute slots with a "Coming up next" promo between programs: the next show's backdrop, time, and synopsis over its theme music.
 - **Episodes in a row.** A shuffled channel can still play two, three, or a range of one show's episodes back to back in aired order before moving on; a channel of several shows alternates between them.
 - **Suggest channels.** Reads your library once and proposes a starting lineup the way you would make it by hand: a rerun channel for each show you have the most of, collections and playlists with enough in them, genre themes such as Sitcoms, Cartoons, and Horror Movies, strong decades, and one shuffled movie channel.
 - **Keep lineups current.** Once a day Clickarr re-reads every channel's source from Plex, so new episodes join at the next program boundary without anyone pressing Refresh.

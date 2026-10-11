@@ -32,6 +32,8 @@ data class Artwork(
     val poster: ArtworkRef? = null,
     val thumb: ArtworkRef? = null,
     val backdrop: ArtworkRef? = null,
+    /** Theme music (Plex's show theme), played under the "Coming up next" promo. Audio, not an image. */
+    val theme: ArtworkRef? = null,
 )
 
 @Serializable

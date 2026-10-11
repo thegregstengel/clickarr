@@ -217,6 +217,11 @@ class SettingsViewModel @Inject constructor(
 
     fun setCaptions(on: Boolean) = viewModelScope.launch { prefs.setCaptions(on) }
 
+    val betweenPrograms: StateFlow<String> =
+        prefs.betweenPrograms.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DevicePrefs.BETWEEN_PROMO)
+
+    fun setBetweenPrograms(mode: String) = viewModelScope.launch { prefs.setBetweenPrograms(mode) }
+
     /** Settings, General, Settings lock; see [LockController]. */
     val lock = LockController(prefs, viewModelScope) { SystemClock.elapsedRealtime() }
 

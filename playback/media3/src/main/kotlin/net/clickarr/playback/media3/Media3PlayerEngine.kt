@@ -138,6 +138,11 @@ class Media3PlayerEngine(context: Context, okHttp: OkHttpClient, userAgent: Stri
 
     fun release() = player.release()
 
+    /** 0 to 1; the promo's theme music sits under the picture rather than at full volume. */
+    fun setVolume(volume: Float) {
+        player.volume = volume.coerceIn(0f, 1f)
+    }
+
     companion object {
         private const val TAG = "Media3"
         private val RECOVERABLE = setOf(
