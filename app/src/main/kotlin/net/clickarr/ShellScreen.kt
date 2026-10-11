@@ -49,8 +49,6 @@ import androidx.compose.runtime.LaunchedEffect
 import net.clickarr.core.model.ChannelId
 import net.clickarr.feature.guide.GuideScreen
 import net.clickarr.feature.settings.SettingsScreen
-import net.clickarr.spike.SpikeApp
-import net.clickarr.spike.SpikeArgs
 import net.clickarr.ui.design.ClickarrColors
 import net.clickarr.ui.design.ClickarrDimens
 import net.clickarr.ui.design.ClickarrLogoHorizontal
@@ -85,12 +83,7 @@ fun ShellScreen(
     // Settings, Channels, Favorites tab: hidden for people with five channels who do not want a second list.
     val showFavorites by viewModel.favoritesTab.collectAsState()
     LaunchedEffect(showFavorites) { if (!showFavorites && tab == ShellTab.FAVORITES) tab = ShellTab.GUIDE }
-    var spikes by rememberSaveable { mutableStateOf(false) }
-    BackHandler { shellBack(spikes, channelCount, callbacks) { spikes = false } }
-    if (spikes) {
-        SpikeApp(SpikeArgs())
-        return
-    }
+    BackHandler { shellBack(channelCount, callbacks) }
     // Tabs follow focus, but only focus the viewer moved there. When a focused control disappears (a pane swaps
     // its content, a text field closes), Compose hands focus to the first focusable, which is the Guide tab, and
     // that must not change tabs. A key press within the last moment is the signal that the viewer did it.
@@ -133,7 +126,6 @@ fun ShellScreen(
                     entryFocus = settingsEntry,
                     actions = SettingsActions(
                         onDisconnected = callbacks.onDisconnected,
-                        onOpenSpikes = { spikes = true },
                         onExit = callbacks.onExit,
                         onCreateChannel = callbacks.onCreateChannel,
                         onSuggestChannels = callbacks.onSuggestChannels,
@@ -145,13 +137,9 @@ fun ShellScreen(
     }
 }
 
-/** Back from the shell: close the spikes if they are up, otherwise back to the player, or out when there is nothing to play. */
-private fun shellBack(spikes: Boolean, channelCount: Int, callbacks: ShellCallbacks, closeSpikes: () -> Unit) {
-    when {
-        spikes -> closeSpikes()
-        channelCount > 0 -> callbacks.onWatch()
-        else -> callbacks.onExit()
-    }
+/** Back from the shell: to the player, or out when there is nothing to play. */
+private fun shellBack(channelCount: Int, callbacks: ShellCallbacks) {
+    if (channelCount > 0) callbacks.onWatch() else callbacks.onExit()
 }
 
 /** Logo, Guide and Favorites, and the settings cog at the far right. */

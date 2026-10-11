@@ -165,7 +165,7 @@ class DevicePrefs(context: Context) {
         const val SYNC_OFF = "off"
         const val SYNC_LOCAL = "local"
         const val SYNC_DRIVE = "drive"
-        const val DEFAULT_UPDATE_CHANNEL = "nightly"
+        const val DEFAULT_UPDATE_CHANNEL = "release"
         const val DEFAULT_GUIDE_HOURS = 6
         const val MIN_GUIDE_HOURS = 3
         const val MAX_GUIDE_HOURS = 24

@@ -5,7 +5,11 @@ second release the same day); the household protocol, scheduler, and database ca
 
 ## [Unreleased]
 
-Nothing yet.
+### Changed
+- New installs check the Release channel for updates by default; nightly is one choice away in Settings, About.
+
+### Removed
+- The Phase 0 spike screens and the `spike` module; the shipped app answered every question they were built for.
 
 ## 2026.10.11
 

@@ -51,8 +51,8 @@ store, logging, settings lock, and CI. What changed as a result:
   hour needs two servers that agree.
 - Exception text in logs and Diagnostics is redacted like everything else.
 - Published nightlies are built non-debuggable, so `run-as` and a debugger cannot read the token store.
-- Settings lock wrong-guess counts survive leaving the screen. Spike extras on the launcher intent are honoured
-  only by debuggable builds. The updater refuses an APK name that leaves the release and caps `version.json`.
+- Settings lock wrong-guess counts survive leaving the screen. The Phase 0 spike screens, and the launcher
+  extras that opened them, have since been removed. The updater refuses an APK name that leaves the release and caps `version.json`.
 - CI: every action pinned to a commit, release permissions job-scoped, keystores deleted when the job ends,
   `v*` tags protected by a ruleset.
 - Reproducible release builds: two clean runners must produce byte-identical APKs apart from the ART baseline

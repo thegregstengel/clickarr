@@ -314,7 +314,6 @@ private fun AboutPane(appVersion: String, appVersionCode: Int, vm: SettingsViewM
     Caption("Plex is a trademark of Plex, Inc. Clickarr is an independent project.")
     UpdatesBlock(appVersionCode, vm)
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Button(onClick = actions.onOpenSpikes) { Text("Phase 0 spikes") }
         Button(onClick = actions.onExit) { Text("Exit Clickarr") }
     }
 }

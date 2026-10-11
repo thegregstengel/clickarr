@@ -16,7 +16,7 @@ detekt {
     config.setFrom(files("$rootDir/config/detekt/detekt.yml"))
     source.setFrom(
         files(
-            subprojects.filter { it.name != "spike" }.flatMap { p ->
+            subprojects.flatMap { p ->
                 listOf("${p.projectDir}/src/main/kotlin", "${p.projectDir}/src/test/kotlin")
             },
         ),
