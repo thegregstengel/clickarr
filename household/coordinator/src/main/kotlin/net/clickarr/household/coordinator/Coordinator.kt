@@ -144,15 +144,22 @@ class Coordinator(
 
     fun pairStart(req: PairStartRequest): Outcome<PairStartResponse> {
         val pin = activePin?.takeIf { it.expiresAt > clock.now() }
-            ?: return Outcome.Failure(ClickarrError.Unauthorized("This household is not accepting new devices right now"))
-        if (sessions.size >= MAX_SESSIONS) return Outcome.Failure(ClickarrError.Unauthorized("Too many devices are pairing at once"))
-        // Every start is one guess at the PIN (the joiner learns from B's confirmation whether it was right).
-        pin.attempts++
-        if (pin.attempts > Pairing.MAX_ATTEMPTS) return Outcome.Failure(ClickarrError.Unauthorized(cancelPin()))
-        val theirs = Pairing.fromHex(req.pake) ?: return Outcome.Failure(ClickarrError.Invalid("Malformed pairing message"))
+        val refusal = when {
+            pin == null -> ClickarrError.Unauthorized("This household is not accepting new devices right now")
+            sessions.size >= MAX_SESSIONS -> ClickarrError.Unauthorized("Too many devices are pairing at once")
+            // Every start is one guess at the PIN (the joiner learns from B's confirmation whether it was right).
+            ++pin.attempts > Pairing.MAX_ATTEMPTS -> ClickarrError.Unauthorized(cancelPin())
+            else -> null
+        }
+        if (refusal != null || pin == null) return Outcome.Failure(refusal ?: ClickarrError.Unauthorized("Not accepting joins"))
+        return answer(req, pin)
+    }
+
+    /** Runs the coordinator's half of SPAKE2 for one attempt and remembers the confirmation it expects back. */
+    private fun answer(req: PairStartRequest, pin: ActivePin): Outcome<PairStartResponse> {
         val sessionId = UUID.randomUUID().toString()
         val pake = Pairing.coordinator(pin.pin, req.certFingerprint, fingerprint(), random)
-        val keys = runCatching { pake.finish(theirs, Pairing.aad(sessionId)) }.getOrNull()
+        val keys = Pairing.fromHex(req.pake)?.let { runCatching { pake.finish(it, Pairing.aad(sessionId)) }.getOrNull() }
             ?: return Outcome.Failure(ClickarrError.Invalid("Malformed pairing message"))
         sessions[sessionId] = PairSession(req.deviceId, req.deviceName, req.certFingerprint, keys.confirmA.toHex(), pin.expiresAt)
         Log.i(TAG) { "pairing started for ${req.deviceName}" }

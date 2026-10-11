@@ -105,7 +105,8 @@ class Spake2 internal constructor(
         internal fun hex(s: String): ByteArray = ByteArray(s.length / 2) { i -> s.substring(i * 2, i * 2 + 2).toInt(16).toByte() }
 
         private fun hmac(key: ByteArray, message: ByteArray): ByteArray =
-            Mac.getInstance("HmacSHA256").apply { init(SecretKeySpec(key.ifEmpty { ByteArray(HASH) }, "HmacSHA256")) }.doFinal(message)
+            Mac.getInstance("HmacSHA256").apply { init(SecretKeySpec(if (key.isEmpty()) ByteArray(HASH) else key, "HmacSHA256")) }
+                .doFinal(message)
 
         /** RFC 5869 HKDF with SHA-256. An empty salt means a block of zeros, as the RFC specifies. */
         internal fun hkdf(ikm: ByteArray, salt: ByteArray, info: ByteArray, length: Int): ByteArray {
