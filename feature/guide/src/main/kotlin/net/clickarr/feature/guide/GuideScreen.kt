@@ -528,7 +528,8 @@ private fun NowLine(window: GuideViewModel.Window, minutePx: Float, scrollPx: In
 @Composable
 private fun PreviewCard(airing: Airing?, preview: GuideViewModel.Preview?) {
     Row(
-        Modifier.fillMaxWidth().height(PREVIEW_HEIGHT).padding(top = 8.dp),
+        // Same breathing room below as the guide keeps at its left edge, so the card does not sit on the screen's edge.
+        Modifier.fillMaxWidth().height(PREVIEW_HEIGHT + ClickarrDimens.SafeArea / 2).padding(top = 8.dp, bottom = ClickarrDimens.SafeArea / 2),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
