@@ -8,7 +8,9 @@ import java.net.Socket
 import java.security.KeyStore
 import java.security.Principal
 import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
+import java.util.concurrent.SynchronousQueue
+import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.TimeUnit
 import javax.net.ssl.KeyManagerFactory
 import javax.net.ssl.SSLContext
 import javax.net.ssl.SSLEngine
@@ -27,7 +29,12 @@ class TlsFrontDoor(private val ssl: SSLContext, private val backendPort: Int) {
 
     @Volatile
     private var closed = false
-    private val pool: ExecutorService = Executors.newCachedThreadPool { r -> Thread(r, "clickarr-tls").apply { isDaemon = true } }
+    // Bounded: an idle-connection flood from the LAN runs out of slots, not memory. Two threads per bridge.
+    private val pool: ExecutorService = ThreadPoolExecutor(
+        0, MAX_THREADS, KEEP_ALIVE_S, TimeUnit.SECONDS, SynchronousQueue(),
+        { r -> Thread(r, "clickarr-tls").apply { isDaemon = true } },
+        ThreadPoolExecutor.AbortPolicy(),
+    )
 
     /** The bound port, or -1 before [start]. */
     val port: Int get() = serverSocket?.localPort ?: -1
@@ -50,7 +57,8 @@ class TlsFrontDoor(private val ssl: SSLContext, private val backendPort: Int) {
     private fun acceptLoop(socket: SSLServerSocket) {
         while (!closed) {
             val client = runCatching { socket.accept() }.getOrNull() ?: continue
-            pool.execute { bridge(client) }
+            runCatching { client.soTimeout = CLIENT_TIMEOUT_MS }
+            runCatching { pool.execute { bridge(client) } }.onFailure { runCatching { client.close() } }
         }
     }
 
@@ -81,6 +89,10 @@ class TlsFrontDoor(private val ssl: SSLContext, private val backendPort: Int) {
     }
 
     companion object {
+        private const val MAX_THREADS = 64
+        private const val KEEP_ALIVE_S = 60L
+        private const val CLIENT_TIMEOUT_MS = 30_000
+
         private const val BACKLOG = 50
         private const val BUFFER = 16 * 1024
         private val MODERN_TLS = setOf("TLSv1.3", "TLSv1.2")

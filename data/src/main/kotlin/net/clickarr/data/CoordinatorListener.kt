@@ -32,12 +32,9 @@ internal object CoordinatorListener {
             val door = TlsFrontDoor(ssl, backendPort)
             val port = runCatching { door.start(DEFAULT_PORT) }.getOrElse { door.start(0) }
             Listening(engine, door, port, tls = true)
-        }.onFailure { Log.w(TAG, it) { "TLS front door failed; falling back to plain HTTP on the LAN (insecure)" } }.getOrNull()
-        if (secure != null) return secure
-        return runCatching {
-            val engine = runCatching { startServer(c, "0.0.0.0", DEFAULT_PORT) }.getOrElse { startServer(c, "0.0.0.0", 0) }
-            Listening(engine, null, enginePort(engine) ?: DEFAULT_PORT, tls = false)
-        }.onFailure { Log.w(TAG, it) { "household server failed to start" } }.getOrNull()
+        }.onFailure { Log.w(TAG, it) { "TLS front door failed; the household stays off rather than run in the clear" } }.getOrNull()
+        // No plain-HTTP fallback: a coordinator the LAN can impersonate or read is worse than none (security review 2026-10-10).
+        return secure
     }
 
     private suspend fun enginePort(engine: EmbeddedServer<*, *>): Int? = withTimeoutOrNull(CONNECTOR_TIMEOUT_MS) {

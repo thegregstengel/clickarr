@@ -39,7 +39,11 @@ class PlexAuth(client: OkHttpClient, identity: ClientIdentity, private val plexT
                             serverIdentity = r.clientIdentifier,
                             name = r.name,
                             urls = r.connections
-                                .sortedWith(compareByDescending<PlexConnection> { it.local }.thenBy { it.relay })
+                                .sortedWith(
+                                    compareByDescending<PlexConnection> { it.local }
+                                        .thenByDescending { it.protocol.equals("https", ignoreCase = true) }
+                                        .thenBy { it.relay },
+                                )
                                 .map { it.uri },
                             version = r.productVersion,
                             owned = r.owned,

@@ -52,5 +52,9 @@ the household protocol and database may still change between minor versions.
 
 ### Security
 - Plex tokens stay in the Android Keystore on each device and are never synchronized between devices.
+- Hardening from the 2026-10-10 review (SECURITY.md): household is TLS only with proofs bound to the observed certificate,
+  PIN guesses counted per PIN, channel bounds enforced on every device, request and pool limits on the coordinator, Drive
+  sync forgets its base on leave, Plex client follows no redirects, SNTP replies verified, exception text redacted,
+  nightlies non-debuggable, CI actions pinned and keystores wiped.
 - Household transport is TLS from each device's Keystore certificate, with trust-on-first-use pinning, and the
   pairing proof binds the PIN to both certificate fingerprints. Plain HTTP only as a loudly labelled fallback.

@@ -53,7 +53,11 @@ android {
         debug {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
-            if (!nightlyKeystorePath.isNullOrBlank()) signingConfig = signingConfigs.getByName("nightly")
+            if (!nightlyKeystorePath.isNullOrBlank()) {
+                signingConfig = signingConfigs.getByName("nightly")
+                // A published nightly must not be debuggable: run-as and JDWP would read the token store.
+                isDebuggable = false
+            }
         }
         release {
             isMinifyEnabled = true

@@ -48,12 +48,16 @@ class UpdateChecker @Inject constructor(@ApplicationContext private val context:
         runCatching {
             okHttp.newCall(Request.Builder().url("$base/version.json").build()).execute().use { response ->
                 if (!response.isSuccessful) error("GitHub answered ${response.code}")
-                val body = Json.parseToJsonElement(response.body?.string().orEmpty()).jsonObject
+                val raw = response.body ?: error("empty response")
+                if ((raw.contentLength().takeIf { it >= 0 } ?: 0L) > MAX_VERSION_JSON) error("version.json is too large")
+                val body = Json.parseToJsonElement(readBounded(raw.byteStream(), MAX_VERSION_JSON.toInt())).jsonObject
+                val apk = body.getValue("apk").jsonPrimitive.content
+                require(apk.isNotBlank() && '/' !in apk && ".." !in apk && !apk.startsWith('.')) { "unexpected apk name" }
                 Latest(
                     channel = channel,
                     versionCode = body.getValue("versionCode").jsonPrimitive.content.toInt(),
                     versionName = body.getValue("versionName").jsonPrimitive.content,
-                    apkUrl = "$base/" + body.getValue("apk").jsonPrimitive.content,
+                    apkUrl = "$base/$apk",
                     sha256 = body.getValue("sha256").jsonPrimitive.content.lowercase(),
                     signer = body["signer"]?.jsonPrimitive?.content?.lowercase().orEmpty(),
                 )
@@ -184,12 +188,28 @@ class UpdateChecker @Inject constructor(@ApplicationContext private val context:
             .onFailure { InstallEvents.post(InstallEvents.Status.Failed("The TV has no package installer to hand this to.")) }
     }
 
+    /** Reads at most [max] bytes as UTF-8 and refuses anything longer; the body is from the network. */
+    private fun readBounded(input: java.io.InputStream, max: Int): String {
+        val out = java.io.ByteArrayOutputStream()
+        val buffer = ByteArray(BUFFER)
+        input.use {
+            while (true) {
+                val n = it.read(buffer)
+                if (n < 0) break
+                if (out.size() + n > max) error("version.json is too large")
+                out.write(buffer, 0, n)
+            }
+        }
+        return out.toString(Charsets.UTF_8.name())
+    }
+
     private fun sha256Hex(bytes: ByteArray): String =
         MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
 
     companion object {
         private const val TAG = "Updates"
         private const val BUFFER = 64 * 1024
+        private const val MAX_VERSION_JSON = 64L * 1024
         const val CHANNEL_NIGHTLY = "nightly"
         const val CHANNEL_RELEASE = "release"
         const val RELEASES_URL = "https://github.com/thegregstengel/clickarr/releases"

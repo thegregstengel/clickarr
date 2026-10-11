@@ -26,7 +26,8 @@ class LockController(private val prefs: DevicePrefs, private val scope: Coroutin
     }
 
     private val unlocked = MutableStateFlow(false)
-    private val attempts = SettingsLock.Attempts()
+    // Process-wide, so leaving Settings and coming back does not reset the wrong-guess count.
+    private val attempts = LockAttempts.shared
 
     private val _entry = MutableStateFlow("")
     val entry: StateFlow<String> = _entry.asStateFlow()

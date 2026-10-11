@@ -18,6 +18,7 @@ import net.clickarr.core.common.ClickarrError
 import net.clickarr.core.common.Clock
 import net.clickarr.core.common.Log
 import net.clickarr.core.common.Outcome
+import net.clickarr.core.scheduling.SCHEDULER_VERSION
 import net.clickarr.core.database.ClickarrDatabase
 import net.clickarr.core.database.SyncStateEntity
 import net.clickarr.core.model.HouseholdState
@@ -76,6 +77,12 @@ class DriveSync(
     fun stop() {
         pollJob?.cancel()
         linkJob?.cancel()
+    }
+
+    /** Leaving Drive sync: forget the base revision and queue, so a later re-enable cannot push a stale state over the file. */
+    suspend fun forget() {
+        db.syncState().put(SyncStateEntity(KEY_BASE, "0"))
+        db.syncState().put(SyncStateEntity(KEY_PENDING, "[]"))
     }
 
     /** Shows a code; polls Google until the viewer approves on a phone, then syncs. */
@@ -173,6 +180,9 @@ class DriveSync(
         val theirs = runCatching { ProtocolJson.decodeFromString(HouseholdState.serializer(), text) }
             .getOrElse { return Outcome.Failure(ClickarrError.Invalid("The sync file on Drive could not be read")) }
         sameServer(theirs)?.let { return Outcome.Failure(it) }
+        if (theirs.schedulerVersion > SCHEDULER_VERSION) {
+            return Outcome.Failure(ClickarrError.Unsupported("The sync file was written by a newer Clickarr; update this TV"))
+        }
         val merged = pending().fold(theirs) { acc, cmd -> (reducer.apply(acc, cmd, clock.now()) as? Outcome.Success)?.value ?: acc }
         store.saveState(merged)
         return push(merged, remote.id)

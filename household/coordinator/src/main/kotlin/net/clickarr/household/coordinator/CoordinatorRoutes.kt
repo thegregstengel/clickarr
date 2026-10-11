@@ -7,6 +7,8 @@ import io.ktor.server.application.install
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.request.header
 import io.ktor.server.request.receive
+import io.ktor.server.request.contentLength
+import io.ktor.server.application.ApplicationCall
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.RoutingCall
@@ -50,10 +52,12 @@ fun Application.coordinatorRoutes(coordinator: Coordinator) {
 
 private fun Route.pairingRoutes(coordinator: Coordinator) {
     post("/v1/pair/start") {
+        if (call.tooLarge(PAIR_BODY_LIMIT)) return@post
         val req = call.receive<PairStartRequest>()
         call.respondOutcome(coordinator.pairStart(req))
     }
     post("/v1/pair/complete") {
+        if (call.tooLarge(PAIR_BODY_LIMIT)) return@post
         val req = call.receive<PairCompleteRequest>()
         call.respondOutcome(coordinator.pairComplete(req))
     }
@@ -91,6 +95,7 @@ private fun Route.stateRoutes(coordinator: Coordinator) {
 private fun Route.commandRoutes(coordinator: Coordinator) {
     post("/v1/commands") {
         val device = call.authenticated(coordinator) ?: return@post
+        if (call.tooLarge(COMMAND_BODY_LIMIT)) return@post
         val command = call.receive<Command>()
         call.respondCommand(coordinator.apply(command, device))
     }
@@ -103,7 +108,7 @@ private fun Route.commandRoutes(coordinator: Coordinator) {
 
 private fun Route.eventRoutes(coordinator: Coordinator) {
     webSocket("/v1/events") {
-        val token = call.request.queryParameters["token"] ?: call.request.header("Authorization")?.removePrefix("Bearer ")
+        val token = call.request.header("Authorization")?.removePrefix("Bearer ")
         if (coordinator.authenticate(token) == null) {
             close()
             return@webSocket
@@ -155,3 +160,14 @@ private suspend fun RoutingCall.respondError(error: ClickarrError) {
     }
     respond(status, ErrorResponse(code, error.message))
 }
+
+/** Rejects a body the declared length says is bigger than a legitimate request; Ktor has no limit of its own. */
+private suspend fun ApplicationCall.tooLarge(limit: Long): Boolean {
+    val length = request.contentLength() ?: return false
+    if (length <= limit) return false
+    respond(HttpStatusCode.PayloadTooLarge, ErrorResponse(ErrorResponse.INVALID, "Request too large"))
+    return true
+}
+
+private const val PAIR_BODY_LIMIT = 64L * 1024
+private const val COMMAND_BODY_LIMIT = 4L * 1024 * 1024

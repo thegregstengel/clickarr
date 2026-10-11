@@ -148,7 +148,7 @@ private fun JoinSection(vm: HouseholdViewModel, primary: Modifier, swap: (() -> 
         )
     }
     Label("Or enter the address")
-    Field("http://192.168.1.20:47831", address, "household.address") { address = it }
+    Field("192.168.1.20:47831", address, "household.address") { address = it }
     Label("PIN shown on the other TV")
     Field("482 913", pin, "household.pin") { pin = it }
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -199,7 +199,7 @@ private fun MemberSection(
         Column {
             Text("Connected to household ${name ?: ""}", style = ClickarrTextStyles.RowTitle)
             val status = if (r.connected) {
-                "Coordinator at ${r.baseUrl.removePrefix("http://")}"
+                "Coordinator at ${r.baseUrl.removePrefix("https://")}"
             } else {
                 "Coordinator offline. You can still watch; changes need it online."
             }

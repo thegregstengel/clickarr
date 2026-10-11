@@ -105,7 +105,7 @@ class GoogleDeviceAuth(private val config: GoogleOAuthConfig, private val okHttp
 
     suspend fun signOut() {
         secrets.get(KEY_REFRESH)?.let { token ->
-            val revoke = Request.Builder().url("$REVOKE_URL?token=$token").post(FormBody.Builder().build()).build()
+            val revoke = Request.Builder().url(REVOKE_URL).post(FormBody.Builder().add("token", token).build()).build()
             runCatching { withContext(Dispatchers.IO) { okHttp.newCall(revoke).execute().close() } }
         }
         listOf(KEY_REFRESH, KEY_ACCESS, KEY_EXPIRY, KEY_EMAIL).forEach { secrets.remove(it) }

@@ -33,7 +33,8 @@ class MainActivity : ComponentActivity() {
         args = intent.toSpikeArgs()
     }
 
-    private fun Intent.toSpikeArgs() = SpikeArgs(
+    // Another app may start the launcher activity with extras; only a debuggable build honours spike extras.
+    private fun Intent.toSpikeArgs() = if (!BuildConfig.DEBUG) SpikeArgs() else SpikeArgs(
         spike = getStringExtra("spike"),
         url = getStringExtra("url"),
         offsetSec = getIntExtra("offsetSec", 0),

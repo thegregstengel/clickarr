@@ -35,7 +35,9 @@ object Log {
         val text = Redact.apply(message())
         synchronized(history) {
             if (history.size >= HISTORY) history.removeFirst()
-            history.addLast("${level.name.first()}/$tag: $text" + (throwable?.let { " (${it::class.simpleName}: ${it.message})" } ?: ""))
+            // Exception messages can quote URLs and response bodies; they get the same redaction as the line.
+            val cause = throwable?.let { " (${it::class.simpleName}: ${Redact.apply(it.message.orEmpty())})" } ?: ""
+            history.addLast("${level.name.first()}/$tag: $text$cause")
         }
         sink.log(level, tag, text, throwable)
     }

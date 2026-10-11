@@ -79,7 +79,10 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun plexFactory(okHttp: OkHttpClient, identity: ClientIdentity): PlexProviderFactory = PlexProviderFactory(okHttp, identity)
+    fun plexFactory(okHttp: OkHttpClient, identity: ClientIdentity): PlexProviderFactory =
+        // The Plex client never follows a redirect: X-Plex-Token travels as a query parameter, and a
+        // redirect from a server on cleartext would otherwise carry it to whatever host answered.
+        PlexProviderFactory(okHttp.newBuilder().followRedirects(false).followSslRedirects(false).build(), identity)
 
     @Provides
     fun plexAuth(okHttp: OkHttpClient, identity: ClientIdentity): PlexAuth = PlexAuth(okHttp, identity)

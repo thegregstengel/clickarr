@@ -228,13 +228,17 @@ class HouseholdService @Inject constructor(
 
     // ---- Member ----
 
-    fun discover(): Flow<List<DiscoveredCoordinator>> = discovery.browse()
+    /** Only coordinators advertising TLS are offered; a `tls=0` advertisement is not joinable. */
+    fun discover(): Flow<List<DiscoveredCoordinator>> = discovery.browse().map { list -> list.filter { it.tls } }
 
     suspend fun join(baseUrl: String, coordinatorFingerprint: String?, pin: String): Outcome<Unit> {
         if (_role.value !is Role.None) return Outcome.Failure(ClickarrError.Invalid("Already in a household"))
         val typed = baseUrl.trim().trimEnd('/')
-        // A typed address has no scheme: try TLS first, then plain HTTP for a coordinator that could not start it.
-        val candidates = if ("://" in typed) listOf(typed) else listOf("https://$typed", "http://$typed")
+        // TLS only. A typed address gets https; an http:// address is refused rather than silently downgraded.
+        if (typed.startsWith("http://", ignoreCase = true)) {
+            return Outcome.Failure(ClickarrError.Invalid("Households talk over TLS only; enter the address without http://"))
+        }
+        val candidates = listOf(if ("://" in typed) typed else "https://$typed")
         val p = when (val r = pairAny(candidates, coordinatorFingerprint, pin)) {
             is Outcome.Success -> r.value
             is Outcome.Failure -> return r
@@ -286,7 +290,9 @@ class HouseholdService @Inject constructor(
             is Outcome.Failure -> return r
         }
         if (info.protocolVersion > PROTOCOL_VERSION) return Outcome.Failure(ClickarrError.Unsupported("Update Clickarr on this TV to join"))
-        val expected = trust.observed ?: advertised ?: info.fingerprint
+        // The pairing proof binds the certificate this TV actually saw; a claimed fingerprint is never a substitute.
+        val expected = trust.observed
+            ?: return Outcome.Failure(ClickarrError.Unauthorized("No TLS identity was observed for that TV"))
         if (advertised != null && info.fingerprint.isNotBlank() && advertised != info.fingerprint) {
             return Outcome.Failure(ClickarrError.Unauthorized("That TV's identity does not match what was advertised"))
         }
@@ -405,6 +411,7 @@ class HouseholdService @Inject constructor(
     suspend fun leave() {
         if (_role.value is Role.Drive) {
             drive.stop()
+            drive.forget()
             prefs.setSyncMode(DevicePrefs.SYNC_OFF)
         }
         memberJob?.cancel(); memberJob = null

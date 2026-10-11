@@ -2,6 +2,7 @@ package net.clickarr.household.coordinator
 
 import java.security.SecureRandom
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -53,10 +54,15 @@ class Coordinator(
     private var tokens: MutableMap<String, PairedDevice> = HashMap()
 
     /** Pairing is only possible while the user has opened the "Add device" screen. */
+    @Volatile
     private var activePin: ActivePin? = null
-    private val sessions = HashMap<String, PairSession>()
+    private val sessions = ConcurrentHashMap<String, PairSession>()
 
-    data class ActivePin(val pin: String, val expiresAt: Instant)
+    /** [attempts] counts wrong proofs against this PIN across every session, so restarting a session buys nothing. */
+    data class ActivePin(val pin: String, val expiresAt: Instant) {
+        @Volatile
+        var attempts: Int = 0
+    }
 
     private class PairSession(
         val deviceId: DeviceId,
@@ -64,7 +70,6 @@ class Coordinator(
         val joinerFingerprint: String,
         val nonce: String,
         val expiresAt: Instant,
-        var attempts: Int = 0,
     )
 
     suspend fun start() {
@@ -138,6 +143,7 @@ class Coordinator(
     fun pairStart(req: PairStartRequest): Outcome<PairStartResponse> {
         val pin = activePin?.takeIf { it.expiresAt > clock.now() }
             ?: return Outcome.Failure(ClickarrError.Unauthorized("This household is not accepting new devices right now"))
+        if (sessions.size >= MAX_SESSIONS) return Outcome.Failure(ClickarrError.Unauthorized("Too many devices are pairing at once"))
         val sessionId = UUID.randomUUID().toString()
         val session = PairSession(req.deviceId, req.deviceName, req.certFingerprint, Pairing.randomNonce(random), pin.expiresAt)
         sessions[sessionId] = session
@@ -177,7 +183,7 @@ class Coordinator(
             session == null -> "Unknown pairing session"
             session.expiresAt <= now -> "Pairing session expired".also { sessions.remove(req.sessionId) }
             proofMatches(pin.pin, session, req) -> null
-            else -> wrongPin(req.sessionId, session)
+            else -> wrongPin(req.sessionId, pin)
         }
         return if (failure == null) Outcome.Success(session!!) else Outcome.Failure(ClickarrError.Unauthorized(failure))
     }
@@ -187,10 +193,11 @@ class Coordinator(
         return Pairing.verify(expected, req.proof)
     }
 
-    private fun wrongPin(sessionId: String, session: PairSession): String {
-        session.attempts++
-        if (session.attempts < Pairing.MAX_ATTEMPTS) return "Wrong PIN"
+    private fun wrongPin(sessionId: String, pin: ActivePin): String {
+        pin.attempts++
+        if (pin.attempts < Pairing.MAX_ATTEMPTS) return "Wrong PIN"
         sessions.remove(sessionId)
+        sessions.clear()
         activePin = null
         Log.w(TAG) { "pairing aborted after ${Pairing.MAX_ATTEMPTS} wrong PINs" }
         return "Too many wrong PINs; start again from the other TV"
@@ -204,5 +211,8 @@ class Coordinator(
 
     companion object {
         private const val TAG = "Coordinator"
+
+        /** Open pairing sessions at once; a LAN neighbour cannot fill memory with pair/start calls. */
+        private const val MAX_SESSIONS = 8
     }
 }

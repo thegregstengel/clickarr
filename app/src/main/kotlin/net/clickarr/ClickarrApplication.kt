@@ -4,6 +4,7 @@ import android.app.Application
 import android.util.Log as AndroidLog
 import dagger.hilt.android.HiltAndroidApp
 import net.clickarr.core.common.Log
+import net.clickarr.core.common.Redact
 
 @HiltAndroidApp
 class ClickarrApplication : Application() {
@@ -17,7 +18,7 @@ class ClickarrApplication : Application() {
                 Log.Level.WARN -> AndroidLog.WARN
                 Log.Level.ERROR -> AndroidLog.ERROR
             }
-            val text = if (throwable == null) message else "$message\n${AndroidLog.getStackTraceString(throwable)}"
+            val text = if (throwable == null) message else "$message\n${Redact.apply(AndroidLog.getStackTraceString(throwable))}"
             AndroidLog.println(priority, "Clickarr/$tag", text)
         }
         Log.minLevel = if (BuildConfig.DEBUG) Log.Level.VERBOSE else Log.Level.INFO
