@@ -15,6 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    # The signing key lives in this Environment: only v* tags may use it, and the maintainer approves each run.
+    environment: release
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 

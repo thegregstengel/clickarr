@@ -12,7 +12,9 @@ keytool -genkeypair -v -keystore clickarr-release.jks -alias clickarr -keyalg RS
 base64 -w0 clickarr-release.jks > clickarr-release.jks.b64
 ```
 
-Add four repository secrets (Settings, Secrets and variables, Actions):
+Add four secrets to the `release` Environment (Settings, Environments, release). The Environment allows only `v*`
+tags and requires the maintainer's approval before a run can read them, so a stray workflow or a compromised action
+in another job never sees the key:
 
 | Secret | Value |
 |---|---|
