@@ -74,10 +74,6 @@ Everything below is in the nightly and has been exercised on real Fire TV Sticks
 - **Appearance and time.** Four themes (Clickarr navy, Dark, a slate Light, Dracula), three sizes, a clock in the shell, automatic network time and a time zone. The Favorites tab can be hidden.
 - **Updates and diagnostics.** Check, download with checksum, and install from Settings, About, on a nightly or release channel. A Diagnostics pane with everything a bug report needs, tokens never included. Reproducible release builds verified in CI.
 
-## What comes next
-
-Time blocks and day-parts (cartoons in the morning, sitcoms at dinner, movies after nine, on one channel), fixed-time programs and holiday overrides, interstitials in the padding gap, an accessibility pass, the first tagged release and an Amazon Appstore listing. Roadmap: [proposal section 20](docs/architecture-proposal.md#20-phased-mvp-roadmap).
-
 ## How it works
 
 ```text
