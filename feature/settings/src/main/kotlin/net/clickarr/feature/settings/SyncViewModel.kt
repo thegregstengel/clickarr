@@ -37,6 +37,8 @@ class SyncViewModel @Inject constructor(private val service: HouseholdService, p
 
     fun signIn() = service.drive.beginSignIn()
 
+    fun cancelSignIn() = service.drive.cancelSignIn()
+
     val driveProblem: StateFlow<String?> = service.drive.problem
 
     fun syncNow() = viewModelScope.launch { service.drive.syncNow() }

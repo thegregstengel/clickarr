@@ -78,6 +78,13 @@ class DriveSync(
         }
     }
 
+    /** The viewer changed their mind while the code was on screen. */
+    fun cancelSignIn() {
+        linkJob?.cancel()
+        linkJob = null
+        _status.value = Status.SignedOut
+    }
+
     fun stop() {
         pollJob?.cancel()
         linkJob?.cancel()

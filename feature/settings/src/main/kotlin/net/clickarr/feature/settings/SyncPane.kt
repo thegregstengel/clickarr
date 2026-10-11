@@ -4,6 +4,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -61,6 +67,18 @@ private fun DriveSection(vm: SyncViewModel) {
         return
     }
     val status by vm.driveStatus.collectAsState()
+    // Each state swaps its buttons for another set. Focus parks on a hidden anchor before a button-driven swap
+    // and the new state's first button takes it, so the shell never sees focus fall onto the Guide tab.
+    val park = remember { FocusPark() }
+    val primary = remember { FocusRequester() }
+    FocusParkAnchor(park)
+    var shown by remember { mutableStateOf(status::class) }
+    LaunchedEffect(status::class) {
+        if (status::class != shown) {
+            shown = status::class
+            runCatching { primary.requestFocus() }
+        }
+    }
     when (val s = status) {
         DriveSync.Status.SignedOut -> {
             Text(
@@ -69,7 +87,7 @@ private fun DriveSection(vm: SyncViewModel) {
                 style = ClickarrTextStyles.Secondary,
                 color = ClickarrColors.TextSecondary,
             )
-            Button(onClick = vm::signIn) { Text("Sign in with Google") }
+            Button(onClick = { park.park(); vm.signIn() }, modifier = Modifier.focusRequester(primary)) { Text("Sign in with Google") }
             val problem by vm.driveProblem.collectAsState()
             problem?.let { Text(it, style = ClickarrTextStyles.Secondary, color = ClickarrColors.StatusWarn) }
         }
@@ -82,6 +100,8 @@ private fun DriveSection(vm: SyncViewModel) {
                 style = TextStyle(fontWeight = FontWeight.Bold, fontSize = 64.sp, letterSpacing = 4.sp),
                 color = ClickarrColors.AccentGlow,
             )
+            Text("This TV signs in on its own once the phone finishes.", style = ClickarrTextStyles.Caption, color = ClickarrColors.TextMuted)
+            Button(onClick = { park.park(); vm.cancelSignIn() }, modifier = Modifier.focusRequester(primary)) { Text("Cancel") }
         }
         is DriveSync.Status.SignedIn -> {
             Text("Signed in as ${s.email ?: "your Google account"}", style = ClickarrTextStyles.RowTitle)
@@ -95,8 +115,8 @@ private fun DriveSection(vm: SyncViewModel) {
             val color = if (problem != null) ClickarrColors.StatusError else ClickarrColors.TextSecondary
             Text(line, style = ClickarrTextStyles.Secondary, color = color)
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(onClick = vm::syncNow) { Text("Sync now") }
-                Button(onClick = vm::signOut) { Text("Sign out") }
+                Button(onClick = vm::syncNow, modifier = Modifier.focusRequester(primary)) { Text("Sync now") }
+                Button(onClick = { park.park(); vm.signOut() }) { Text("Sign out") }
             }
         }
     }
