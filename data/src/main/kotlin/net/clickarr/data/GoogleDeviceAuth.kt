@@ -136,6 +136,7 @@ class GoogleDeviceAuth(private val config: GoogleOAuthConfig, private val okHttp
         val (ok, body) = postRaw(url, form)
         if (ok) return Outcome.Success(body)
         val message = body["error_description"]?.jsonPrimitive?.content ?: body["error"]?.jsonPrimitive?.content ?: "Google did not answer"
+        Log.w(TAG) { "google auth refused ${url.substringAfterLast('/')}: $message" }
         return Outcome.Failure(ClickarrError.Unreachable(message))
     }
 

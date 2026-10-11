@@ -70,6 +70,8 @@ private fun DriveSection(vm: SyncViewModel) {
                 color = ClickarrColors.TextSecondary,
             )
             Button(onClick = vm::signIn) { Text("Sign in with Google") }
+            val problem by vm.driveProblem.collectAsState()
+            problem?.let { Text(it, style = ClickarrTextStyles.Secondary, color = ClickarrColors.StatusWarn) }
         }
         is DriveSync.Status.Linking -> {
             Text("On a phone or computer, go to", style = ClickarrTextStyles.Secondary, color = ClickarrColors.TextSecondary)

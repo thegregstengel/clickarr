@@ -52,6 +52,10 @@ class DriveSync(
     }
 
     private val _status = MutableStateFlow<Status>(Status.SignedOut)
+
+    /** Why the last sign-in attempt stopped, for the pane to show while signed out; cleared when one starts. */
+    private val _problem = MutableStateFlow<String?>(null)
+    val problem: StateFlow<String?> = _problem.asStateFlow()
     val status: StateFlow<Status> = _status.asStateFlow()
 
     private val reducer = HouseholdReducer()
@@ -88,11 +92,13 @@ class DriveSync(
     /** Shows a code; polls Google until the viewer approves on a phone, then syncs. */
     fun beginSignIn() {
         linkJob?.cancel()
+        _problem.value = null
         linkJob = scope.launch {
             val code = when (val r = auth.begin()) {
                 is Outcome.Success -> r.value
                 is Outcome.Failure -> {
-                    _status.value = Status.SignedIn(null, false, null, r.error.message)
+                    Log.w(TAG) { "google sign-in could not start: ${r.error.message}" }
+                    _problem.value = "Google would not start the sign-in: ${r.error.message}"
                     _status.value = Status.SignedOut
                     return@launch
                 }
@@ -112,6 +118,7 @@ class DriveSync(
                     }
                     is GoogleDeviceAuth.Poll.Denied -> {
                         Log.w(TAG) { "google sign-in denied: ${p.reason}" }
+                        _problem.value = "Google declined the sign-in: ${p.reason}"
                         _status.value = Status.SignedOut
                         return@launch
                     }
