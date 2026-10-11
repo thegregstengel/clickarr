@@ -4,9 +4,9 @@ import java.security.MessageDigest
 import java.security.SecureRandom
 
 /**
- * The settings lock code (Settings, General, "Settings lock"): four digits that keep children out of
- * Settings and the channel editor. Stored salted and hashed in device-local preferences, never
- * synchronized. A kids lock, not a vault: the recovery for a forgotten code is clearing the app's data.
+ * The settings lock code (Settings, General, "Settings lock"): four digits that gate Settings and the
+ * channel editor on one TV. Stored salted and hashed in device-local preferences, never synchronized.
+ * A household lock, not a vault: the recovery for a forgotten code is clearing the app's data.
  */
 object SettingsLock {
     const val LENGTH = 4

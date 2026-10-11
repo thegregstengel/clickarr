@@ -21,6 +21,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -63,10 +66,36 @@ fun SettingsScreen(
     // The settings lock (General, "Settings lock"): one code per visit; leaving Settings locks it again.
     val locked by viewModel.lock.locked.collectAsState()
     DisposableEffect(Unit) { onDispose { viewModel.lock.relock() } }
-    if (locked) {
-        LockGate(viewModel.lock)
-        return
+    val park = remember { FocusPark() }
+    val navFirst = remember { FocusRequester() }
+    // When the gate goes away on a correct code, focus is parked; hand it to the section list.
+    var wasLocked by remember { mutableStateOf(locked) }
+    LaunchedEffect(locked) {
+        if (wasLocked && !locked) runCatching { navFirst.requestFocus() }
+        wasLocked = locked
     }
+    Box(Modifier.fillMaxSize()) {
+        FocusParkAnchor(park)
+        if (locked) {
+            LockGate(viewModel.lock, park)
+        } else {
+            SettingsBody(section, { section = it }, navFirst, park, appVersion, appVersionCode, actions, viewModel)
+        }
+    }
+}
+
+@Composable
+@Suppress("LongParameterList")
+private fun SettingsBody(
+    section: SettingsSection,
+    onSection: (SettingsSection) -> Unit,
+    navFirst: FocusRequester,
+    park: FocusPark,
+    appVersion: String,
+    appVersionCode: Int,
+    actions: SettingsActions,
+    viewModel: SettingsViewModel,
+) {
     Row(Modifier.fillMaxSize()) {
         // Lazy so the focused entry scrolls into view; eight rows do not fit above the fold at 1080p.
         LazyColumn(
@@ -76,8 +105,9 @@ fun SettingsScreen(
             items(SettingsSection.entries) { s ->
                 ListItem(
                     selected = section == s,
-                    onClick = { section = s },
+                    onClick = { onSection(s) },
                     headlineContent = { Text(s.label, style = ClickarrTextStyles.RowTitle) },
+                    modifier = if (s == SettingsSection.entries.first()) Modifier.focusRequester(navFirst) else Modifier,
                 )
             }
         }
@@ -87,7 +117,7 @@ fun SettingsScreen(
         ) {
             Text(section.label, style = ClickarrTextStyles.ScreenTitle)
             when (section) {
-                SettingsSection.GENERAL -> GeneralPane(viewModel)
+                SettingsSection.GENERAL -> GeneralPane(viewModel, park)
                 SettingsSection.SERVER -> ServerPane(viewModel, actions.onDisconnected)
                 SettingsSection.CHANNELS -> ChannelsPane(viewModel, actions)
                 SettingsSection.PLAYBACK -> PlaybackPane(viewModel)
@@ -155,12 +185,12 @@ private fun Chip(label: String, selected: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-private fun GeneralPane(vm: SettingsViewModel) {
+private fun GeneralPane(vm: SettingsViewModel, park: FocusPark) {
     val g by vm.general.collectAsState()
     Label("This TV")
     Text(g.deviceName.ifBlank { "Clickarr TV" }, style = ClickarrTextStyles.RowTitle)
     Caption("Device id ${g.deviceId.take(8)}. The name is what other TVs in a household will see.")
-    LockBlock(vm.lock)
+    LockBlock(vm.lock, park)
     TimeBlock(g, vm)
     Label("Theme")
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
