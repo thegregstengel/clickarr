@@ -82,7 +82,7 @@ class ChannelRepository @Inject constructor(
 
     suspend fun nextFreeNumber(): Int {
         val used = db.channels().all().map { it.number }.toSet()
-        return generateSequence(2) { it + 1 }.first { it !in used }
+        return generateSequence(1) { it + 1 }.first { it !in used }
     }
 
     suspend fun create(

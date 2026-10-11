@@ -9,6 +9,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.launch
 import net.clickarr.core.common.Outcome
 import net.clickarr.core.model.Channel
@@ -74,10 +77,20 @@ class EditorViewModel @Inject constructor(
         val runs: EpisodeRuns? = null,
         /** Set when editing an existing channel. */
         val editing: Channel? = null,
+        /** Why the last Save did not go through, shown by the form. */
+        val problem: String? = null,
     )
 
     private val _step = MutableStateFlow<Step>(Step.ChooseKind)
     val step: StateFlow<Step> = _step.asStateFlow()
+
+    /** Every channel's number and name, so the form can say "12 is already Sitcoms" before anyone presses Save. */
+    val numbers: StateFlow<Map<Int, Channel>> =
+        repository.channels.map { list -> list.associateBy { it.number } }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
+
+    /** The channel already holding [number], unless it is the one being edited. */
+    fun numberOwner(number: Int, editing: Channel?): Channel? = numbers.value[number]?.takeIf { it.id != editing?.id }
 
     private var kind: Kind = Kind.SHOWS
     private val provider: MediaProvider? get() = registry.primary
@@ -223,6 +236,10 @@ class EditorViewModel @Inject constructor(
     fun save() {
         val s = _step.value as? Step.Details ?: return
         val d = s.draft
+        numberOwner(d.number, d.editing)?.let { owner ->
+            updateDraft { it.copy(problem = "Channel ${d.number} is already ${owner.name}. Pick a free number.") }
+            return
+        }
         _step.value = Step.Saving(d.name, building = d.editing == null)
         val name = d.name.ifBlank { d.suggestedName }
         viewModelScope.launch {

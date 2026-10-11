@@ -34,6 +34,8 @@ the household protocol and database may still change between minor versions.
 - Episodes in a row: a channel can play 2, 3, or a range of one show's episodes back to back in aired order, shuffled between runs or alternating shows in order (scheduler version 2).
 - Clock in the shell beside the settings cog; Settings, General, Time: zone and automatic network time (SNTP).
 - Guide shows two hours across the screen at any size and starts at the current half hour.
+- Channel editor: the number starts at the next one not in use (counting from 1), the form says when a number is taken and by
+  which channel, and Save stays on the form instead of failing out.
 - Settings, General is rows that open a picker (Theme, Size, Overlay stays for, Clock, Time zone): each row shows its current
   value, OK opens a modal list, OK on a choice returns to the pane. The chip rows are gone from General.
 - Settings, Channels, Favorites tab: Show or Hide. Hide takes Favorites out of the top row for lineups small enough not to

@@ -241,6 +241,13 @@ private fun DetailsFields(d: EditorViewModel.Draft, vm: EditorViewModel) {
         Text(d.number.toString(), style = ClickarrTextStyles.ChannelNumber)
         Button(onClick = { vm.updateDraft { it.copy(number = it.number + 1) } }, modifier = toIcons) { Text("+") }
     }
+    val numbers by vm.numbers.collectAsState()
+    val owner = numbers[d.number]?.takeIf { it.id != d.editing?.id }
+    Text(
+        if (owner == null) "Free. Numbers start at the next one not in use." else "Taken: channel ${d.number} is ${owner.name}.",
+        style = ClickarrTextStyles.Caption,
+        color = if (owner == null) ClickarrColors.TextMuted else ClickarrColors.StatusWarn,
+    )
     Text("Icon", style = ClickarrTextStyles.LabelAllCaps, color = ClickarrColors.TextMuted)
     IconPicker(d.icon, firstIcon) { icon -> vm.updateDraft { it.copy(icon = icon) } }
     Text("Order", style = ClickarrTextStyles.LabelAllCaps, color = ClickarrColors.TextMuted)
@@ -266,6 +273,7 @@ private fun DetailsFields(d: EditorViewModel.Draft, vm: EditorViewModel) {
         Chip("1 hour", d.rounding == 60.minutes) { vm.updateDraft { it.copy(rounding = 60.minutes) } }
     }
     val editing = d.editing
+    d.problem?.let { Text(it, style = ClickarrTextStyles.Secondary, color = ClickarrColors.StatusWarn) }
     if (editing == null) {
         Button(onClick = vm::save, modifier = Modifier.padding(top = 8.dp)) { Text("Create channel") }
     } else {
