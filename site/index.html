@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Clickarr</title>
-  <meta name="description" content="Clickarr turns your Plex library into television. Channels, a program guide, and channel surfing on Android TV, Google TV, and Fire TV. Open source, no extra server.">
+  <meta name="description" content="Clickarr turns your Plex library into live TV channels with a real guide, on Fire TV, Android TV, and Google TV. Free, open source, no server, no subscription.">
   <link rel="canonical" href="https://clickarr.net/">
   <link rel="icon" href="assets/favicon.ico" sizes="any">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
@@ -14,7 +14,7 @@
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://clickarr.net/">
   <meta property="og:title" content="Clickarr: turn your media library into TV">
-  <meta property="og:description" content="Channels, a program guide, and channel surfing for your Plex library. Open source, for Android TV and Fire TV.">
+  <meta property="og:description" content="Live TV channels from your Plex library. Free, open source, no server, no subscription. For Fire TV and Android TV.">
   <meta property="og:image" content="https://clickarr.net/assets/og-image.png">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -83,12 +83,34 @@
     .status li { margin-bottom: 8px; }
     .status li.now { color: var(--text); }
     .status li.now::marker { color: var(--glow); }
+    .cmp { width: 100%; border-collapse: separate; border-spacing: 0; background: var(--bg-panel); border: 1px solid var(--bg-border); border-radius: var(--radius); overflow: hidden; font-size: 17px; }
+    .cmp th, .cmp td { text-align: left; padding: 16px 20px; border-bottom: 1px solid var(--bg-border); vertical-align: top; }
+    .cmp tr:last-child td { border-bottom: 0; }
+    .cmp thead th { font-size: 15px; letter-spacing: .04em; text-transform: uppercase; color: var(--text-3); font-weight: 600; }
+    .cmp thead th.us { color: var(--glow); }
+    .cmp td:first-child { color: var(--text); font-weight: 600; width: 26%; }
+    .cmp td.them { color: var(--text-3); }
+    .cmp td.us { color: var(--text); background: rgba(20,121,253,.08); }
+    .cmp-wrap { overflow-x: auto; }
+    .groups { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
+    .group { background: var(--bg-panel); border: 1px solid var(--bg-border); border-radius: var(--radius); padding: 28px; }
+    .group h3 { margin: 0 0 14px; font-size: 22px; }
+    .group ul { margin: 0; padding: 0; list-style: none; }
+    .group li { position: relative; padding-left: 26px; margin-bottom: 10px; color: var(--text-2); font-size: 17px; }
+    .group li::before { content: ""; position: absolute; left: 0; top: .55em; width: 10px; height: 10px; border-radius: 3px; background: var(--accent); }
+    .group li b { color: var(--text); }
+    .group.wide { grid-column: 1 / -1; }
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; counter-reset: step; }
+    .steps div { background: var(--bg-panel); border: 1px solid var(--bg-border); border-radius: var(--radius); padding: 24px; }
+    .steps h3 { margin: 0 0 8px; font-size: 19px; }
+    .steps p { margin: 0; color: var(--text-2); font-size: 17px; }
+    code { background: var(--bg-cell); padding: 2px 8px; border-radius: 6px; color: var(--text); font-size: .92em; }
     footer { border-top: 1px solid var(--bg-border); padding: 40px 0 56px; color: var(--text-3); font-size: 15px; }
     footer .row { display: flex; justify-content: space-between; gap: 24px; flex-wrap: wrap; align-items: center; }
     footer a { color: var(--text-2); }
     @media (max-width: 860px) {
       .nav ul { display: none; }
-      .flip, .grid, .feat, .two { grid-template-columns: 1fr; }
+      .flip, .grid, .feat, .two, .groups, .steps { grid-template-columns: 1fr; }
       section { padding: 56px 0; }
       .hero { padding-top: 64px; }
     }
@@ -99,9 +121,10 @@
     <div class="wrap nav">
       <a href="#" aria-label="Clickarr home"><img src="assets/logo-horizontal.png" alt="Clickarr"></a>
       <ul>
-        <li><a href="#how">How it works</a></li>
-        <li><a href="#screens">Screens</a></li>
+        <li><a href="#why">Why Clickarr</a></li>
         <li><a href="#features">Features</a></li>
+        <li><a href="#security">Security</a></li>
+        <li><a href="#get">Get it</a></li>
         <li><a href="https://github.com/thegregstengel/clickarr">GitHub</a></li>
       </ul>
     </div>
@@ -109,16 +132,36 @@
 
   <section class="hero">
     <div class="wrap">
-      <span class="pill"><b>●</b> Open source. Release 2026.10.11 is out.</span>
+      <span class="pill"><b>●</b> Free · Open source · No server · No subscription</span>
       <h1>Turn your media library<br>into <span>television</span>.</h1>
-      <p>Clickarr gives your Plex library a channel lineup, a program guide, and a remote. Something is always on. Just change the channel.</p>
+      <p>Live TV channels from your own Plex library, with a real guide and a remote that surfs. No subscription, no server to babysit, and no cloud account in the middle.</p>
       <div class="cta">
         <a class="btn" href="https://github.com/thegregstengel/clickarr/releases/latest">Download for Android TV &amp; Fire TV</a>
         <a class="btn ghost" href="https://github.com/thegregstengel/clickarr/releases/tag/nightly">Nightly build</a>
         <a class="btn ghost" href="https://github.com/thegregstengel/clickarr">View on GitHub</a>
       </div>
-      <p style="margin:14px 0 0;color:var(--text-2)">On a Fire TV, open Downloader and enter <code>clickarr.net/apk</code> for the release, or <code>clickarr.net/nightly</code> for the daily build. After that, Clickarr updates itself from Settings, About.</p>
+      <p style="margin:14px 0 0;color:var(--text-2)">Fire TV: open Downloader and enter <code>clickarr.net/apk</code>.</p>
       <div class="shot"><img src="assets/screen-player-overlay.png" alt="Clickarr playing The Office on channel 10 with the channel overlay visible" width="1540" height="1010"></div>
+    </div>
+  </section>
+
+  <section id="why">
+    <div class="wrap">
+      <h2>The other options kept missing the mark</h2>
+      <p class="lead">Turning a Plex library into live channels is not a new idea. But the ways to do it tend to cost money every month, need a server or container running around the clock, put a cloud account between your TVs, or leave out the things that make it feel like TV. Clickarr was built to be the one without the catch.</p>
+      <div class="cmp-wrap">
+        <table class="cmp">
+          <thead><tr><th></th><th>Often elsewhere</th><th class="us">Clickarr</th></tr></thead>
+          <tbody>
+            <tr><td>Price</td><td class="them">A monthly or yearly subscription</td><td class="us">Free, MIT licensed, no ads, no tracking</td></tr>
+            <tr><td>What you run</td><td class="them">A server or Docker container, always on</td><td class="us">One APK on the TV. Every TV works out the schedule itself</td></tr>
+            <tr><td>Keeping TVs in sync</td><td class="them">The vendor's cloud account</td><td class="us">Your own Wi-Fi, or your own Google Drive</td></tr>
+            <tr><td>Your Plex history</td><td class="them">Continue Watching fills up with half-watched channel episodes</td><td class="us">Off, mark watched only when you sat through it, or full progress: your call</td></tr>
+            <tr><td>Your Plex sign-in</td><td class="them">Handed to a server or a service</td><td class="us">Stays in the TV's Keystore and never syncs</td></tr>
+            <tr><td>Video</td><td class="them">Sometimes relayed through another box</td><td class="us">Straight from your Plex server to the TV</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </section>
 
@@ -158,7 +201,7 @@ Parks and Rec is 22 minutes in.</pre>
   <section id="screens" style="background: var(--bg-panel)">
     <div class="wrap">
       <h2>What it looks like</h2>
-      <p class="lead">Screens from the app as it stands, taken on the Android TV emulator by the test suite on every push. The same build runs on Fire TV Sticks every day.</p>
+      <p class="lead">Real screens, captured by the test suite on every build.</p>
       <div class="grid">
         <div class="tile"><img src="assets/screens/guide.png" alt="Program guide grid with a now-line and a preview card" loading="lazy"><div><h3>Guide</h3><p>Two hours across, a now-line, a preview card with artwork and synopsis for the focused program, and stars on the channel column for favorites. Up and down follow the time column, OK tunes in.</p></div></div>
         <div class="tile"><img src="assets/screens/editor.png" alt="Channel editor with name, number, icon palette, order, and time slots" loading="lazy"><div><h3>Channels</h3><p>Build a channel from shows, a whole library with genre and decade filters, a collection, or a playlist. In order or shuffled, with two or three episodes of a show in a row if you like, back to back or on the half hour.</p></div></div>
@@ -167,21 +210,73 @@ Parks and Rec is 22 minutes in.</pre>
         <div class="tile"><img src="assets/screens/suggest.png" alt="Suggested channels list built from the library" loading="lazy"><div><h3>Suggest channels</h3><p>Clickarr reads your library once and proposes a starting lineup the way you would make it by hand: a rerun channel for each show you have the most of, your collections, the genres and decades you have plenty of, a shuffled movie channel, and a playlist. Untick what you do not want; nothing is created until you say so.</p></div></div>
         <div class="tile"><img src="assets/screens/setup.png" alt="First-run screen with a Connect to your media server card" loading="lazy"><div><h3>Setup</h3><p>Sign in to Plex with a code on your phone, or type an address and token. Your sign-in stays on the TV, in its own Keystore, and is never synced.</p></div></div>
       </div>
-      <p class="lead" style="margin-top:32px">Also in the nightly: a mini-guide inside the player, numeric channel entry, four themes and three sizes, a clock with automatic network time and a time zone, a settings lock code, a Favorites tab you can hide, episodes marked watched in Plex only when you actually sat through them, and lineups that re-read your library once a day so new episodes join on their own.</p>
     </div>
   </section>
 
   <section id="features">
     <div class="wrap">
-      <h2>How it's built</h2>
-      <p class="lead">A single Android app that talks straight to your media server. The decisions that shape it:</p>
+      <h2>Everything that was missing, in one app</h2>
+      <p class="lead">The features that always seemed to be missing from the other options.</p>
+      <div class="groups">
+        <div class="group">
+          <h3>Channels your way</h3>
+          <ul>
+            <li>Build from <b>shows, whole libraries</b> with genre and decade filters, <b>collections, or playlists</b>.</li>
+            <li><b>In order or shuffled</b>, and a shuffled channel can still play <b>2 or 3 episodes in a row</b>, in aired order.</li>
+            <li><b>Back to back</b>, or on 15, 30, or 60-minute slots with an "up next" countdown between programs.</li>
+            <li><b>Suggest channels</b> builds a sensible starter lineup from your library.</li>
+            <li>New episodes <b>join their channels on their own</b>, or only when you press Refresh.</li>
+          </ul>
+        </div>
+        <div class="group">
+          <h3>No mess in Plex</h3>
+          <ul>
+            <li>Tell Plex what you watched: <b>off, mark watched, or full progress</b>.</li>
+            <li>Mark watched only counts what you <b>actually sat through</b>. Tuning in for the ending does not count.</li>
+            <li>Your <b>Continue Watching stays clean</b> unless you choose full progress.</li>
+          </ul>
+        </div>
+        <div class="group">
+          <h3>A real guide</h3>
+          <ul>
+            <li>A <b>cable-style grid</b> with a now-line, a preview card, and favorites.</li>
+            <li>A <b>mini-guide</b> while you watch, and <b>number-key tuning</b>.</li>
+            <li>Choose how far ahead it shows, <b>3 to 24 hours</b>.</li>
+            <li><b>Hide the Favorites tab</b> if you only have a handful of channels.</li>
+          </ul>
+        </div>
+        <div class="group">
+          <h3>Make it yours</h3>
+          <ul>
+            <li>Themes: <b>Clickarr navy, Dark, a slate Light, and Dracula</b>.</li>
+            <li><b>Three interface sizes</b>, so it fits any TV.</li>
+            <li>A clock with <b>automatic network time</b> and your time zone.</li>
+            <li>A <b>settings lock</b> code per TV, so nobody rearranges your channels.</li>
+          </ul>
+        </div>
+        <div class="group wide">
+          <h3>Easy to keep running</h3>
+          <ul>
+            <li><b>In-app updates</b> on the stable release or the nightly build, checked and installed from Settings, About.</li>
+            <li>Several TVs on <b>one lineup</b>: pair them over Wi-Fi, or sync through your Google Drive for TVs in different homes.</li>
+            <li>A <b>Diagnostics</b> screen with everything a bug report needs, and never your tokens.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="security" style="background: var(--bg-panel)">
+    <div class="wrap">
+      <h2>Security, done properly</h2>
+      <p class="lead">An app that holds your Plex sign-in should earn it.</p>
       <div class="feat">
-        <div class="f"><span class="k">1</span><h3>Video goes server to TV</h3><p>Clickarr never proxies media. Your server keeps doing direct play or transcoding; Clickarr asks for the right item at the right offset.</p></div>
-        <div class="f"><span class="k">2</span><h3>Schedules are math, not files</h3><p>A channel is a function from time to program. Every TV computes the same answer from the same lineup, so nothing drifts and nothing needs syncing in real time.</p></div>
-        <div class="f"><span class="k">3</span><h3>Households, your way</h3><p>TVs pair over the LAN with a PIN, one coordinating and the others caching the lineup. Or choose Google Drive sync instead, for backup and for TVs in different homes on the same Plex server.</p></div>
-        <div class="f"><span class="k">4</span><h3>Your tokens stay put</h3><p>Each TV signs in to Plex itself. Household sync shares channels, never credentials.</p></div>
-        <div class="f"><span class="k">5</span><h3>Fire TV first-class</h3><p>No Google Play Services anywhere. Sideload the APK on a Fire Stick and it just runs.</p></div>
-        <div class="f"><span class="k">6</span><h3>Open source, MIT</h3><p>Clean-room, permissively licensed, built in public with architecture decisions written down. Release builds are reproducible and checked twice in CI.</p></div>
+        <div class="f"><span class="k">1</span><h3>Your token stays put</h3><p>The Plex sign-in lives in the TV's Android Keystore. It never syncs to other TVs and never appears in logs or Diagnostics.</p></div>
+        <div class="f"><span class="k">2</span><h3>Pairing over TLS</h3><p>TVs pair with a one-time PIN and pinned certificates, so a random device on your Wi-Fi cannot join your household.</p></div>
+        <div class="f"><span class="k">3</span><h3>The narrowest Drive access</h3><p>Google Drive sync uses the smallest permission Google offers. Clickarr can see the one file it created, not the rest of your Drive.</p></div>
+        <div class="f"><span class="k">4</span><h3>Signed and reproducible</h3><p>Every release is built twice in CI and checked to match, then signed. The signing fingerprint is published so you can verify the APK.</p></div>
+        <div class="f"><span class="k">5</span><h3>Nothing phones home</h3><p>No analytics and no Clickarr servers. It talks to your Plex server, to GitHub when you check for updates, and to Google only if you turn on Drive sync.</p></div>
+        <div class="f"><span class="k">6</span><h3>Reviewed in public</h3><p>The security review, including the known limitations, is written up in <a href="https://github.com/thegregstengel/clickarr/blob/main/SECURITY.md">SECURITY.md</a>.</p></div>
       </div>
     </div>
   </section>
@@ -193,6 +288,19 @@ Parks and Rec is 22 minutes in.</pre>
     </div>
   </section>
 
+
+  <section id="get" style="background: var(--bg-panel)">
+    <div class="wrap">
+      <h2>Get it</h2>
+      <p class="lead">One APK. Sideload it once and it keeps itself up to date.</p>
+      <div class="steps">
+        <div><h3>Fire TV</h3><p>Install Downloader from the Amazon Appstore, then enter <code>clickarr.net/apk</code>.</p></div>
+        <div><h3>Android TV &amp; Google TV</h3><p>Download the APK from <a href="https://github.com/thegregstengel/clickarr/releases/latest">GitHub Releases</a> and install it with your favorite file manager or ADB.</p></div>
+        <div><h3>Living on the edge</h3><p>The daily build is at <code>clickarr.net/nightly</code>. Switch between release and nightly in Settings, About.</p></div>
+      </div>
+      <p style="margin:28px 0 0;color:var(--text-2)">Questions, lineups, and bug reports: <a href="https://www.reddit.com/r/Clickarr/">r/Clickarr</a> and <a href="https://github.com/thegregstengel/clickarr/issues">GitHub issues</a>. Built for Plex first, with a lot of help from Claude.</p>
+    </div>
+  </section>
 
   <footer>
     <div class="wrap row">
