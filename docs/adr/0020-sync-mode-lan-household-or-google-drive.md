@@ -29,7 +29,7 @@ the same state show the same program at the same minute wherever they are.
 
 Google sign-in on TV was a question in itself. Google's OAuth flow for TVs and limited-input devices (a short code
 entered on a phone at google.com/device) needs no browser on the TV and no Play Services, and it permits the Drive
-scopes `drive.appdata` and `drive.file`. Drive's hidden per-app folder (`appDataFolder`) holds files only the app
+scopes `drive.appdata` and `drive.file`, and the device flow only `drive.file` (checked live 2026-10-11). Drive's hidden per-app folder (`appDataFolder`) was the first plan; it holds files only the app
 can see and is removed when the user disconnects the app from their Google account.
 
 ## Decision
@@ -41,7 +41,7 @@ current one, and the screen says so before it happens.
 In Drive mode the Drive file is the household store:
 
 - **Document.** The same `HouseholdState` JSON the LAN household uses, with the same `revision`, `schedulerVersion`,
-  and `protocolVersion` rules, stored as one file in `appDataFolder`. Nothing new to design in the model.
+  and `protocolVersion` rules, stored as one file in a visible "Clickarr" folder under `drive.file` (the device flow forbids `appDataFolder`). Nothing new to design in the model.
 - **Writes.** Every change is still a `Command` through the `HouseholdReducer`. A device applies the command locally,
   then uploads the new state with Drive's version precondition. If another device wrote first, it downloads the newer
   state, replays its pending commands on top, and uploads again. Last writer wins only after a replay, never by

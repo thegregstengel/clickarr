@@ -83,7 +83,7 @@ adb pull /sdcard/Pictures/clickarr ./screenshots
 ## Google Drive sync (ADR 0020)
 
 Settings, Sync, Google Drive. `GoogleDeviceAuth` runs Google's device-code flow (the TV shows a code, the viewer enters
-it at google.com/device), `DriveAppData` talks to the Drive v3 API's app folder, and `DriveSync` keeps the household
+it at google.com/device), `DriveAppData` talks to the Drive v3 API under the `drive.file` scope (a "Clickarr" folder the viewer can see), and `DriveSync` keeps the household
 document there: commands apply locally through the `HouseholdReducer`, queue in the `sync_state` table, and are
 pushed; a newer remote state is taken and the queue replayed on top. The Plex server identity in the document must
 match the signed-in server before a remote state is applied. The OAuth client comes from `CLICKARR_GOOGLE_CLIENT_ID`

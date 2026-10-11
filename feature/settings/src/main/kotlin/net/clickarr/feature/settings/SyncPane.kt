@@ -64,8 +64,8 @@ private fun DriveSection(vm: SyncViewModel) {
     when (val s = status) {
         DriveSync.Status.SignedOut -> {
             Text(
-                "Sign in on a phone with a short code. Clickarr keeps one small file in a folder only it can see; your Plex " +
-                    "sign-in never leaves this TV.",
+                "Sign in on a phone with a short code. Clickarr keeps one small file in a Clickarr folder in your Drive, and " +
+                    "its permission covers only files it created; your Plex sign-in never leaves this TV.",
                 style = ClickarrTextStyles.Secondary,
                 color = ClickarrColors.TextSecondary,
             )

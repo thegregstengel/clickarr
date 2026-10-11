@@ -31,7 +31,7 @@ import net.clickarr.household.protocol.ProtocolJson
 
 /**
  * Google Drive as the household store (ADR 0020). The same `HouseholdState` document, the same commands
- * through the same reducer; Drive holds one file in the app folder with the revision in its properties.
+ * through the same reducer; Drive holds one file in a "Clickarr" folder with the revision in its properties.
  * Writes apply locally, are queued, and are pushed; if another device pushed first, its state is taken
  * and the queued commands replayed on top before pushing again. Reads happen on start, after writes,
  * and every [POLL]. Before applying a remote state the Plex server identity has to match.
@@ -197,7 +197,13 @@ class DriveSync(
 
     private suspend fun push(state: HouseholdState, fileId: String?): Outcome<Unit> {
         val body = ProtocolJson.encodeToString(HouseholdState.serializer(), state)
-        val r = if (fileId == null) drive.create(FILE_NAME, body, state.revision) else drive.update(fileId, body, state.revision)
+        val r = if (fileId == null) {
+            // First push from this account: the file goes in a folder the viewer can see and recognise.
+            val parent = (drive.folder(FOLDER_NAME) as? Outcome.Success)?.value
+            drive.create(FILE_NAME, body, state.revision, parent)
+        } else {
+            drive.update(fileId, body, state.revision)
+        }
         return when (r) {
             is Outcome.Failure -> r
             is Outcome.Success -> {
@@ -237,7 +243,8 @@ class DriveSync(
 
     companion object {
         private const val TAG = "DriveSync"
-        const val FILE_NAME = "household-state.json"
+        const val FILE_NAME = "clickarr-household.json"
+        const val FOLDER_NAME = "Clickarr"
         private const val KEY_BASE = "drive:base"
         private const val KEY_PENDING = "drive:pending"
         private val POLL = 15.minutes

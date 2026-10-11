@@ -22,7 +22,7 @@ data class GoogleOAuthConfig(val clientId: String, val clientSecret: String) {
 /**
  * Google sign-in for a TV: the app shows a short code, the viewer enters it on a phone at google.com/device,
  * and the TV polls until Google says yes. Tokens live in the Keystore-backed [SecretStore] and are used only
- * against Drive's per-app folder and the userinfo endpoint (for the account name on screen).
+ * against the files Clickarr itself creates in Drive and the userinfo endpoint (for the account name on screen).
  */
 class GoogleDeviceAuth(private val config: GoogleOAuthConfig, private val okHttp: OkHttpClient, private val secrets: SecretStore) {
     data class DeviceCode(
@@ -162,7 +162,9 @@ class GoogleDeviceAuth(private val config: GoogleOAuthConfig, private val okHttp
         private const val TOKEN_URL = "https://oauth2.googleapis.com/token"
         private const val REVOKE_URL = "https://oauth2.googleapis.com/revoke"
         private const val USERINFO_URL = "https://openidconnect.googleapis.com/v1/userinfo"
-        private const val SCOPES = "https://www.googleapis.com/auth/drive.appdata email"
+        // The TV device flow allows drive.file (files this app created) but not drive.appdata; Google rejects the
+        // latter with "Invalid device flow scope" (checked against the live endpoint, 2026-10-11).
+        private const val SCOPES = "https://www.googleapis.com/auth/drive.file email"
         private const val DEFAULT_INTERVAL_SEC = 5
         private const val DEFAULT_EXPIRES_SEC = 1800
         private const val EXPIRY_MARGIN_MS = 60_000L

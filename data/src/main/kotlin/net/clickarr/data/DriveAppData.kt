@@ -21,34 +21,51 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 
 /**
- * The few Drive calls the sync needs, against the hidden per-app folder (`appDataFolder`). Files there
- * are invisible in the viewer's Drive and go away when they disconnect the app from their account.
- * The base URL is a parameter so tests can point it at a local server.
+ * The few Drive calls the sync needs, under the `drive.file` scope: Clickarr can see and touch only files it
+ * created itself, which it keeps in a "Clickarr" folder the viewer can see in their Drive. (The TV device flow
+ * does not allow the hidden per-app folder scope.) The base URL is a parameter so tests can use a local server.
  */
 class DriveAppData(
     private val okHttp: OkHttpClient,
     private val token: suspend () -> Outcome<String>,
     private val apiBase: String = "https://www.googleapis.com",
 ) {
-    /** A file in the app folder with the revision the writer recorded in its properties. */
+    /** A file Clickarr created, with the revision the writer recorded in its properties. */
     data class File(val id: String, val revision: Long?)
 
     private val json = Json { ignoreUnknownKeys = true }
 
     suspend fun find(name: String): Outcome<File?> = call {
-        val q = "name = '${name.replace("'", "\\'")}'"
-        val url = "$apiBase/drive/v3/files?spaces=appDataFolder&pageSize=1&fields=files(id,appProperties)&q=${encode(q)}"
+        val q = "name = '${name.replace("'", "\\'")}' and trashed = false"
+        val url = "$apiBase/drive/v3/files?pageSize=1&fields=files(id,appProperties)&q=${encode(q)}"
         Request.Builder().url(url).get()
     }.map { body ->
         body.jsonObject["files"]?.jsonArray?.firstOrNull()?.jsonObject?.let { toFile(it) }
     }
 
-    suspend fun download(id: String): Outcome<String> = callText { Request.Builder().url("$apiBase/drive/v3/files/$id?alt=media").get() }
-
-    suspend fun create(name: String, content: String, revision: Long): Outcome<File> = call {
+    /** The folder the sync file lives in, created on first use; its id becomes the file's parent. */
+    suspend fun folder(name: String): Outcome<String> {
+        val q = "name = '${name.replace("'", "\\'")}' and mimeType = '$FOLDER_MIME' and trashed = false"
+        val found = call { Request.Builder().url("$apiBase/drive/v3/files?pageSize=1&fields=files(id)&q=${encode(q)}").get() }
+        val existing = (found as? Outcome.Success)?.value?.jsonObject?.get("files")?.jsonArray?.firstOrNull()
+        if (found is Outcome.Failure) return found
+        existing?.jsonObject?.get("id")?.jsonPrimitive?.content?.let { return Outcome.Success(it) }
         val meta = buildJsonObject {
             put("name", name)
-            putJsonArray("parents") { add(kotlinx.serialization.json.JsonPrimitive("appDataFolder")) }
+            put("mimeType", FOLDER_MIME)
+        }
+        return call {
+            Request.Builder().url("$apiBase/drive/v3/files?fields=id")
+                .post(meta.toString().toRequestBody("application/json; charset=UTF-8".toMediaType()))
+        }.map { it.jsonObject.getValue("id").jsonPrimitive.content }
+    }
+
+    suspend fun download(id: String): Outcome<String> = callText { Request.Builder().url("$apiBase/drive/v3/files/$id?alt=media").get() }
+
+    suspend fun create(name: String, content: String, revision: Long, parent: String?): Outcome<File> = call {
+        val meta = buildJsonObject {
+            put("name", name)
+            if (parent != null) putJsonArray("parents") { add(kotlinx.serialization.json.JsonPrimitive(parent)) }
             putJsonObject("appProperties") { put("revision", revision.toString()) }
         }
         Request.Builder().url("$apiBase/upload/drive/v3/files?uploadType=multipart&fields=id,appProperties").post(multipart(meta, content))
@@ -106,5 +123,6 @@ class DriveAppData(
         private const val TAG = "Drive"
         private const val HTTP_UNAUTHORIZED = 401
         private const val HTTP_NOT_FOUND = 404
+        private const val FOLDER_MIME = "application/vnd.google-apps.folder"
     }
 }

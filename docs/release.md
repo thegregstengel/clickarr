@@ -67,8 +67,8 @@ sees a later build as newer whatever its name.
 ## Google Drive sync
 
 The Google Cloud project is `clickarr-tv`, with the Drive API enabled, an external consent screen named Clickarr (in
-testing, so only listed test users can sign in until it is published) with the `drive.appdata` and `userinfo.email`
-scopes, and an OAuth client of type **TVs and Limited Input devices**. To recreate it: a project, the Drive API, that
+testing, so only listed test users can sign in until it is published) with the `drive.file` and `userinfo.email`
+scopes (the TV device flow does not allow `drive.appdata`), and an OAuth client of type **TVs and Limited Input devices**. To recreate it: a project, the Drive API, that
 consent screen, that client type. Add the id
 and secret as repository secrets `CLICKARR_GOOGLE_CLIENT_ID` and `CLICKARR_GOOGLE_CLIENT_SECRET`; CI passes them to
 every build. For the TV flow Google does not treat the client secret as confidential (SECURITY.md).

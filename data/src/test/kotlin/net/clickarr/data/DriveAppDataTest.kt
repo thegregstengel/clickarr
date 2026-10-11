@@ -34,20 +34,33 @@ class DriveAppDataTest {
         found?.revision shouldBe 7L
         val request = server.takeRequest()
         request.getHeader("Authorization") shouldBe "Bearer token-1"
-        request.path shouldContain "spaces=appDataFolder"
+        request.path shouldContain "trashed"
+        request.path shouldContain "household-state.json"
     }
 
     @Test
     fun `create uploads metadata and content as one related multipart body`() = runBlocking {
         server.enqueue(MockResponse().setBody("""{"id":"new","appProperties":{"revision":"1"}}"""))
-        val created = drive.create("household-state.json", """{"revision":1}""", 1)
+        val created = drive.create("household-state.json", """{"revision":1}""", 1, parent = "folder-1")
         val file = created.shouldBeInstanceOf<Outcome.Success<DriveAppData.File>>().value
         file.id shouldBe "new"
         val request = server.takeRequest()
         request.getHeader("Content-Type") shouldContain "multipart/related"
         val body = request.body.readUtf8()
-        body shouldContain "appDataFolder"
+        body shouldContain "folder-1"
         body shouldContain "\"revision\":1"
+    }
+
+    @Test
+    fun `the folder is reused when it exists and created when it does not`() = runBlocking {
+        server.enqueue(MockResponse().setBody("""{"files":[{"id":"folder-1"}]}"""))
+        drive.folder("Clickarr").shouldBeInstanceOf<Outcome.Success<String>>().value shouldBe "folder-1"
+        server.takeRequest().path shouldContain "vnd.google-apps.folder"
+        server.enqueue(MockResponse().setBody("""{"files":[]}"""))
+        server.enqueue(MockResponse().setBody("""{"id":"folder-2"}"""))
+        drive.folder("Clickarr").shouldBeInstanceOf<Outcome.Success<String>>().value shouldBe "folder-2"
+        server.takeRequest()
+        server.takeRequest().body.readUtf8() shouldContain "\"name\":\"Clickarr\""
     }
 
     @Test
