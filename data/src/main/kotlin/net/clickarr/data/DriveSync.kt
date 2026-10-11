@@ -179,10 +179,10 @@ class DriveSync(
         }
         val theirs = runCatching { ProtocolJson.decodeFromString(HouseholdState.serializer(), text) }
             .getOrElse { return Outcome.Failure(ClickarrError.Invalid("The sync file on Drive could not be read")) }
-        sameServer(theirs)?.let { return Outcome.Failure(it) }
-        if (theirs.schedulerVersion > SCHEDULER_VERSION) {
-            return Outcome.Failure(ClickarrError.Unsupported("The sync file was written by a newer Clickarr; update this TV"))
-        }
+        val problem = sameServer(theirs)
+            ?: ClickarrError.Unsupported("The sync file was written by a newer Clickarr; update this TV")
+                .takeIf { theirs.schedulerVersion > SCHEDULER_VERSION }
+        if (problem != null) return Outcome.Failure(problem)
         val merged = pending().fold(theirs) { acc, cmd -> (reducer.apply(acc, cmd, clock.now()) as? Outcome.Success)?.value ?: acc }
         store.saveState(merged)
         return push(merged, remote.id)

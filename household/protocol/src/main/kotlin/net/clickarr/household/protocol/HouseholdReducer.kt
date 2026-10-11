@@ -52,8 +52,7 @@ class HouseholdReducer {
             "Lineup is empty" to c.lineup.entries.isEmpty(),
             "Lineup belongs to another channel" to (c.lineup.channelId != c.channel.id),
             "A new channel cannot have a pending lineup" to (c.channel.pendingLineup != null),
-            *shape(c.channel, c.lineup),
-        )
+        ) ?: firstProblem(shape(c.channel, c.lineup))
         return problem?.let(::invalid)
             ?: Outcome.Success(state.copy(channels = state.channels + c.channel, lineups = state.lineups + c.lineup))
     }
@@ -66,8 +65,7 @@ class HouseholdReducer {
             "Channel number ${c.channel.number} is taken" to state.channels.any { it.id != c.channel.id && it.number == c.channel.number },
             "Unknown lineup ${c.channel.lineup.value}" to (c.channel.lineup !in known),
             "Unknown pending lineup" to (c.channel.pendingLineup != null && c.channel.pendingLineup !in known),
-            *shape(c.channel, c.lineup),
-        )
+        ) ?: firstProblem(shape(c.channel, c.lineup))
         if (problem != null) return invalid(problem)
         val channels = state.channels.map { if (it.id == existing.id) c.channel else it }
         return Outcome.Success(state.copy(channels = channels, lineups = lineups))
@@ -77,7 +75,7 @@ class HouseholdReducer {
      * Bounds every member must respect, whoever they are: a paired TV, or a Drive document someone else wrote.
      * Out-of-range numbers and rounding would otherwise be persisted by every device and crash the scheduler.
      */
-    private fun shape(ch: Channel, lineup: LineupSnapshot?): Array<Pair<String, Boolean>> = arrayOf(
+    private fun shape(ch: Channel, lineup: LineupSnapshot?): List<Pair<String, Boolean>> = listOf(
         "Channel number must be between 1 and $MAX_NUMBER" to (ch.number !in 1..MAX_NUMBER),
         "Channel name is too long" to (ch.name.length > MAX_NAME),
         "Slot rounding is out of range" to (ch.slotRounding?.let { it !in MIN_ROUNDING..MAX_ROUNDING } ?: false),
@@ -86,7 +84,9 @@ class HouseholdReducer {
     )
 
     /** The message of the first failed check, or null when all pass. */
-    private fun firstProblem(vararg checks: Pair<String, Boolean>): String? = checks.firstOrNull { it.second }?.first
+    private fun firstProblem(vararg checks: Pair<String, Boolean>): String? = firstProblem(checks.toList())
+
+    private fun firstProblem(checks: List<Pair<String, Boolean>>): String? = checks.firstOrNull { it.second }?.first
 
     private fun deleteChannel(state: HouseholdState, c: Command.DeleteChannel): Outcome<HouseholdState> {
         if (state.channels.none { it.id == c.channelId }) return notFound(c.channelId.value)

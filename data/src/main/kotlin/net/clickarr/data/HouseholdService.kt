@@ -289,15 +289,18 @@ class HouseholdService @Inject constructor(
             is Outcome.Success -> r.value
             is Outcome.Failure -> return r
         }
-        if (info.protocolVersion > PROTOCOL_VERSION) return Outcome.Failure(ClickarrError.Unsupported("Update Clickarr on this TV to join"))
         // The pairing proof binds the certificate this TV actually saw; a claimed fingerprint is never a substitute.
-        val expected = trust.observed
-            ?: return Outcome.Failure(ClickarrError.Unauthorized("No TLS identity was observed for that TV"))
-        if (advertised != null && info.fingerprint.isNotBlank() && advertised != info.fingerprint) {
-            return Outcome.Failure(ClickarrError.Unauthorized("That TV's identity does not match what was advertised"))
+        val observed = trust.observed
+        val problem = when {
+            info.protocolVersion > PROTOCOL_VERSION -> ClickarrError.Unsupported("Update Clickarr on this TV to join")
+            observed == null -> ClickarrError.Unauthorized("No TLS identity was observed for that TV")
+            advertised != null && info.fingerprint.isNotBlank() && advertised != info.fingerprint ->
+                ClickarrError.Unauthorized("That TV's identity does not match what was advertised")
+            else -> null
         }
-        return HouseholdJoin.join(probe, selfId, prefs.deviceNameNow(), DeviceIdentity.fingerprint(), expected, pin)
-            .map { Paired(it, url, expected) }
+        if (problem != null || observed == null) return Outcome.Failure(problem ?: ClickarrError.Unauthorized("No TLS identity"))
+        return HouseholdJoin.join(probe, selfId, prefs.deviceNameNow(), DeviceIdentity.fingerprint(), observed, pin)
+            .map { Paired(it, url, observed) }
     }
 
     private suspend fun startMember(h: HouseholdEntity) {
