@@ -26,10 +26,6 @@ private val Context.deviceStore: DataStore<Preferences> by preferencesDataStore(
 class DevicePrefs(context: Context) {
     private val store = context.applicationContext.deviceStore
 
-    /** The TV's own captions switch (Accessibility, Captions), the default until the viewer chooses in Clickarr. */
-    private val systemCaptions: Boolean =
-        (context.getSystemService(Context.CAPTIONING_SERVICE) as? android.view.accessibility.CaptioningManager)?.isEnabled == true
-
     /** Stable per install. Read once at startup, hence the single blocking read. */
     val deviceId: String by lazy {
         runBlocking {
@@ -113,8 +109,8 @@ class DevicePrefs(context: Context) {
         store.edit { it[FAVORITES_TAB] = on }
     }
 
-    /** Settings, Playback, Captions; hold OK in the player to switch. */
-    val captions: Flow<Boolean> = store.data.map { it[CAPTIONS] ?: systemCaptions }
+    /** Settings, Playback, Captions; off until the viewer turns them on here or by holding OK in the player. */
+    val captions: Flow<Boolean> = store.data.map { it[CAPTIONS] ?: false }
 
     suspend fun setCaptions(on: Boolean) {
         store.edit { it[CAPTIONS] = on }
