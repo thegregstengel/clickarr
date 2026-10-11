@@ -10,7 +10,6 @@ import androidx.compose.foundation.gestures.LocalBringIntoViewSpec
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,7 +23,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -36,6 +34,13 @@ import kotlinx.coroutines.launch
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import kotlin.math.roundToInt
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.Stable
+import androidx.compose.foundation.layout.offset
+import androidx.compose.animation.core.Animatable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -108,7 +113,7 @@ fun GuideScreen(
     val all = window ?: return
     val w = if (onlyFavorites) all.copy(rows = all.rows.filter { it.channel.id.value in all.favorites }) else all
     val focus = remember(w.rows.size) { GuideFocus(w.rows.size) }
-    val scroll = rememberScrollState()
+    val scroll = remember { GuideScroll() }
     val density = LocalDensity.current
     var focused by remember { mutableStateOf<Airing?>(null) }
     var details by remember { mutableStateOf<Pair<Channel, Airing>?>(null) }
@@ -220,12 +225,12 @@ private fun GuideBody(
 }
 
 @Composable
-private fun TimeHeader(from: Instant, to: Instant, halfHourWidth: Dp, scroll: androidx.compose.foundation.ScrollState) {
+private fun TimeHeader(from: Instant, to: Instant, halfHourWidth: Dp, scroll: GuideScroll) {
     Row(Modifier.fillMaxWidth().height(HEADER_HEIGHT)) {
         Box(Modifier.width(CHANNEL_COLUMN), contentAlignment = Alignment.CenterStart) {
             Text("Today", style = ClickarrTextStyles.Caption, color = ClickarrColors.TextSecondary)
         }
-        Row(Modifier.horizontalScroll(scroll, enabled = false)) {
+        Row(Modifier.offset { IntOffset(-scroll.value, 0) }) {
             var t = from
             while (t < to) {
                 Box(Modifier.width(halfHourWidth), contentAlignment = Alignment.CenterStart) {
@@ -278,11 +283,27 @@ private object PlainBringIntoViewSpec : BringIntoViewSpec {
 }
 
 /** What every row shares: the time window, the scale, the horizontal scroll, and the focus map. */
+/**
+ * The grid's horizontal position, moved only by the keep-in-view rule in the row (whole columns at a time).
+ * It is not a Compose scroll container on purpose: a scrollable brings every newly focused child fully into
+ * view on its own, and a cell's gutter sitting a few pixels past the edge nudged the whole grid on row changes.
+ */
+@Stable
+private class GuideScroll {
+    private val position = Animatable(0f)
+    val value: Int get() = position.value.roundToInt()
+    var viewportSize by mutableIntStateOf(0)
+
+    suspend fun animateScrollTo(target: Int) {
+        position.animateTo(target.toFloat())
+    }
+}
+
 private class GuideGrid(
     val window: GuideViewModel.Window,
     val minutePx: Float,
     val halfHourWidth: Dp,
-    val scroll: androidx.compose.foundation.ScrollState,
+    val scroll: GuideScroll,
     val focus: GuideFocus,
 )
 
@@ -305,8 +326,9 @@ private fun GuideRow(
     val density = LocalDensity.current
     Row(Modifier.fillMaxWidth().height(ROW_HEIGHT).padding(vertical = ClickarrDimens.GuideCellGutter / 2)) {
         ChannelCell(row.channel, isCurrent, isFavorite, onEnter) { actions.onToggleFavorite(row.channel) }
-        Box(Modifier.fillMaxSize().clipToBounds().horizontalScroll(scroll)) {
+        Box(Modifier.fillMaxSize().clipToBounds().onSizeChanged { scroll.viewportSize = it.width }) {
             Layout(
+                modifier = Modifier.offset { IntOffset(-scroll.value, 0) },
                 content = {
                     row.airings.forEachIndexed { i, airing ->
                         val focusTime = maxOf(airing.start, window.from)
@@ -346,8 +368,7 @@ private fun GuideRow(
                     val w = ((a.end - start).inWholeMinutes * minutePx).toInt().coerceAtLeast(1)
                     m.measure(constraints.copy(minWidth = w, maxWidth = w))
                 }
-                val total = ((window.to - window.from).inWholeMinutes * minutePx).toInt()
-                layout(total, constraints.maxHeight) {
+                layout(constraints.maxWidth, constraints.maxHeight) {
                     placeables.forEachIndexed { i, p ->
                         val start = maxOf(row.airings[i].start, window.from)
                         p.place(((start - window.from).inWholeMinutes * minutePx).toInt(), 0)
