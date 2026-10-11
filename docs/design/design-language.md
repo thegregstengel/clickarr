@@ -331,7 +331,7 @@ Coordinator side: a dialog with the six digits in `display.channel`, grouped 3+3
 
 ### Filler card
 
-Shown between `contentEnd` and `end` of a slot and when a program cannot play. Full screen `bg.base` with the channel badge and name top-left, "Up next" block centered (title, slot time, countdown), and the reason line when applicable ("Not available on this device", "Can't reach Plex server WOPR"). No spinner; the countdown is the activity indicator.
+Shown between `contentEnd` and `end` of a slot and when a program cannot play. Full screen `bg.base` with the channel badge and name top-left, "Up next" block centered (title, slot time, countdown), and the reason line when applicable ("Not available on this device", "Can't reach Plex server Media Room"). No spinner; the countdown is the activity indicator.
 
 ### Toast
 
@@ -358,7 +358,7 @@ All at 1920×1080, 48 dp safe area. Numbers are dp.
 
 ## 6. Content and voice
 
-- **Calm and plain.** Sentences, not labels with colons. "Can't reach Plex server WOPR" not "Error: connection failed."
+- **Calm and plain.** Sentences, not labels with colons. "Can't reach Plex server Media Room" not "Error: connection failed."
 - **The user owns the TV.** "Your channels", "your library". Clickarr never says "we".
 - **Times** in the device locale's short format with tabular figures: `7:00 PM – 7:30 PM`, `17:03 / 30:00`. En dash with spaces between times. 24-hour clocks follow the system setting.
 - **Channel names** display as entered in lists and as uppercase in the `label.allcaps` role only. Never force case in data.

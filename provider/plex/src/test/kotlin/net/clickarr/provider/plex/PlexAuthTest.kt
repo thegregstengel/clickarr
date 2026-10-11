@@ -32,7 +32,7 @@ class PlexAuthTest {
         val servers = auth.servers(token!!).value()
         servers.size shouldBe 1
         val wopr = servers.single()
-        wopr.server.name shouldBe "WOPR"
+        wopr.server.name shouldBe "Media Room"
         wopr.server.serverIdentity shouldBe "abc123machine"
         wopr.token shouldBe "server-token-123"
         wopr.server.urls shouldBe listOf("https://192-168-1-20.abc123.plex.direct:32400", "https://203-0-113-10.abc123.plex.direct:32400")

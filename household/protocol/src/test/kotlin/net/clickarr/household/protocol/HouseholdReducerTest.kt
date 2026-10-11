@@ -103,7 +103,7 @@ class HouseholdReducerTest {
 
     @Test
     fun `registering a server replaces an entry with the same identity`() {
-        val a = net.clickarr.core.model.ServerLocation(net.clickarr.core.model.ProviderKind.PLEX, "m1", "WOPR", listOf("http://a"))
+        val a = net.clickarr.core.model.ServerLocation(net.clickarr.core.model.ProviderKind.PLEX, "m1", "Media Room", listOf("http://a"))
         val b = a.copy(urls = listOf("http://b"))
         val s = empty.apply(Command.RegisterServer(a)).apply(Command.RegisterServer(b))
         s.servers shouldContainExactly listOf(b)

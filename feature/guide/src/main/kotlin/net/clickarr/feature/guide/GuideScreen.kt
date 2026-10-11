@@ -80,7 +80,7 @@ import net.clickarr.ui.design.clickarrFocusable
 private val CHANNEL_COLUMN = 248.dp
 private val ROW_HEIGHT = 64.dp
 private val HEADER_HEIGHT = 40.dp
-// Doubled from the first cut at Greg's request: the thumbnail stays 16:9 and the synopsis gets room to read.
+// Twice the first cut's height: the thumbnail stays 16:9 and the synopsis gets room to read.
 private val PREVIEW_HEIGHT = 208.dp
 private val PREVIEW_THUMB_WIDTH = 368.dp
 private const val PREVIEW_SYNOPSIS_LINES = 5

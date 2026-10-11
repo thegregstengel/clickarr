@@ -35,7 +35,7 @@ class PlexProviderContractTest : MediaProviderContractTest() {
 
     private fun plex(): PlexProvider = PlexProvider(
         id = providerId,
-        server = ServerInfo(providerId, ProviderKind.PLEX, "abc123machine", "WOPR", fixtures.baseUrl),
+        server = ServerInfo(providerId, ProviderKind.PLEX, "abc123machine", "Media Room", fixtures.baseUrl),
         token = "secret-token",
         identity = identity,
         client = OkHttpClient(),
@@ -62,7 +62,7 @@ class PlexProviderContractTest : MediaProviderContractTest() {
     fun `ping fills in machine identifier, name and version from the server`() = runTest {
         val info = plex().ping().value()
         info.serverIdentity shouldBe "abc123machine"
-        info.name shouldBe "WOPR"
+        info.name shouldBe "Media Room"
         info.version shouldBe "1.41.0.8992"
     }
 

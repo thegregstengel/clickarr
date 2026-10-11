@@ -433,7 +433,7 @@ There is no official Plex SDK for Kotlin, and the community ones track an undocu
 
 ### 6.5 Matching servers across household devices
 
-A household syncs **server locations** (kind, server identity, friendly name, last known URLs) but not credentials. When a member device joins and sees a server it has no credentials for, setup prompts: "This household uses Plex server *WOPR*. Sign in on this device." Item IDs line up because both devices talk to the same server identity: Plex `ratingKey` values are per-server.
+A household syncs **server locations** (kind, server identity, friendly name, last known URLs) but not credentials. When a member device joins and sees a server it has no credentials for, setup prompts: "This household uses Plex server *Media Room*. Sign in on this device." Item IDs line up because both devices talk to the same server identity: Plex `ratingKey` values are per-server.
 
 Edge case handled in the model: a member signed in as a different Plex user (a managed or shared account) may lack access to a library. `playbackSource` returns `NotFound`/`Unauthorized`; the player shows a "Not available on this device" card for that program and advances at the scheduled time.
 
@@ -831,7 +831,7 @@ Not automatic in the MVP, but the data model makes it a manual, safe operation l
 
 ### 15.4 Media server unreachable
 
-Independent of household state. The player shows a channel card "Can't reach Plex server *WOPR*" with the schedule still ticking; it retries at each program boundary and every 30 seconds. The guide remains fully functional because it needs no server access.
+Independent of household state. The player shows a channel card "Can't reach Plex server *Media Room*" with the schedule still ticking; it retries at each program boundary and every 30 seconds. The guide remains fully functional because it needs no server access.
 
 ---
 
