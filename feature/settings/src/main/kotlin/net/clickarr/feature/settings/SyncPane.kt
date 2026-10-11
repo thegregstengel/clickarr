@@ -87,7 +87,9 @@ private fun DriveSection(vm: SyncViewModel) {
                 style = ClickarrTextStyles.Secondary,
                 color = ClickarrColors.TextSecondary,
             )
-            Button(onClick = { park.park(); vm.signIn() }, modifier = Modifier.focusRequester(primary)) { Text("Sign in with Google") }
+            Button(onClick = { park.park(); vm.signIn() }, modifier = Modifier.focusRequester(primary)) {
+                Text("Sign in with Google")
+            }
             val problem by vm.driveProblem.collectAsState()
             problem?.let { Text(it, style = ClickarrTextStyles.Secondary, color = ClickarrColors.StatusWarn) }
         }
@@ -100,7 +102,11 @@ private fun DriveSection(vm: SyncViewModel) {
                 style = TextStyle(fontWeight = FontWeight.Bold, fontSize = 64.sp, letterSpacing = 4.sp),
                 color = ClickarrColors.AccentGlow,
             )
-            Text("This TV signs in on its own once the phone finishes.", style = ClickarrTextStyles.Caption, color = ClickarrColors.TextMuted)
+            Text(
+                "This TV signs in on its own once the phone finishes.",
+                style = ClickarrTextStyles.Caption,
+                color = ClickarrColors.TextMuted,
+            )
             Button(onClick = { park.park(); vm.cancelSignIn() }, modifier = Modifier.focusRequester(primary)) { Text("Cancel") }
         }
         is DriveSync.Status.SignedIn -> {
