@@ -5,6 +5,12 @@ second release the same day); the household protocol, scheduler, and database ca
 
 ## [Unreleased]
 
+Nothing yet.
+
+## 2026.10.11
+
+The first release: everything below, built and verified on Fire TV Stick 4K Max (Fire OS 8) and the Android TV emulator.
+
 ### Added
 - Plex sign-in (plex.tv PIN or manual address and token) and library browsing through the provider contract.
 - Channels from shows, whole libraries with decade and genre filters, Plex collections, and playlists; in order or

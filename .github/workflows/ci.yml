@@ -128,11 +128,16 @@ jobs:
           CLICKARR_VERSION_NAME: "repro"
         run: ./gradlew :app:assembleRelease --no-daemon
       - name: Checksum
-        run: sha256sum app/build/outputs/apk/release/app-release-unsigned.apk | cut -d' ' -f1 > "sha-${{ matrix.attempt }}.txt"
+        run: |
+          cp app/build/outputs/apk/release/app-release-unsigned.apk "build-${{ matrix.attempt }}.apk"
+          sha256sum "build-${{ matrix.attempt }}.apk" | cut -d' ' -f1 > "sha-${{ matrix.attempt }}.txt"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: reproducible-${{ matrix.attempt }}
-          path: sha-${{ matrix.attempt }}.txt
+          path: |
+            sha-${{ matrix.attempt }}.txt
+            build-${{ matrix.attempt }}.apk
+          retention-days: 3
 
   reproducible-compare:
     name: Compare the two builds
@@ -147,7 +152,19 @@ jobs:
       - name: The two checksums must match (ADR 0017)
         run: |
           cat sha-1.txt sha-2.txt
-          test "$(cat sha-1.txt)" = "$(cat sha-2.txt)"
+          if [ "$(cat sha-1.txt)" = "$(cat sha-2.txt)" ]; then exit 0; fi
+          echo "::error::The two release builds differ. Entries that are not byte-identical:"
+          python3 - <<'PY'
+          import zipfile, hashlib
+          a, b = zipfile.ZipFile('build-1.apk'), zipfile.ZipFile('build-2.apk')
+          names = sorted(set(a.namelist()) | set(b.namelist()))
+          for n in names:
+              ha = hashlib.sha256(a.read(n)).hexdigest() if n in a.namelist() else 'missing'
+              hb = hashlib.sha256(b.read(n)).hexdigest() if n in b.namelist() else 'missing'
+              if ha != hb:
+                  print(f"  {n}: {ha[:12]} vs {hb[:12]}")
+          PY
+          exit 1
 
   nightly:
     name: Publish nightly APK

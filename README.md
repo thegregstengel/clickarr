@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-1479FD"></a>
-  <img alt="Status: alpha nightly" src="https://img.shields.io/badge/status-alpha%20nightly-7E4DFD">
+  <a href="https://github.com/thegregstengel/clickarr/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/thegregstengel/clickarr?color=7E4DFD&label=release"></a>
   <img alt="Platforms" src="https://img.shields.io/badge/platforms-Android%20TV%20%7C%20Google%20TV%20%7C%20Fire%20TV-0CE568">
   <a href="https://clickarr.net"><img alt="Website" src="https://img.shields.io/badge/web-clickarr.net-00ACFF"></a>
   <img alt="Server" src="https://img.shields.io/badge/server-Plex-E5A00D">
@@ -52,7 +52,7 @@ Screens from the app as it stands, taken on the Android TV emulator by the test 
 Clickarr is a single APK that you sideload. There is no Clickarr server, container, or cloud account.
 
 - **Nightly** (debug build of `main`, changes daily): in the Fire TV Downloader app enter `clickarr.net/nightly`, or fetch it from the [nightly pre-release](https://github.com/thegregstengel/clickarr/releases/tag/nightly). Once installed, Settings, About updates Clickarr in place from then on.
-- **Release**: the first tagged release is next on the list. `clickarr.net/apk` will point at it.
+- **Release** (signed, minified, updated when something is worth releasing): in Downloader enter `clickarr.net/apk`, or fetch it from [GitHub Releases](https://github.com/thegregstengel/clickarr/releases/latest). Settings, About on the Release channel updates it in place.
 
 Nightlies are signed with one long-lived key, so each one installs over the last. Release builds use a different key; switching channels means uninstalling once.
 
