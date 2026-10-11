@@ -32,3 +32,11 @@ Reproducibility measures: pinned Gradle wrapper with checksum verification, vers
 - Losing the release key means a new package name is required for updates, so `docs/release.md` records the rotation note and the key is backed up in two places.
 - Supply chain: dependency locking, Renovate with grouped PRs, no binary blobs in the repo.
 - Reproducible-build verification in CI and F-Droid metadata are scheduled for Phase 4.
+
+## Amendment, 2026-10-11
+
+Two independent release builds are compared entry by entry. Everything must be byte-identical except the ART
+baseline profile (`assets/dexopt/baseline.prof` and `.profm`): a startup optimisation hint containing no code,
+whose generator in the Android Gradle Plugin produced different bytes for identical DEX on two clean runners. The
+check prints the entries that differ so a future mismatch in code or resources still fails the build.
+

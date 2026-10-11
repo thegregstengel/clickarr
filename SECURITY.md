@@ -55,6 +55,8 @@ store, logging, settings lock, and CI. What changed as a result:
   only by debuggable builds. The updater refuses an APK name that leaves the release and caps `version.json`.
 - CI: every action pinned to a commit, release permissions job-scoped, keystores deleted when the job ends,
   `v*` tags protected by a ruleset.
+- Reproducible release builds: two clean runners must produce byte-identical APKs apart from the ART baseline
+  profile, a code-free startup hint whose generator is not deterministic (ADR 0017 amendment).
 
 Known and accepted: a typed coordinator address with no advertised key can be answered by a rogue TV that then
 holds a PIN-derived proof it can guess offline within the two-minute window; the fix is a PAKE, which is on the
