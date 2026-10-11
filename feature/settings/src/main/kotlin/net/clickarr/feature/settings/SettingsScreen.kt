@@ -57,6 +57,8 @@ fun SettingsScreen(
     appVersionCode: Int,
     initialSection: String?,
     actions: SettingsActions,
+    /** Where Down from the shell's cog lands: the first section, or the lock pad while Settings is locked. */
+    entryFocus: FocusRequester = remember { FocusRequester() },
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     var section by rememberSaveable {
@@ -66,7 +68,7 @@ fun SettingsScreen(
     val locked by viewModel.lock.locked.collectAsState()
     DisposableEffect(Unit) { onDispose { viewModel.lock.relock() } }
     val park = remember { FocusPark() }
-    val navFirst = remember { FocusRequester() }
+    val navFirst = entryFocus
     // When the gate goes away on a correct code, focus is parked; hand it to the section list.
     var wasLocked by remember { mutableStateOf(locked) }
     LaunchedEffect(locked) {
@@ -76,7 +78,7 @@ fun SettingsScreen(
     Box(Modifier.fillMaxSize()) {
         FocusParkAnchor(park)
         if (locked) {
-            LockGate(viewModel.lock, park)
+            LockGate(viewModel.lock, park, firstKey = entryFocus)
         } else {
             SettingsBody(section, { section = it }, navFirst, park, appVersion, appVersionCode, actions, viewModel)
         }

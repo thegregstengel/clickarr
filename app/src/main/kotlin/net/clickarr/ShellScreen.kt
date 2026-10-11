@@ -17,6 +17,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
@@ -93,6 +95,8 @@ fun ShellScreen(
     // its content, a text field closes), Compose hands focus to the first focusable, which is the Guide tab, and
     // that must not change tabs. A key press within the last moment is the signal that the viewer did it.
     val lastKeyAt = remember { longArrayOf(0L) }
+    // Down from the settings cog lands on the first section (or the lock pad), not on whatever pane content is nearest.
+    val settingsEntry = remember { FocusRequester() }
     // The tab opened from the player gets focus inside it; after that, moving across the row keeps focus on the
     // row until Down is pressed, so Guide and Favorites do not pull focus into the grid as they go by.
     var switched by rememberSaveable { mutableStateOf(false) }
@@ -113,6 +117,7 @@ fun ShellScreen(
         ShellTopRow(
             tab,
             showFavorites = showFavorites,
+            settingsEntry = settingsEntry,
             onFocusTab = ::select,
             onSelectTab = { t -> switched = switched || t != tab; tab = t },
             now = viewModel::now,
@@ -125,6 +130,7 @@ fun ShellScreen(
                     appVersion = BuildConfig.VERSION_NAME,
                     appVersionCode = BuildConfig.VERSION_CODE,
                     initialSection = initialSection,
+                    entryFocus = settingsEntry,
                     actions = SettingsActions(
                         onDisconnected = callbacks.onDisconnected,
                         onOpenSpikes = { spikes = true },
@@ -153,6 +159,7 @@ private fun shellBack(spikes: Boolean, channelCount: Int, callbacks: ShellCallba
 private fun ShellTopRow(
     tab: ShellTab,
     showFavorites: Boolean,
+    settingsEntry: FocusRequester,
     onFocusTab: (ShellTab) -> Unit,
     onSelectTab: (ShellTab) -> Unit,
     now: () -> Instant,
@@ -175,7 +182,9 @@ private fun ShellTopRow(
             selected = tab == ShellTab.SETTINGS,
             onFocus = { onFocusTab(ShellTab.SETTINGS) },
             onSelect = { onSelectTab(ShellTab.SETTINGS) },
-            modifier = Modifier.testTag("shell.settings"),
+            modifier = Modifier
+                .testTag("shell.settings")
+                .then(if (tab == ShellTab.SETTINGS) Modifier.focusProperties { down = settingsEntry } else Modifier),
         )
     }
 }

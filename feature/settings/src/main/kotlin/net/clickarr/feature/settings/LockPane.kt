@@ -37,10 +37,9 @@ import net.clickarr.ui.design.ClickarrTextStyles
 
 /** Covers Settings until the code is entered. Guide, favorites, and watching stay open; only this is gated. */
 @Composable
-internal fun LockGate(lock: LockController, park: FocusPark) {
+internal fun LockGate(lock: LockController, park: FocusPark, firstKey: FocusRequester = remember { FocusRequester() }) {
     val entry by lock.entry.collectAsState()
     val message by lock.message.collectAsState()
-    val firstKey = remember { FocusRequester() }
     // The gate does not take focus when it appears. Tabs follow focus, so the viewer is usually still on the
     // settings cog with OK about to be pressed; focusing a key now would turn that OK into a digit. Down enters
     // the pad. After a wrong code, focus is parked and comes back to the keys.
