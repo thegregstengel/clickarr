@@ -22,6 +22,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -38,11 +41,24 @@ internal fun LockGate(lock: LockController, park: FocusPark) {
     val entry by lock.entry.collectAsState()
     val message by lock.message.collectAsState()
     val firstKey = remember { FocusRequester() }
-    LaunchedEffect(Unit) { runCatching { firstKey.requestFocus() } }
-    // A wrong code leaves the pad in place with focus parked; bring it back to the keys.
+    // The gate does not take focus when it appears. Tabs follow focus, so the viewer is usually still on the
+    // settings cog with OK about to be pressed; focusing a key now would turn that OK into a digit. Down enters
+    // the pad. After a wrong code, focus is parked and comes back to the keys.
     LaunchedEffect(message) { if (message != null) runCatching { firstKey.requestFocus() } }
+    val sawDown = remember { booleanArrayOf(false) }
     Column(
-        Modifier.fillMaxSize().background(ClickarrColors.BgBase).padding(ClickarrDimens.SafeArea),
+        Modifier
+            .fillMaxSize()
+            .background(ClickarrColors.BgBase)
+            .padding(ClickarrDimens.SafeArea)
+            // A key-up whose key-down went elsewhere (the cog, a tab) is not a press on the pad.
+            .onPreviewKeyEvent { e ->
+                when (e.type) {
+                    KeyEventType.KeyDown -> { sawDown[0] = true; false }
+                    KeyEventType.KeyUp -> (!sawDown[0]).also { sawDown[0] = false }
+                    else -> false
+                }
+            },
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
