@@ -123,7 +123,7 @@ class PlexProviderContractTest : MediaProviderContractTest() {
     }
 
     @Test
-    fun `direct play carries separate text subtitle files; image formats are left to the container`() = runTest {
+    fun `direct play carries separate text subtitle files, and image formats are left to the container`() = runTest {
         val direct = plex().playbackSource(ref("104"), DeviceProfile.Conservative, 0.minutes).value()
         direct.shouldBeInstanceOf<PlaybackSource.DirectPlay>()
         direct.subtitles.size shouldBe 1
