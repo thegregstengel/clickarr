@@ -179,7 +179,7 @@ class DevicePrefs(context: Context) {
         const val WATCH_OFF = "off"
         const val WATCH_WATCHED = "watched"
         const val WATCH_PROGRESS = "progress"
-        const val DEFAULT_WATCH_REPORTING = WATCH_WATCHED
+        const val DEFAULT_WATCH_REPORTING = WATCH_OFF
         const val SYNC_OFF = "off"
         const val SYNC_LOCAL = "local"
         const val SYNC_DRIVE = "drive"

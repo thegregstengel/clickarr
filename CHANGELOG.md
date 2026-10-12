@@ -79,7 +79,7 @@ The first release: everything below, built and verified on Fire TV Stick 4K Max 
 - Settings, General, Settings lock: a four-digit code (entered on an on-screen pad) that covers Settings and the channel editor
   whenever they are opened; the guide, favorites, and watching stay open. The code lives on one TV and is never synced;
   five wrong tries earn a thirty-second wait; clearing the app's data is the recovery for a forgotten code.
-- Settings, Plex Server, Tell Plex what you watched: Off, Mark watched (default; an episode counts once this TV has played most of
+- Settings, Plex Server, Tell Plex what you watched: Off (default), Mark watched (an episode counts once this TV has played most of
   it in one sitting, so tuning in for the ending or leaving a channel on overnight does not), or Progress too (also sends the
   running position, so episodes appear in Continue Watching).
 - Settings, Channels, Keep lineups current: once a day Clickarr re-reads every channel's source from Plex, so new episodes

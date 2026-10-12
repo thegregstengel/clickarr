@@ -63,8 +63,8 @@ class PlayerViewModel @Inject constructor(
     val tune: StateFlow<TuneState> = controller.state
 
     private val watchMode: StateFlow<WatchReporter.Mode> = deps.prefs.watchReporting
-        .map { name -> WatchReporter.Mode.entries.firstOrNull { it.name.equals(name, ignoreCase = true) } ?: WatchReporter.Mode.WATCHED }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, WatchReporter.Mode.WATCHED)
+        .map { name -> WatchReporter.Mode.entries.firstOrNull { it.name.equals(name, ignoreCase = true) } ?: WatchReporter.Mode.OFF }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, WatchReporter.Mode.OFF)
 
     /** Settings, Plex Server, "Tell Plex what you watched". */
     private val reporter = WatchReporter(
