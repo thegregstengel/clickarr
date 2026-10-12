@@ -39,7 +39,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.tv.material3.Button
 import androidx.tv.material3.ListItem
 import androidx.tv.material3.Text
-import net.clickarr.data.DevicePrefs
 import net.clickarr.data.UpdateChecker
 import net.clickarr.ui.design.ClickarrColors
 import net.clickarr.ui.design.GlyphIcon
@@ -121,7 +120,7 @@ private fun SettingsBody(
                 SettingsSection.GENERAL -> GeneralPane(viewModel, park)
                 SettingsSection.SERVER -> ServerPane(viewModel, actions.onDisconnected)
                 SettingsSection.CHANNELS -> ChannelsPane(viewModel, actions)
-                SettingsSection.PLAYBACK -> PlaybackPane(viewModel)
+                SettingsSection.PLAYBACK -> PlaybackPane()
                 SettingsSection.SYNC -> SyncPane()
                 SettingsSection.DIAGNOSTICS -> DiagnosticsPane(viewModel)
                 SettingsSection.ABOUT -> AboutPane(appVersion, appVersionCode, viewModel, actions)
@@ -135,6 +134,12 @@ private fun Caption(text: String) = Text(text, style = ClickarrTextStyles.Second
 
 @Composable
 private fun Label(text: String) = Text(text, style = ClickarrTextStyles.LabelAllCaps, color = ClickarrColors.TextMuted)
+
+/** "Seasonal: Oct 1 to Oct 31" for the channel list. */
+private fun seasonLabel(s: net.clickarr.core.model.SeasonWindow): String {
+    fun md(m: Int, d: Int) = "${java.time.Month.of(m).name.lowercase().replaceFirstChar(Char::uppercase).take(3)} $d"
+    return "Seasonal: ${md(s.startMonth, s.startDay)} to ${md(s.endMonth, s.endDay)}"
+}
 
 private fun refreshCaption(r: SettingsViewModel.RefreshInfo): String {
     val last = r.lastAt?.let { at ->
@@ -254,6 +259,9 @@ private fun ChannelsPane(vm: SettingsViewModel, actions: SettingsActions) {
             selected = false,
             onClick = { actions.onEditChannel(ch.id) },
             headlineContent = { Text(ch.name, style = ClickarrTextStyles.RowTitle) },
+            supportingContent = ch.season?.let { s ->
+                { Text(seasonLabel(s), style = ClickarrTextStyles.Caption, color = ClickarrColors.TextSecondary) }
+            },
             leadingContent = {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(ch.number.toString(), style = ClickarrTextStyles.RowTitle, modifier = Modifier.width(56.dp))
@@ -268,49 +276,6 @@ private fun ChannelsPane(vm: SettingsViewModel, actions: SettingsActions) {
 }
 
 
-@Composable
-private fun PlaybackPane(vm: SettingsViewModel) {
-    val p = vm.profile
-    Label("Direct play profile")
-    Caption("Up to ${p.maxWidth}×${p.maxHeight}, video ${p.videoCodecs.joinToString()}, audio ${p.audioCodecs.joinToString()}.")
-    Caption("Probed from this TV's decoders and display at startup. Anything outside it is transcoded by Plex.")
-    val between by vm.betweenPrograms.collectAsState()
-    Label("Between programs")
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Chip("Coming up next", selected = between == DevicePrefs.BETWEEN_PROMO) { vm.setBetweenPrograms(DevicePrefs.BETWEEN_PROMO) }
-        Chip("Countdown", selected = between == DevicePrefs.BETWEEN_COUNTDOWN) { vm.setBetweenPrograms(DevicePrefs.BETWEEN_COUNTDOWN) }
-    }
-    Caption(
-        "On channels with 15, 30, or 60-minute slots, the gap before the next program shows its backdrop, time, and " +
-            "synopsis with the show's theme music, all from what Plex already has. Or a plain countdown.",
-    )
-    val captions by vm.captions.collectAsState()
-    Label("Captions")
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Chip("Off", selected = !captions) { vm.setCaptions(false) }
-        Chip("On", selected = captions) { vm.setCaptions(true) }
-    }
-    Caption(
-        "Shows the program's subtitles in this TV's language when it has them. Hold OK while watching to switch. " +
-            "Size, colour, and background follow the TV's own caption settings.",
-    )
-    val watch by vm.watchReporting.collectAsState()
-    Label("Tell Plex what you watched")
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Chip("Off", selected = watch == DevicePrefs.WATCH_OFF) { vm.setWatchReporting(DevicePrefs.WATCH_OFF) }
-        Chip("Mark watched", selected = watch == DevicePrefs.WATCH_WATCHED) { vm.setWatchReporting(DevicePrefs.WATCH_WATCHED) }
-        Chip("Progress too", selected = watch == DevicePrefs.WATCH_PROGRESS) { vm.setWatchReporting(DevicePrefs.WATCH_PROGRESS) }
-    }
-    Caption(
-        when (watch) {
-            DevicePrefs.WATCH_OFF -> "Plex never hears about what plays here."
-            DevicePrefs.WATCH_PROGRESS ->
-                "Episodes you sit through are marked watched, and the running position is sent too, so they appear in Continue Watching."
-            else -> "An episode is marked watched once this TV has played most of it in one sitting. Tuning in for the last five minutes " +
-                "does not count, and nothing lands in Continue Watching."
-        },
-    )
-}
 
 @Composable
 private fun DiagnosticsPane(vm: SettingsViewModel) {

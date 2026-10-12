@@ -34,6 +34,8 @@ class ChannelSuggester @Inject constructor(private val registry: ProviderRegistr
         /** Why it is on the list, for the picker: "212 episodes, start to finish", "Your collection: 6 movies, in order". */
         val reason: String,
         val runs: EpisodeRuns? = null,
+        /** Seasonal suggestions (Halloween, Christmas) are shown only in their window. */
+        val season: net.clickarr.core.model.SeasonWindow? = null,
     )
 
     suspend fun suggest(): Outcome<List<Suggestion>> {

@@ -19,6 +19,7 @@ import net.clickarr.core.model.ChannelIcon
 import net.clickarr.core.model.ChannelId
 import net.clickarr.core.model.Collection
 import net.clickarr.core.model.EpisodeRuns
+import net.clickarr.core.model.SeasonWindow
 import net.clickarr.core.model.Library
 import net.clickarr.core.model.LibraryKind
 import net.clickarr.core.model.MediaFilter
@@ -75,6 +76,8 @@ class EditorViewModel @Inject constructor(
         val rounding: Duration? = null,
         val icon: ChannelIcon? = null,
         val runs: EpisodeRuns? = null,
+        /** Shown only between these dates each year, or null for all year. */
+        val season: SeasonWindow? = null,
         /** Set when editing an existing channel. */
         val editing: Channel? = null,
         /** Why the last Save did not go through, shown by the form. */
@@ -210,7 +213,9 @@ class EditorViewModel @Inject constructor(
         _step.value = Step.Loading
         viewModelScope.launch {
             val c = repository.byId(id) ?: return@launch fail("That channel no longer exists")
-            _step.value = Step.Details(Draft(c.source, c.name, c.name, c.number, c.order, c.slotRounding, c.icon, c.runs, editing = c))
+            _step.value = Step.Details(
+                Draft(c.source, c.name, c.name, c.number, c.order, c.slotRounding, c.icon, c.runs, c.season, editing = c),
+            )
         }
     }
 
@@ -245,9 +250,12 @@ class EditorViewModel @Inject constructor(
         viewModelScope.launch {
             val r = d.editing?.let { c ->
                 repository.update(
-                    c.copy(name = name, number = d.number, order = d.order, slotRounding = d.rounding, icon = d.icon, runs = d.runs),
+                    c.copy(
+                        name = name, number = d.number, order = d.order, slotRounding = d.rounding, icon = d.icon, runs = d.runs,
+                        season = d.season,
+                    ),
                 )
-            } ?: repository.create(d.number, name, d.source, d.order, d.rounding, d.icon, d.runs)
+            } ?: repository.create(d.number, name, d.source, d.order, d.rounding, d.icon, d.runs, d.season)
             _step.value = when (r) {
                 is Outcome.Success -> Step.Saved(r.value.name, r.value.number)
                 is Outcome.Failure -> Step.Failed(r.error.message)

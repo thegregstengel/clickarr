@@ -208,19 +208,6 @@ class SettingsViewModel @Inject constructor(
 
     fun setFavoritesTab(on: Boolean) = viewModelScope.launch { prefs.setFavoritesTab(on) }
 
-    val watchReporting: StateFlow<String> =
-        prefs.watchReporting.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DevicePrefs.DEFAULT_WATCH_REPORTING)
-
-    fun setWatchReporting(mode: String) = viewModelScope.launch { prefs.setWatchReporting(mode) }
-
-    val captions: StateFlow<Boolean> = prefs.captions.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
-
-    fun setCaptions(on: Boolean) = viewModelScope.launch { prefs.setCaptions(on) }
-
-    val betweenPrograms: StateFlow<String> =
-        prefs.betweenPrograms.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DevicePrefs.BETWEEN_PROMO)
-
-    fun setBetweenPrograms(mode: String) = viewModelScope.launch { prefs.setBetweenPrograms(mode) }
 
     /** Settings, General, Settings lock; see [LockController]. */
     val lock = LockController(prefs, viewModelScope) { SystemClock.elapsedRealtime() }

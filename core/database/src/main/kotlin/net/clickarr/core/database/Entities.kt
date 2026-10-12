@@ -82,6 +82,8 @@ data class ChannelEntity(
     val seed: Long,
     val runsMin: Int?,
     val runsMax: Int?,
+    /** SeasonWindow.encode(), or null for all year (schema 5). */
+    val season: String? = null,
     val lineupId: String,
     val anchorEpochMs: Long,
     val pendingLineupId: String?,

@@ -17,7 +17,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runBlocking
 
-private val Context.deviceStore: DataStore<Preferences> by preferencesDataStore("device_prefs")
+internal val Context.deviceStore: DataStore<Preferences> by preferencesDataStore("device_prefs")
 
 /**
  * Device-local state that is never synchronized (proposal 16.1): identity, last channel, UI knobs.

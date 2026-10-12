@@ -55,6 +55,7 @@ fun PlayerScreen(
     val captionsOn by viewModel.captions.collectAsState()
     val notice by viewModel.notice.collectAsState()
     val promoState by viewModel.promo.collectAsState()
+    val sleepState by viewModel.sleep.state.collectAsState()
     val miniGuide by viewModel.miniGuide.collectAsState()
     // Back arrives as a key on Fire OS but through the back dispatcher on newer Android (predictive back),
     // so it is handled here rather than in the key map: close the mini-guide, then the overlay, then leave.
@@ -91,6 +92,8 @@ fun PlayerScreen(
                     keepScreenOn = true
                 }
             },
+            // Asleep, the TV's own screensaver and sleep settings are free to take over.
+            update = { view -> view.keepScreenOn = sleepState != SleepGuard.State.Asleep },
             modifier = Modifier.fillMaxSize(),
         )
 
@@ -107,11 +110,28 @@ fun PlayerScreen(
             enter = fadeIn(tween(ClickarrMotion.ENTER_MS)) + slideInVertically(tween(ClickarrMotion.ENTER_MS)) { it / 6 },
             exit = fadeOut(tween(ClickarrMotion.EXIT_MS)) + slideOutVertically(tween(ClickarrMotion.EXIT_MS)) { it / 6 },
         ) {
-            ChannelOverlay(tune, now = viewModel.now(), digits = digits, captionsOn = captionsOn)
+            ChannelOverlay(
+                tune,
+                now = viewModel.now(),
+                digits = digits,
+                captionsOn = captionsOn,
+                sleepInMinutes = viewModel.sleepInMinutes(),
+            )
         }
-        notice?.let { CaptionNotice(it) }
+        TopLayers(notice, sleepState)
         if (digits.isNotEmpty() && !overlayVisible) DigitBadge(digits)
         miniGuide?.let { MiniGuide(it, now = viewModel.now(), modifier = Modifier.align(Alignment.BottomCenter)) }
+    }
+}
+
+/** The short captions notice, and the still-watching question or the asleep screen over everything. */
+@Composable
+private fun TopLayers(notice: String?, sleepState: SleepGuard.State) {
+    notice?.let { CaptionNotice(it) }
+    when (sleepState) {
+        is SleepGuard.State.Asking -> StillWatchingPrompt(sleepState.deadlineMs)
+        SleepGuard.State.Asleep -> AsleepScreen()
+        SleepGuard.State.Awake -> Unit
     }
 }
 
@@ -122,6 +142,8 @@ fun PlayerScreen(
  */
 private fun playerKey(event: KeyEvent, vm: PlayerViewModel, miniOpen: Boolean, onOpenGuide: () -> Unit): Boolean {
     val native = event.nativeKeyEvent
+    // Any button answers "Are you still watching?" or wakes the player, and goes no further.
+    if (event.type == KeyEventType.KeyDown && native.repeatCount == 0 && vm.sleep.onInput()) return true
     if (!miniOpen && (event.key == Key.DirectionCenter || event.key == Key.Enter)) {
         when (event.type) {
             KeyEventType.KeyDown -> vm.ok.down(native.eventTime, repeat = native.repeatCount > 0)

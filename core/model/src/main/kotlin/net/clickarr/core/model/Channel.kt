@@ -2,6 +2,7 @@ package net.clickarr.core.model
 
 import kotlin.time.Duration
 import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalDate
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -89,6 +90,8 @@ data class Channel(
     val seed: Long,
     /** Episodes of one show in a row, or null for one at a time (scheduler version 2). */
     val runs: EpisodeRuns? = null,
+    /** Shown in the guide and when surfing only between these dates each year; null means all year. */
+    val season: SeasonWindow? = null,
     /** The lineup currently in effect. */
     val lineup: LineupSnapshotId,
     /** Cycle 0 of [lineup] begins here. */
@@ -108,6 +111,46 @@ data class LineupEntry(
     /** Entries that belong together in order (a show's episodes): the key is the show's id. Movies have none. */
     val group: String? = null,
 )
+
+/**
+ * A yearly window, such as October for a Halloween channel or late November to New Year for Christmas movies.
+ * Inclusive at both ends; a window that crosses the new year (start after end) wraps. The channel's schedule keeps
+ * running all year so every TV agrees when it reappears; the window only decides whether it is shown.
+ */
+@Serializable
+data class SeasonWindow(val startMonth: Int, val startDay: Int, val endMonth: Int, val endDay: Int) {
+    init {
+        require(startMonth in 1..12 && endMonth in 1..12 && startDay in 1..31 && endDay in 1..31) { "invalid season window" }
+    }
+
+    fun contains(date: LocalDate): Boolean {
+        val d = key(date.monthNumber, date.dayOfMonth)
+        val s = key(startMonth, startDay)
+        val e = key(endMonth, endDay)
+        return if (s <= e) d in s..e else d >= s || d <= e
+    }
+
+    /** "10-01..10-31", the stored form. */
+    fun encode(): String = "%02d-%02d..%02d-%02d".format(startMonth, startDay, endMonth, endDay)
+
+    companion object {
+        private const val MONTH = 100
+        private fun key(month: Int, day: Int) = month * MONTH + day
+
+        val HALLOWEEN = SeasonWindow(10, 1, 10, 31)
+        val CHRISTMAS = SeasonWindow(11, 25, 12, 31)
+        val SUMMER = SeasonWindow(6, 1, 8, 31)
+
+        fun decode(s: String?): SeasonWindow? = s?.let {
+            val m = Regex("""(\d{2})-(\d{2})\.\.(\d{2})-(\d{2})""").matchEntire(it) ?: return null
+            val (a, b, c, d) = m.destructured
+            runCatching { SeasonWindow(a.toInt(), b.toInt(), c.toInt(), d.toInt()) }.getOrNull()
+        }
+    }
+}
+
+/** Whether [channel] is shown on [date]: always when it has no season. */
+fun Channel.inSeason(date: LocalDate): Boolean = season?.contains(date) ?: true
 
 /**
  * How many entries of one group play back to back before the channel moves on: between [min] and [max],

@@ -65,6 +65,7 @@ object SuggestionRules {
         out += themes(scan, t).take(MAX_THEMES)
         out += decades(scan, t).take(MAX_DECADES)
         out += movieChannels(scan, t).take(1)
+        out += SeasonalSuggestions.of(scan, t)
         out += playlists(scan, t).take(MAX_PLAYLISTS)
         return out.filter { it.name.lowercase() !in existing }.distinctBy { it.name.lowercase() }.take(ChannelSuggester.MAX)
     }

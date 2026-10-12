@@ -19,9 +19,13 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
+import net.clickarr.core.common.AppTime
 import net.clickarr.core.model.Channel
+import net.clickarr.core.model.inSeason
 import net.clickarr.data.DevicePrefs
 import net.clickarr.data.PlayerDeps
+import net.clickarr.playback.core.TuneStatus
+import net.clickarr.data.SleepPrefs
 import net.clickarr.playback.core.TuneController
 import net.clickarr.playback.core.TuneState
 import net.clickarr.playback.core.WatchReporter
@@ -37,6 +41,7 @@ import net.clickarr.provider.api.CaptionRequest
 class PlayerViewModel @Inject constructor(
     @ApplicationContext context: Context,
     private val deps: PlayerDeps,
+    sleepPrefs: SleepPrefs,
 ) : ViewModel() {
     val engine = Media3PlayerEngine(context, deps.okHttp, "Clickarr")
 
@@ -75,7 +80,27 @@ class PlayerViewModel @Inject constructor(
     private val promos = PromoDirector(context, deps, viewModelScope)
     val promo: StateFlow<PromoDirector.Promo?> = promos.promo
 
+    private val sleepAt = sleepPrefs.sleepAt.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    private val stillWatching =
+        sleepPrefs.stillWatchingHours.stateIn(viewModelScope, SharingStarted.Eagerly, SleepPrefs.DEFAULT_STILL_WATCHING_HOURS)
+
+    /** Sleep timer and "Are you still watching?" (Settings, Playback). */
+    val sleep = SleepGuard(
+        scope = viewModelScope,
+        nowMs = { deps.clock.now().toEpochMilliseconds() },
+        sleepAt = { sleepAt.value },
+        stillWatchingHours = { stillWatching.value },
+        isWatching = { controller.state.value.status == TuneStatus.Playing },
+        onSleep = { controller.stop() },
+        onWake = { controller.state.value.channel?.let(::tuneTo) },
+        clearTimer = { sleepPrefs.setSleepAt(null) },
+    )
+
+    /** Minutes until the sleep timer, for the overlay, or null. */
+    fun sleepInMinutes(): Long? = sleepAt.value?.let { (it - deps.clock.now().toEpochMilliseconds()) / MS_PER_MINUTE }?.takeIf { it >= 0 }
+
     init {
+        sleep.start()
         promos.start(controller.state, promoOn)
         reporter.start(controller.state)
         viewModelScope.launch { captions.collect { on -> engine.setCaptions(on, captionLanguage) } }
@@ -104,8 +129,10 @@ class PlayerViewModel @Inject constructor(
     /** OK: a short press shows or hides the overlay, a hold switches captions. */
     val ok = OkKeyGesture(onTap = { toggleOverlay() }, onHold = { toggleCaptions() })
 
-    val channels: StateFlow<List<Channel>> =
-        deps.channels.channels.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+    /** The channels in season today; surfing and numbers skip a Christmas channel in July. */
+    val channels: StateFlow<List<Channel>> = deps.channels.channels
+        .map { list -> list.filter { it.inSeason(AppTime.local(deps.clock.now()).date) } }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     private val _overlayVisible = MutableStateFlow(false)
     val overlayVisible: StateFlow<Boolean> = _overlayVisible.asStateFlow()
@@ -244,3 +271,4 @@ class PlayerViewModel @Inject constructor(
 
 private const val MINI_GUIDE_AHEAD = 3
 private const val NOTICE_MS = 2_000L
+private const val MS_PER_MINUTE = 60_000L

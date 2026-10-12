@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [
@@ -19,7 +21,7 @@ import androidx.room.RoomDatabase
         HouseholdDeviceEntity::class,
         HouseholdServerEntity::class,
     ],
-    version = 4,
+    version = 5,
     // Schema export is enabled in Phase 4 (reproducible builds), together with migration tests.
     exportSchema = false,
 )
@@ -38,9 +40,18 @@ abstract class ClickarrDatabase : RoomDatabase() {
 
         fun build(context: Context, name: String = NAME): ClickarrDatabase =
             Room.databaseBuilder(context.applicationContext, ClickarrDatabase::class.java, name)
-                // v1 is pre-release; once real users exist, migrations are mandatory and this goes away.
-                .fallbackToDestructiveMigration(dropAllTables = true)
+                // Released installs are at 4 or later and keep their data through real migrations from here on.
+                // Only pre-release schemas (1 to 3) are rebuilt from scratch.
+                .addMigrations(MIGRATION_4_5)
+                .fallbackToDestructiveMigrationFrom(dropAllTables = true, 1, 2, 3)
                 .build()
+
+        /** Schema 5: a channel can have a season (SeasonWindow), shown only between those dates. */
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE channel ADD COLUMN season TEXT")
+            }
+        }
 
         fun inMemory(context: Context): ClickarrDatabase =
             Room.inMemoryDatabaseBuilder(context.applicationContext, ClickarrDatabase::class.java).build()

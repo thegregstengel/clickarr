@@ -18,6 +18,7 @@ import kotlinx.datetime.LocalTime
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import net.clickarr.core.common.AppTime
+import net.clickarr.core.model.inSeason
 import net.clickarr.core.common.Clock
 import net.clickarr.core.model.Airing
 import net.clickarr.core.model.Channel
@@ -125,7 +126,8 @@ class GuideViewModel @Inject constructor(
         val now = clock.now()
         val from = floorToHalfHour(now)
         val to = from + hours.hours
-        val rows = channels.sortedBy { it.number }.map { ch ->
+        val today = AppTime.local(now).date
+        val rows = channels.filter { it.inSeason(today) }.sortedBy { it.number }.map { ch ->
             val lineup = lineups[ch.lineup] ?: repository.lineup(ch.lineup)?.also { lineups[ch.lineup] = it }
             Row(ch, lineup?.let { strategy.airingsBetween(ch, it, from, to) } ?: emptyList())
         }

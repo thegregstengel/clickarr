@@ -33,7 +33,7 @@ import net.clickarr.ui.design.ClickarrTextStyles
 
 /** Bottom overlay: channel badge, name, program, slot time, progress, Up Next (design language 4). */
 @Composable
-fun ChannelOverlay(state: TuneState, now: Instant, digits: String, captionsOn: Boolean = false) {
+fun ChannelOverlay(state: TuneState, now: Instant, digits: String, captionsOn: Boolean = false, sleepInMinutes: Long? = null) {
     val channel = state.channel ?: return
     val airing = state.airing
     Box(
@@ -49,6 +49,7 @@ fun ChannelOverlay(state: TuneState, now: Instant, digits: String, captionsOn: B
         ) {
             Text(clock(now), style = ClickarrTextStyles.ScreenTitle.tabular())
             CaptionHint(captionsOn)
+            sleepInMinutes?.let { Text("Sleeping in $it min", style = ClickarrTextStyles.Caption, color = ClickarrColors.AccentGlow) }
         }
         Row(
             Modifier.align(Alignment.BottomStart).fillMaxWidth().padding(ClickarrDimens.SafeArea),
