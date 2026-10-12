@@ -30,3 +30,13 @@ For small preference blobs, Proto DataStore is the standard typed, Flow-observab
 - Device-local state in `device_prefs.pb`: device id and name, last channel, overlay timeout, preferred audio language, EPG density, resume-on-launch toggle. Device profiles are device-local and never synced.
 - Room migrations are covered by instrumented tests (schema export plus `MigrationTestHelper`).
 - Clickarr does not mirror the library. It caches only what the user has browsed or a channel references, plus full episode lists for shows used by channels.
+
+## Amendment, 2026-10-12: real migrations from the first release
+
+Schema 4 shipped in release 2026.10.11, so from then on every change has a real `Migration` and the destructive
+fallback covers only pre-release schemas 1 to 3. The schema is exported to `core/database/schemas`; versions 4 and 5,
+which shipped before export was on, were exported from their commits with the `Room schema` workflow. `MigrationTest`
+on the emulator upgrades each committed version to the current one and checks rows survive. Schema 5 added the
+channel's holiday (column `season`); schema 6 made `channel.number` non-unique so holiday channels can share a number
+(ADR-0021).
+

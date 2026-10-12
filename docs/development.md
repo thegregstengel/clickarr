@@ -45,7 +45,15 @@ See [architecture.md](architecture.md#module-map). Pure-Kotlin modules (`core:*`
 
 ## App flow (Phase 1)
 
-Launch goes to Plex sign-in when no server is connected, otherwise straight to the player on the last channel. Back from the player opens the shell: Guide, Favorites (can be hidden), and the settings cog. Settings has General (appearance, time, settings lock), Plex Server, Channels (create, suggest, edit, refresh, guide length), Playback (profile, watched state), Sync (off, LAN household, or Google Drive), Diagnostics (schedule math and the recent redacted log, the thing to quote in bug reports), and About (version and updates).
+Launch goes to Plex sign-in when no server is connected, otherwise straight to the player on the last channel. Back from the player opens the shell: Guide, Favorites (can be hidden), and the settings cog. Settings has General (appearance, time, settings lock), Plex Server (sign-in, Tell Plex what you watched), Channels (create, suggest, holiday channels, edit, refresh, guide length, Favorites tab), Playback (profile, between programs, captions, sleep timer, still watching), Sync (off, LAN household, or Google Drive), Diagnostics (schedule math and the recent redacted log, including how each program played and its subtitle tracks; the thing to quote in bug reports), and About (version and updates).
+
+## Database migrations
+
+Room exports the schema to `core/database/schemas` on every build. A change to an entity means: bump the version in `ClickarrDatabase`, add a `Migration` beside the others, commit the new schema JSON (export it with the `Room schema` workflow below and commit the JSON it uploads), and add a case to `app/src/androidTest/.../MigrationTest.kt`. Never rely on the destructive fallback, which only covers pre-release schemas 1 to 3. To export the schema of an older commit:
+
+```bash
+gh workflow run schemas.yml -f ref=<tag or commit>
+```
 
 ## Logging
 

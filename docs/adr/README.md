@@ -34,7 +34,7 @@ The first batch (0001 to 0018) was split out of the approved [architecture propo
 | [0010](0010-lineup-changes-cut-over-at-boundary.md) | Lineup changes cut over at a program boundary | Accepted |
 | [0011](0011-household-sync-single-document.md) | Household sync: single versioned document, coordinator sole writer, full snapshots | Accepted |
 | [0012](0012-discovery-nsd-with-manual-fallback.md) | Discovery: Android NSD with manual address fallback | Accepted |
-| [0013](0013-pairing-tls-tofu-pin-proof.md) | Pairing: TLS with Keystore certificates, TOFU pinning, PIN-bound HMAC proof | Accepted |
+| [0013](0013-pairing-tls-tofu-pin-proof.md) | Pairing: TLS with Keystore certificates, TOFU pinning, PIN-bound HMAC proof (SPAKE2 since 2026-10-11) | Accepted |
 | [0014](0014-media-credentials-never-synced.md) | Media server credentials are never synchronized and are Keystore-encrypted at rest | Accepted |
 | [0015](0015-offline-watch-from-cache.md) | Offline: watch from cache, editing requires the coordinator | Accepted |
 | [0016](0016-module-structure-and-pure-kotlin-core.md) | Module structure and pure-Kotlin core boundaries | Accepted |
@@ -42,3 +42,4 @@ The first batch (0001 to 0018) was split out of the approved [architecture propo
 | [0018](0018-license-hygiene-mit-permissive-deps.md) | License hygiene: MIT, permissive dependencies only, no GPL code | Accepted |
 | [0019](0019-mvp-targets-plex-only.md) | Clickarr targets Plex only; no other media servers are planned | Accepted |
 | [0020](0020-sync-mode-lan-household-or-google-drive.md) | Sync mode: a LAN household or Google Drive, chosen in Settings, one at a time | Accepted |
+| [0021](0021-holiday-channels-visibility-windows.md) | Holiday channels: yearly visibility windows and shared numbers | Accepted |

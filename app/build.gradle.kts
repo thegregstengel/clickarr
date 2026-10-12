@@ -51,6 +51,11 @@ android {
         buildConfig = true
     }
 
+    // MigrationTest reads every committed Room schema version as an asset.
+    sourceSets {
+        getByName("androidTest").assets.srcDir("$rootDir/core/database/schemas")
+    }
+
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
@@ -114,6 +119,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
 
     androidTestImplementation(libs.androidx.test.junit)
+    androidTestImplementation(libs.androidx.room.testing)
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.test.uiautomator)
     androidTestImplementation(libs.okhttp.mockwebserver)
