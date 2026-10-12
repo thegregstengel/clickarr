@@ -175,22 +175,20 @@ class JellyfinProvider(
         startAt: Duration,
         captions: CaptionRequest?,
     ): Outcome<PlaybackSource> {
-        val meta = when (val r = http.get(items("ids" to item.id.value, "fields" to "MediaSources"), JfItems.serializer())) {
-            is Outcome.Success -> r.value.items.firstOrNull() ?: return Outcome.Failure(ClickarrError.NotFound("No item ${item.id.value}"))
-            is Outcome.Failure -> return r
-        }
-        val chosen = JellyfinProfile.choose(meta.mediaSources.firstOrNull()?.streams.orEmpty(), captions)
-        val body = JellyfinProfile.playbackInfoBody(userId, profile, JellyfinMapper.toTicks(startAt), chosen?.index)
+        // One round trip: the decision lists the file's streams, so the caption track is chosen from its answer. The
+        // request asks for no subtitles (-1) so a server default is never burned in; a burn is added to the HLS URL.
+        val body = JellyfinProfile.playbackInfoBody(userId, profile, JellyfinMapper.toTicks(startAt), subtitleIndex = null)
         return http.post(url("/Items/${item.id.value}/PlaybackInfo", "userId" to userId), body, JfPlaybackInfo.serializer())
             .flatMap { info ->
                 val source = info.mediaSources.firstOrNull()
-                    ?: return@flatMap Outcome.Failure(ClickarrError.NotFound("Jellyfin offered no way to play ${meta.name}"))
-                decide(meta, source, info.playSessionId, startAt, chosen, captions != null, profile)
+                    ?: return@flatMap Outcome.Failure(ClickarrError.NotFound("Jellyfin offered no way to play ${item.id.value}"))
+                val chosen = JellyfinProfile.choose(source.streams, captions)
+                decide(item.id.value, source, info.playSessionId, startAt, chosen, captions != null, profile)
             }
     }
 
     private fun decide(
-        meta: JfItem,
+        itemId: String,
         source: JfMediaSource,
         session: String?,
         startAt: Duration,
@@ -203,11 +201,11 @@ class JellyfinProvider(
         val transcode = source.transcodingUrl
         return when {
             source.supportsDirectPlay || JellyfinProfile.onlyAudioStandsInTheWay(source, profile) -> {
-                Log.i(TAG) { "direct play ${meta.name}: ${source.container}, subtitles [$tracks]" }
+                Log.i(TAG) { "direct play $itemId: ${source.container}, subtitles [$tracks]" }
                 Outcome.Success(
                     PlaybackSource.DirectPlay(
                         url = url(
-                            "/Videos/${meta.id}/stream",
+                            "/Videos/$itemId/stream",
                             "static" to "true",
                             "mediaSourceId" to source.id,
                             "playSessionId" to session,
@@ -224,7 +222,7 @@ class JellyfinProvider(
                 // transcoding there. Captions in a transcode are burned in, as with Plex.
                 val burn = chosen?.takeIf { captionsOn }
                 Log.i(TAG) {
-                    "transcode ${meta.name}: ${source.container}, subtitles [$tracks], " +
+                    "transcode $itemId: ${source.container}, subtitles [$tracks], " +
                         "captions ${if (!captionsOn) "off" else "on, burning ${burn?.let { "${it.index} ${it.codec}" } ?: "nothing"}"}"
                 }
                 val hls = (base.trimEnd('/') + transcode).toHttpUrl().newBuilder()
@@ -244,7 +242,7 @@ class JellyfinProvider(
                     ),
                 )
             }
-            else -> Outcome.Failure(ClickarrError.Unknown("Jellyfin can neither direct play nor transcode ${meta.name}"))
+            else -> Outcome.Failure(ClickarrError.Unknown("Jellyfin can neither direct play nor transcode $itemId"))
         }
     }
 
