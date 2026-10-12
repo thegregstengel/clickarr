@@ -143,8 +143,8 @@ data class SeasonWindow(val startMonth: Int, val startDay: Int, val endMonth: In
 
         fun decode(s: String?): SeasonWindow? = s?.let {
             val m = Regex("""(\d{2})-(\d{2})\.\.(\d{2})-(\d{2})""").matchEntire(it) ?: return null
-            val (a, b, c, d) = m.destructured
-            runCatching { SeasonWindow(a.toInt(), b.toInt(), c.toInt(), d.toInt()) }.getOrNull()
+            val v = m.groupValues.drop(1).map(String::toInt)
+            runCatching { SeasonWindow(v[0], v[1], v[2], v[3]) }.getOrNull()
         }
     }
 }

@@ -35,6 +35,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
+import net.clickarr.playback.core.TuneState
 import net.clickarr.playback.core.TuneStatus
 import net.clickarr.ui.design.ClickarrMotion
 
@@ -97,13 +98,7 @@ fun PlayerScreen(
             modifier = Modifier.fillMaxSize(),
         )
 
-        val status = tune.status
-        val promo = promoState
-        if (status is TuneStatus.Filler && promo != null) {
-            PromoCard(promo, tune.channel.takeIf { !overlayVisible }, viewModel.now(), showText = !overlayVisible)
-        } else if (status is TuneStatus.Filler || status is TuneStatus.Unavailable || tune.channel == null) {
-            FillerCard(tune, viewModel.now(), reason = (status as? TuneStatus.Unavailable)?.reason, showHeader = !overlayVisible)
-        }
+        GapLayer(tune, promoState, viewModel.now(), overlayVisible)
 
         AnimatedVisibility(
             visible = overlayVisible && tune.channel != null,
@@ -121,6 +116,18 @@ fun PlayerScreen(
         TopLayers(notice, sleepState)
         if (digits.isNotEmpty() && !overlayVisible) DigitBadge(digits)
         miniGuide?.let { MiniGuide(it, now = viewModel.now(), modifier = Modifier.align(Alignment.BottomCenter)) }
+    }
+}
+
+/** Between programs and when nothing can play: the "Coming up next" promo, or the countdown and reason card. */
+@Composable
+private fun GapLayer(tune: TuneState, promo: PromoDirector.Promo?, now: kotlinx.datetime.Instant, overlayVisible: Boolean) {
+    val status = tune.status
+    when {
+        status is TuneStatus.Filler && promo != null ->
+            PromoCard(promo, tune.channel.takeIf { !overlayVisible }, now, showText = !overlayVisible)
+        status is TuneStatus.Filler || status is TuneStatus.Unavailable || tune.channel == null ->
+            FillerCard(tune, now, reason = (status as? TuneStatus.Unavailable)?.reason, showHeader = !overlayVisible)
     }
 }
 
@@ -142,22 +149,28 @@ private fun TopLayers(notice: String?, sleepState: SleepGuard.State) {
  */
 private fun playerKey(event: KeyEvent, vm: PlayerViewModel, miniOpen: Boolean, onOpenGuide: () -> Unit): Boolean {
     val native = event.nativeKeyEvent
-    // Any button answers "Are you still watching?" or wakes the player, and goes no further.
-    if (event.type == KeyEventType.KeyDown && native.repeatCount == 0 && vm.sleep.onInput()) return true
-    if (!miniOpen && (event.key == Key.DirectionCenter || event.key == Key.Enter)) {
-        when (event.type) {
-            KeyEventType.KeyDown -> vm.ok.down(native.eventTime, repeat = native.repeatCount > 0)
-            KeyEventType.KeyUp -> vm.ok.up()
-            else -> Unit
-        }
-        return true
+    val down = event.type == KeyEventType.KeyDown
+    val ok = event.key == Key.DirectionCenter || event.key == Key.Enter
+    return when {
+        // Any button answers "Are you still watching?" or wakes the player, and goes no further.
+        down && native.repeatCount == 0 && vm.sleep.onInput() -> true
+        !miniOpen && ok -> okKey(event, vm)
+        !down -> false
+        native.keyCode == android.view.KeyEvent.KEYCODE_CAPTIONS -> true.also { vm.toggleCaptions() }
+        miniOpen -> handleMiniGuideKey(event.key, vm)
+        else -> handleKey(event.key, vm, onOpenGuide)
     }
-    if (event.type != KeyEventType.KeyDown) return false
-    if (native.keyCode == android.view.KeyEvent.KEYCODE_CAPTIONS) {
-        vm.toggleCaptions()
-        return true
+}
+
+/** OK is a tap (overlay) or a hold (captions), so both its down and up events go to the gesture. */
+private fun okKey(event: KeyEvent, vm: PlayerViewModel): Boolean {
+    val native = event.nativeKeyEvent
+    when (event.type) {
+        KeyEventType.KeyDown -> vm.ok.down(native.eventTime, repeat = native.repeatCount > 0)
+        KeyEventType.KeyUp -> vm.ok.up()
+        else -> Unit
     }
-    return if (miniOpen) handleMiniGuideKey(event.key, vm) else handleKey(event.key, vm, onOpenGuide)
+    return true
 }
 
 /** Remote mapping from design language 2.8. Returns true when the key was consumed. */
