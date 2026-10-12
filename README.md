@@ -49,6 +49,10 @@ Screens from the app as it stands, taken on the Android TV emulator by the test 
     <td width="50%"><img src="site/assets/screens/holidays.png" alt="Holiday channels"><br><sub><b>Holiday channels.</b> Valentine's Day, Easter, Halloween, Thanksgiving, and Christmas, on air only in the run-up and back every year.</sub></td>
     <td width="50%"><img src="site/assets/screens/setup.png" alt="First-run setup"><br><sub><b>Setup.</b> Plex: a code on your phone, or an address and token. Jellyfin: the server's address, then Quick Connect or a password. Your sign-in stays on the TV and is never synced.</sub></td>
   </tr>
+  <tr>
+    <td width="50%"><img src="site/assets/screens/jellyfin.png" alt="Jellyfin sign-in"><br><sub><b>Jellyfin.</b> Quick Connect from any Jellyfin app, or a username and password sent once; only the token is kept.</sub></td>
+    <td width="50%"><img src="site/assets/screens/jellyfin-settings.png" alt="Jellyfin settings"><br><sub><b>One server per TV.</b> Settings has a Plex section and a Jellyfin section; the one you do not use is switched off.</sub></td>
+  </tr>
 </table>
 
 ## Get it

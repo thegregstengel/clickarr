@@ -5,6 +5,8 @@ second release the same day); the household protocol, scheduler, and database ca
 
 ## [Unreleased]
 
+## 2026.10.12
+
 ### Security
 - Pairing uses SPAKE2 (RFC 9382): a rogue device answering a typed coordinator address can no longer test PINs offline;
   each attempt is one guess and three cancel the PIN. Household protocol version 2: both TVs need this build to pair;
