@@ -11,23 +11,29 @@ second release the same day); the household protocol, scheduler, and database ca
   TVs already paired keep working.
 
 ### Added
-- Holiday channels can share a channel number (100 by default), since only one is ever on; the number is chosen in the
-  picker, whose Create button now sits beside the list. Database schema 6 keeps everything on upgrade.
-- Captions have a cleaner look: Inter in white with an outline and no box, a little larger, the same for every program.
-- Every picker and list sorts alphabetically, ignoring a leading The, A, or An (the guide keeps channel order).
-- Tell Plex what you watched moved to Settings, Plex Server.
-- Sleep timer (30 minutes to 2 hours) and "Are you still watching?" after 2, 3, or 4 hours without a button press,
-  in Settings, Playback. With no answer in a minute, playback stops and the TV's own screensaver can take over; any
-  button tunes back in live.
 - Holiday channels (Settings, Channels): Valentine's Day and Easter (the week before), Halloween, Thanksgiving, and
   Christmas (from the 1st of the month to the day). Switch one on and fill it from genres, Plex collections, or
   hand-picked movies; it shows in the guide only in its window and returns each year. Easter and US Thanksgiving are
-  worked out per year. Glyphs for gift, pine tree, snowflake, egg, and drumstick.
+  worked out per year. Holiday channels can share a channel number (100 by default), since only one is ever on.
+  Database schema 6 keeps everything on upgrade.
+- Captions, off by default. Turn them on in Settings, Playback, or hold OK while watching to switch them. Clickarr picks
+  the program's subtitles in the TV's language; separate subtitle files and those inside the video both work, and a
+  transcode has the chosen track burned in. Clickarr draws them in its own style: Inter in white with an outline and
+  no box, the same for every program.
 - "Coming up next" between programs on channels with 15, 30, or 60-minute slots: the next program's backdrop, time, and
   synopsis, the rest of the evening, and the show's theme music, all from what Plex already has. Settings, Playback,
   Between programs switches back to the countdown.
-- Captions, off by default. Turn them on in Settings, Playback, or hold OK while watching to switch them. Clickarr picks the program's subtitles in the TV's language; separate subtitle files and those
-  inside the video both work, and a transcode has the chosen track burned in. Style follows the TV's caption settings.
+- Sleep timer (30 minutes to 2 hours) and "Are you still watching?" after 2, 3, or 4 hours without a button press,
+  in Settings, Playback. With no answer in a minute, playback stops and the TV's own screensaver can take over; any
+  button tunes back in live.
+
+### Changed
+- Tell Plex what you watched moved to Settings, Plex Server, and is now off by default. A TV that already chose a
+  setting keeps it.
+- Every picker and list sorts alphabetically, ignoring a leading The, A, or An (the guide keeps channel order).
+
+### Known issues
+- Captions may not appear on some movies that Plex transcodes; TV episodes are fine. Under investigation.
 
 ## 2026.10.11.2
 
