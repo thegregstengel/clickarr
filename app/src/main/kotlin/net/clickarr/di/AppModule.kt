@@ -26,6 +26,8 @@ import net.clickarr.data.GoogleOAuthConfig
 import net.clickarr.provider.api.ClientIdentity
 import net.clickarr.playback.media3.DeviceProfiles
 import net.clickarr.provider.api.DeviceProfile
+import net.clickarr.provider.jellyfin.JellyfinAuth
+import net.clickarr.provider.jellyfin.JellyfinProviderFactory
 import net.clickarr.provider.plex.PlexAuth
 import net.clickarr.provider.plex.PlexProviderFactory
 import net.clickarr.provider.api.MediaProviderFactory
@@ -89,6 +91,17 @@ object AppModule {
 
     @Provides
     fun plexAuth(okHttp: OkHttpClient, identity: ClientIdentity): PlexAuth = PlexAuth(okHttp, identity)
+
+    @Provides
+    @Singleton
+    @IntoSet
+    fun jellyfinFactory(okHttp: OkHttpClient, identity: ClientIdentity): MediaProviderFactory =
+        // Subtitle and theme URLs handed to the player carry the token as ApiKey; never follow a redirect with it.
+        JellyfinProviderFactory(okHttp.newBuilder().followRedirects(false).followSslRedirects(false).build(), identity)
+
+    @Provides
+    fun jellyfinAuth(okHttp: OkHttpClient, identity: ClientIdentity): JellyfinAuth =
+        JellyfinAuth(okHttp.newBuilder().followRedirects(false).followSslRedirects(false).build(), identity)
 
     @Provides
     @Singleton

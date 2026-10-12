@@ -1,6 +1,7 @@
 package net.clickarr.core.common
 
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldNotContain
 import org.junit.jupiter.api.Test
 
@@ -17,6 +18,15 @@ class RedactTest {
         Redact.apply("http://jf/Videos/1/stream?static=true&api_key=deadbeef") shouldNotContain "deadbeef"
         Redact.apply("Authorization: Bearer eyJhbGciOi.payload.sig") shouldNotContain "eyJhbGciOi"
         Redact.apply("X-Plex-Token: 5f6a") shouldNotContain "5f6a"
+    }
+
+    @Test
+    fun `the token in a Jellyfin MediaBrowser authorization is redacted`() {
+        val header = "MediaBrowser Client=\"Clickarr\", Device=\"TV\", DeviceId=\"d1\", Version=\"1\", Token=\"abc123def\""
+        val out = Redact.apply(header)
+        out shouldNotContain "abc123def"
+        out shouldContain "DeviceId=\"d1\""
+        Redact.apply("http://jf/videos/1/master.m3u8?PlaySessionId=p&ApiKey=abc123def") shouldNotContain "abc123def"
     }
 
     @Test

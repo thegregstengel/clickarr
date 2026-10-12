@@ -96,6 +96,7 @@ dependencies {
     implementation(project(":core:secrets"))
     implementation(project(":provider:api"))
     implementation(project(":provider:plex"))
+    implementation(project(":provider:jellyfin"))
     implementation(project(":playback:core"))
     implementation(project(":playback:media3"))
     implementation(project(":data"))
@@ -124,6 +125,7 @@ dependencies {
     androidTestImplementation(libs.androidx.test.uiautomator)
     androidTestImplementation(libs.okhttp.mockwebserver)
     androidTestImplementation(project(":provider:plex-fixtures"))
+    androidTestImplementation(project(":provider:jellyfin-fixtures"))
     androidTestImplementation(project(":household:coordinator"))
     androidTestImplementation(libs.ktor.server.cio)
 }

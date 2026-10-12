@@ -11,7 +11,6 @@ import net.clickarr.core.model.Collection
 import net.clickarr.core.model.Episode
 import net.clickarr.core.model.Library
 import net.clickarr.core.model.LibraryKind
-import net.clickarr.core.model.MediaFilter
 import net.clickarr.core.model.MediaItem
 import net.clickarr.core.model.MediaRef
 import net.clickarr.core.model.Movie
@@ -32,6 +31,10 @@ import net.clickarr.provider.api.PlaybackSource
 import net.clickarr.provider.api.Subtitle
 import net.clickarr.provider.api.CaptionRequest
 import net.clickarr.provider.api.PlaybackState
+import net.clickarr.provider.api.allPages
+import net.clickarr.provider.api.collectAll
+import net.clickarr.provider.api.matches
+import net.clickarr.provider.api.mimeFor
 import okhttp3.OkHttpClient
 
 /**
@@ -228,20 +231,6 @@ class PlexProvider(
     )
 
 }
-
-/** Client-side evaluation of a MediaFilter against normalized items (proposal 6.2: no tag-id round trips in the MVP). */
-internal fun MediaFilter.matches(item: MediaItem): Boolean = predicates().all { it(item) }
-
-private fun MediaFilter.predicates(): List<(MediaItem) -> Boolean> = buildList {
-    if (genres.isNotEmpty()) add { it.genres.any { g -> genres.any { wanted -> wanted.equals(g, ignoreCase = true) } } }
-    decadeStart?.let { d -> add { (it.year ?: -1) in d until d + 10 } }
-    yearFrom?.let { from -> add { (it.year ?: Int.MIN_VALUE) >= from } }
-    yearTo?.let { to -> add { (it.year ?: Int.MAX_VALUE) <= to } }
-    if (studios.isNotEmpty()) add { it.studioOrNull() in studios }
-    if (networks.isNotEmpty()) add { (it as? Show)?.network in networks }
-}
-
-private fun MediaItem.studioOrNull(): String? = (this as? Movie)?.studio ?: (this as? Show)?.studio
 
 internal fun DeviceProfile.canDirectPlay(media: PlexMedia): Boolean {
     val container = media.container?.lowercase().orEmpty()
