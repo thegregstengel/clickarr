@@ -286,7 +286,7 @@ private fun DetailsFields(d: EditorViewModel.Draft, vm: EditorViewModel) {
     } else {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(top = 8.dp)) {
             Button(onClick = vm::save) { Text("Save changes") }
-            Button(onClick = { vm.act(EditorViewModel.EditAction.REFRESH_LINEUP) }) { Text("Refresh lineup from Plex") }
+            Button(onClick = { vm.act(EditorViewModel.EditAction.REFRESH_LINEUP) }) { Text("Refresh lineup from the server") }
             Button(onClick = { vm.act(EditorViewModel.EditAction.DELETE) }) { Text("Delete channel") }
         }
         Text(

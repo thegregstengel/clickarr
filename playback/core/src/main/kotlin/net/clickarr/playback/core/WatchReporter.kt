@@ -18,7 +18,7 @@ import net.clickarr.provider.api.MediaProvider
 import net.clickarr.provider.api.PlaybackState
 
 /**
- * Tells the server what was watched (Settings, Plex Server, "Tell Plex what you watched"). Linear TV is
+ * Tells the server what was watched (Settings, Media Server, "Tell <server> what you watched"). Linear TV is
  * not on-demand: tuning in with five minutes left is not watching the episode, and a channel left on
  * overnight should not mark forty episodes. So an item counts as watched only when this TV actually
  * played [WATCHED_FRACTION] of it in one sitting, measured from the player's own position, and seeks or

@@ -24,7 +24,7 @@ internal fun PlaybackPane(vm: PlaybackSettingsViewModel = hiltViewModel()) {
     val p = vm.profile
     PaneLabel("Direct play profile")
     PaneCaption("Up to ${p.maxWidth}×${p.maxHeight}, video ${p.videoCodecs.joinToString()}, audio ${p.audioCodecs.joinToString()}.")
-    PaneCaption("Probed from this TV's decoders and display at startup. Anything outside it is transcoded by Plex.")
+    PaneCaption("Probed from this TV's decoders and display at startup. Anything outside it is transcoded by the server.")
     val between by vm.betweenPrograms.collectAsState()
     PaneLabel("Between programs")
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -33,7 +33,7 @@ internal fun PlaybackPane(vm: PlaybackSettingsViewModel = hiltViewModel()) {
     }
     PaneCaption(
         "On channels with 15, 30, or 60-minute slots, the gap before the next program shows its backdrop, time, and " +
-            "synopsis with the show's theme music, all from what Plex already has. Or a plain countdown.",
+            "synopsis with the show's theme music, all from what your server already has. Or a plain countdown.",
     )
     val captions by vm.captions.collectAsState()
     PaneLabel("Captions")
@@ -43,16 +43,16 @@ internal fun PlaybackPane(vm: PlaybackSettingsViewModel = hiltViewModel()) {
     }
     PaneCaption(
         "Shows the program's subtitles in this TV's language when it has them. Hold OK while watching to switch. " +
-            "Clickarr draws them in its own clean style; captions burned in by a Plex transcode keep the server's look.",
+            "Clickarr draws them in its own clean style; captions burned in by a server transcode keep the server's look.",
     )
     SleepBlock(vm)
 }
 
-/** Settings, Plex Server: whether, and how much, Plex hears about what plays on this TV. */
+/** Settings, Media Server: whether, and how much, the server hears about what plays on this TV. */
 @Composable
-internal fun WatchReportingBlock(vm: PlaybackSettingsViewModel = hiltViewModel()) {
+internal fun WatchReportingBlock(server: String, vm: PlaybackSettingsViewModel = hiltViewModel()) {
     val watch by vm.watchReporting.collectAsState()
-    PaneLabel("Tell Plex what you watched")
+    PaneLabel("Tell $server what you watched")
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         PaneChip("Off", selected = watch == DevicePrefs.WATCH_OFF) { vm.setWatchReporting(DevicePrefs.WATCH_OFF) }
         PaneChip("Mark watched", selected = watch == DevicePrefs.WATCH_WATCHED) { vm.setWatchReporting(DevicePrefs.WATCH_WATCHED) }
@@ -60,7 +60,7 @@ internal fun WatchReportingBlock(vm: PlaybackSettingsViewModel = hiltViewModel()
     }
     PaneCaption(
         when (watch) {
-            DevicePrefs.WATCH_OFF -> "Plex never hears about what plays here."
+            DevicePrefs.WATCH_OFF -> "$server never hears about what plays here."
             DevicePrefs.WATCH_PROGRESS ->
                 "Episodes you sit through are marked watched, and the running position is sent too, so they appear in Continue Watching."
             else -> "An episode is marked watched once this TV has played most of it in one sitting. Tuning in for the last five minutes " +

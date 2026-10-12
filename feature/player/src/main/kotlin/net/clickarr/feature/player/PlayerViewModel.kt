@@ -66,7 +66,7 @@ class PlayerViewModel @Inject constructor(
         .map { name -> WatchReporter.Mode.entries.firstOrNull { it.name.equals(name, ignoreCase = true) } ?: WatchReporter.Mode.OFF }
         .stateIn(viewModelScope, SharingStarted.Eagerly, WatchReporter.Mode.OFF)
 
-    /** Settings, Plex Server, "Tell Plex what you watched". */
+    /** Settings, Media Server, "Tell <server> what you watched". */
     private val reporter = WatchReporter(
         providers = { deps.provider(it) },
         engine = engine,

@@ -13,6 +13,7 @@ dependencies {
     implementation(project(":core:model"))
     implementation(project(":provider:api"))
     implementation(project(":provider:plex"))
+    implementation(project(":provider:jellyfin"))
     implementation(project(":data"))
     implementation(project(":ui:design"))
     implementation(libs.androidx.activity.compose)

@@ -49,7 +49,7 @@ fun SyncPane(viewModel: SyncViewModel = hiltViewModel()) {
         DevicePrefs.SYNC_DRIVE -> DriveSection(viewModel)
         else -> Text(
             "A local household keeps the TVs in this home on one lineup over Wi-Fi. Google Drive backs up your channels " +
-                "and keeps TVs in different homes on the same lineup, as long as they use the same Plex server.",
+                "and keeps TVs in different homes on the same lineup, as long as they use the same media server.",
             style = ClickarrTextStyles.Secondary,
             color = ClickarrColors.TextSecondary,
         )
@@ -83,7 +83,7 @@ private fun DriveSection(vm: SyncViewModel) {
         DriveSync.Status.SignedOut -> {
             Text(
                 "Sign in on a phone with a short code. Clickarr keeps one small file in a Clickarr folder in your Drive, and " +
-                    "its permission covers only files it created; your Plex sign-in never leaves this TV.",
+                    "its permission covers only files it created; your media server sign-in never leaves this TV.",
                 style = ClickarrTextStyles.Secondary,
                 color = ClickarrColors.TextSecondary,
             )
@@ -115,7 +115,7 @@ private fun DriveSection(vm: SyncViewModel) {
             val line = when {
                 s.syncing -> "Syncing…"
                 problem != null -> problem
-                s.lastSync != null -> "Synced. Every TV on this account and Plex server shows the same lineup."
+                s.lastSync != null -> "Synced. Every TV on this account and media server shows the same lineup."
                 else -> "Not synced yet."
             }
             val color = if (problem != null) ClickarrColors.StatusError else ClickarrColors.TextSecondary

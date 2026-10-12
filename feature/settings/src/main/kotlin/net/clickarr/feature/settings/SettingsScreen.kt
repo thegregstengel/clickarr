@@ -150,7 +150,7 @@ private fun refreshCaption(r: SettingsViewModel.RefreshInfo): String {
     }
     return when {
         !r.automatic -> "New episodes join a channel only when you press Refresh."
-        last == null -> "Each channel's source is re-read from Plex once a day; new episodes join at the next program boundary."
+        last == null -> "Each channel's source is re-read from the server once a day; new episodes join at the next program boundary."
         else -> "Last automatic refresh $last: ${r.note ?: "no changes"}."
     }
 }
@@ -211,14 +211,14 @@ private fun ServerPane(vm: SettingsViewModel, onDisconnected: () -> Unit) {
         Caption("No server connected.")
     }
     servers.forEach { s ->
-        Label("Plex")
+        Label(s.kind.label)
         Text(s.name, style = ClickarrTextStyles.RowTitle)
         Caption("${s.baseUrl}${s.version?.let { "  ·  v$it" } ?: ""}")
     }
     if (servers.isNotEmpty()) {
         Button(onClick = { vm.disconnect(onDisconnected) }) { Text("Disconnect and sign in again") }
         Caption("Channels stay; they resume once the same server is connected again.")
-        WatchReportingBlock()
+        WatchReportingBlock(servers.first().kind.label)
     }
 }
 
@@ -231,7 +231,7 @@ private fun ChannelsPane(vm: SettingsViewModel, actions: SettingsActions) {
         Button(onClick = actions.onCreateChannel) { Text("Create channel") }
         Button(onClick = actions.onHolidayChannels) { Text("Holiday channels") }
         Button(onClick = actions.onSuggestChannels) { Text("Suggest channels") }
-        Button(onClick = vm::refreshAllLineups) { Text("Refresh all lineups from Plex") }
+        Button(onClick = vm::refreshAllLineups) { Text("Refresh all lineups") }
     }
     message?.let { Caption(it) }
     val refresh by vm.refreshInfo.collectAsState()
@@ -302,7 +302,7 @@ private fun DiagnosticsPane(vm: SettingsViewModel) {
 private fun AboutPane(appVersion: String, appVersionCode: Int, vm: SettingsViewModel, actions: SettingsActions) {
     Text("Clickarr $appVersion (build $appVersionCode)", style = ClickarrTextStyles.RowTitle)
     Caption("Turn your media library into TV. Open source, MIT licensed. clickarr.net")
-    Caption("Plex is a trademark of Plex, Inc. Clickarr is an independent project.")
+    Caption("Plex is a trademark of Plex, Inc. Clickarr is an independent project, not affiliated with Plex or Jellyfin.")
     UpdatesBlock(appVersionCode, vm)
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Button(onClick = actions.onExit) { Text("Exit Clickarr") }

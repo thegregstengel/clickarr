@@ -35,6 +35,8 @@ import androidx.compose.foundation.border
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -67,6 +69,10 @@ fun SetupScreen(onDone: () -> Unit, viewModel: SetupViewModel = hiltViewModel())
                     is SetupViewModel.Step.ChooseServer -> ChooseServer(s, viewModel)
                     is SetupViewModel.Step.Connecting -> Status("Connecting to ${s.name}…")
                     SetupViewModel.Step.Manual -> Manual(viewModel)
+                    is SetupViewModel.Step.JellyfinAddress -> JellyfinAddress(s, viewModel)
+                    is SetupViewModel.Step.JellyfinSignIn -> JellyfinSignIn(s, viewModel)
+                    is SetupViewModel.Step.JellyfinQuickConnect -> JellyfinQuickConnect(s, viewModel)
+                    is SetupViewModel.Step.JellyfinPassword -> JellyfinPassword(s, viewModel)
                     is SetupViewModel.Step.Done -> Status("Connected to ${s.serverName}")
                     is SetupViewModel.Step.Failed -> Failed(s, viewModel)
                 }
@@ -101,8 +107,15 @@ private fun Welcome(vm: SetupViewModel) {
     Text("Choose your server and sign in to get started.", style = ClickarrTextStyles.Secondary, color = ClickarrColors.TextSecondary)
     ConnectRow("Plex", "Sign in with your Plex account", DesignR.drawable.ic_ui_server, ClickarrColors.StatusWarn, vm::startPlexLink)
     ConnectRow(
+        title = "Jellyfin",
+        subtitle = "Your server's address, then Quick Connect or a password",
+        icon = DesignR.drawable.ic_ui_server,
+        tint = ClickarrColors.AccentViolet,
+        onClick = { vm.startJellyfin() },
+    )
+    ConnectRow(
         title = "Enter address manually",
-        subtitle = "A server address and token",
+        subtitle = "A Plex server address and token",
         icon = DesignR.drawable.ic_ui_settings,
         tint = ClickarrColors.AccentPrimary,
         onClick = vm::startManual,
@@ -173,7 +186,73 @@ private fun Manual(vm: SetupViewModel) {
 }
 
 @Composable
-private fun TvField(placeholder: String, value: String, tag: String, onChange: (String) -> Unit) {
+private fun JellyfinAddress(s: SetupViewModel.Step.JellyfinAddress, vm: SetupViewModel) {
+    var url by remember { mutableStateOf(s.typed) }
+    Text("Jellyfin server address", style = ClickarrTextStyles.ScreenTitle)
+    Text(
+        "The address you open Jellyfin at on this network. A bare address uses Jellyfin's port, 8096.",
+        style = ClickarrTextStyles.Secondary,
+        color = ClickarrColors.TextSecondary,
+    )
+    TvField("e.g. 192.168.1.20:8096", url, "jellyfin.url") { url = it }
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Button(onClick = { vm.jellyfinAddress(url) }) { Text("Next") }
+        Button(onClick = vm::reset) { Text("Back") }
+    }
+}
+
+@Composable
+private fun JellyfinSignIn(s: SetupViewModel.Step.JellyfinSignIn, vm: SetupViewModel) {
+    Text("Sign in to Jellyfin", style = ClickarrTextStyles.ScreenTitle)
+    Text(s.baseUrl, style = ClickarrTextStyles.Caption, color = ClickarrColors.TextSecondary)
+    if (s.quickConnect) {
+        ConnectRow(
+            title = "Quick Connect",
+            subtitle = "Approve a code in a Jellyfin app or the web, nothing to type here",
+            icon = DesignR.drawable.ic_ui_server,
+            tint = ClickarrColors.AccentViolet,
+            onClick = { vm.jellyfinQuickConnect(s.baseUrl) },
+        )
+    }
+    ConnectRow(
+        title = "Username and password",
+        subtitle = "Sent once to the server; only its sign-in token is kept on this TV",
+        icon = DesignR.drawable.ic_ui_settings,
+        tint = ClickarrColors.AccentPrimary,
+        onClick = { vm.jellyfinPassword(s.baseUrl) },
+    )
+    Button(onClick = vm::reset) { Text("Back") }
+}
+
+@Composable
+private fun JellyfinQuickConnect(s: SetupViewModel.Step.JellyfinQuickConnect, vm: SetupViewModel) {
+    Text("In a Jellyfin app or the web, signed in as you, open", style = ClickarrTextStyles.Secondary, color = ClickarrColors.TextSecondary)
+    Text("Settings, Quick Connect", style = ClickarrTextStyles.ScreenTitle)
+    Text("and enter this code", style = ClickarrTextStyles.Secondary, color = ClickarrColors.TextSecondary)
+    Text(
+        s.code.chunked(1).joinToString("  "),
+        style = TextStyle(fontWeight = FontWeight.Bold, fontSize = 72.sp, letterSpacing = 4.sp),
+        color = ClickarrColors.AccentGlow,
+    )
+    Button(onClick = vm::reset) { Text("Cancel") }
+}
+
+@Composable
+private fun JellyfinPassword(s: SetupViewModel.Step.JellyfinPassword, vm: SetupViewModel) {
+    var user by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    Text("Jellyfin username and password", style = ClickarrTextStyles.ScreenTitle)
+    Text(s.baseUrl, style = ClickarrTextStyles.Caption, color = ClickarrColors.TextSecondary)
+    TvField("Username", user, "jellyfin.user") { user = it }
+    TvField("Password", password, "jellyfin.password", secret = true) { password = it }
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Button(onClick = { vm.jellyfinSignIn(s.baseUrl, user, password) }) { Text("Sign in") }
+        Button(onClick = vm::reset) { Text("Back") }
+    }
+}
+
+@Composable
+private fun TvField(placeholder: String, value: String, tag: String, secret: Boolean = false, onChange: (String) -> Unit) {
     Box(
         Modifier
             .background(ClickarrColors.BgCell, RoundedCornerShape(ClickarrDimens.RadiusCell))
@@ -185,6 +264,7 @@ private fun TvField(placeholder: String, value: String, tag: String, onChange: (
             onValueChange = onChange,
             singleLine = true,
             textStyle = ClickarrTextStyles.RowTitle.copy(color = ClickarrColors.TextPrimary),
+            visualTransformation = if (secret) PasswordVisualTransformation() else VisualTransformation.None,
             modifier = Modifier.testTag(tag),
         )
     }
@@ -200,7 +280,7 @@ private fun Failed(s: SetupViewModel.Step.Failed, vm: SetupViewModel) {
     Text("Something went wrong", style = ClickarrTextStyles.ScreenTitle)
     Text(s.message, style = ClickarrTextStyles.Secondary, color = ClickarrColors.StatusError)
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        if (s.retryable) Button(onClick = vm::startPlexLink) { Text("Try again") }
+        if (s.retryable) Button(onClick = vm::retry) { Text("Try again") }
         Button(onClick = vm::reset) { Text("Start over") }
     }
     Text("", style = MaterialTheme.typography.labelSmall)

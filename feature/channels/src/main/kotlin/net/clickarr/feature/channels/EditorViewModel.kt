@@ -45,8 +45,8 @@ class EditorViewModel @Inject constructor(
     enum class Kind(val label: String, val hint: String) {
         SHOWS("Shows", "Pick one or more shows. Episodes play in aired order."),
         LIBRARY("Whole library", "Everything in a library, with optional decade and genre filters."),
-        COLLECTION("Collection", "A Plex collection, in its order."),
-        PLAYLIST("Playlist", "A Plex playlist, in its order."),
+        COLLECTION("Collection", "A collection from your server, in its order."),
+        PLAYLIST("Playlist", "A playlist from your server, in its order."),
     }
 
     sealed interface Step {

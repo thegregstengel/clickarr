@@ -46,7 +46,7 @@ class HolidaysViewModel @Inject constructor(
 ) : ViewModel() {
     enum class Mode(val label: String, val hint: String) {
         GENRES("Genres", "Every movie in the genres you pick. Grows as you add movies."),
-        COLLECTIONS("Collections", "The Plex collections you pick."),
+        COLLECTIONS("Collections", "The collections you pick from your server."),
         SELECTION("Selection", "Exactly the movies you pick."),
     }
 
