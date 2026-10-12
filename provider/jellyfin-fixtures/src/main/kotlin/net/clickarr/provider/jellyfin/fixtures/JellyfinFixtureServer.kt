@@ -135,8 +135,14 @@ class JellyfinFixtureServer : AutoCloseable {
         val maxHeight = profile?.get("CodecProfiles")?.jsonArray?.firstOrNull()?.jsonObject?.get("Conditions")?.jsonArray
             ?.map { it.jsonObject }?.firstOrNull { it["Property"]?.jsonPrimitive?.content == "Height" }
             ?.get("Value")?.jsonPrimitive?.content?.toIntOrNull() ?: Int.MAX_VALUE
-        val canDirect = listed("Container", item.container) && listed("VideoCodec", item.video) &&
-            listed("AudioCodec", item.audio) && item.height <= maxHeight
+        // Like the real server, judge only the default audio track and say why when it cannot direct play.
+        val reasons = buildList {
+            if (!listed("Container", item.container)) add("ContainerNotSupported")
+            if (!listed("VideoCodec", item.video)) add("VideoCodecNotSupported")
+            if (item.height > maxHeight) add("VideoResolutionNotSupported")
+            if (!listed("AudioCodec", item.audio)) add("AudioCodecNotSupported")
+        }
+        val canDirect = reasons.isEmpty()
         val session = "ps-${++sessions}"
         val subtitleIndex = body?.get("SubtitleStreamIndex")?.jsonPrimitive?.int ?: -1
         return buildJsonObject {
@@ -150,7 +156,8 @@ class JellyfinFixtureServer : AutoCloseable {
                                 "TranscodingUrl",
                                 JsonPrimitive(
                                     "/videos/${item.id}/master.m3u8?DeviceId=fixture&MediaSourceId=${item.id}&PlaySessionId=$session" +
-                                        "&ApiKey=$TOKEN&SubtitleStreamIndex=$subtitleIndex&SubtitleMethod=Hls",
+                                        "&ApiKey=$TOKEN&SubtitleStreamIndex=$subtitleIndex&SubtitleMethod=Hls" +
+                                        "&TranscodeReasons=${reasons.joinToString(",")}",
                                 ),
                             )
                         }
@@ -217,6 +224,14 @@ class JellyfinFixtureServer : AutoCloseable {
                 put("Index", 1)
                 put("Codec", i.audio)
                 put("Language", "eng")
+            }
+            i.altAudio?.let { codec ->
+                addJsonObject {
+                    put("Type", "Audio")
+                    put("Index", ALT_AUDIO_INDEX)
+                    put("Codec", codec)
+                    put("Language", "eng")
+                }
             }
             i.subtitles.forEach { s ->
                 addJsonObject {
@@ -294,6 +309,7 @@ class JellyfinFixtureServer : AutoCloseable {
         private const val QC_SECRET = "qc-secret"
         private const val TICKS_PER_MINUTE = 600_000_000L
         private const val BITRATE = 8_000_000
+        private const val ALT_AUDIO_INDEX = 5
         private const val SRT = "1\n00:00:01,000 --> 00:00:03,000\nHello from the fixture.\n"
         private val OPEN = setOf(
             "/System/Info/Public", "/QuickConnect/Enabled", "/QuickConnect/Initiate", "/QuickConnect/Connect",

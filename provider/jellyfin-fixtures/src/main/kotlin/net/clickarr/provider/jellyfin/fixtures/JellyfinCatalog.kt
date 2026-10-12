@@ -19,6 +19,8 @@ internal data class FxItem(
     val container: String = "mp4",
     val video: String = "h264",
     val audio: String = "aac",
+    /** A second audio track, as on discs that carry TrueHD with an AC3 fallback. */
+    val altAudio: String? = null,
     val width: Int = 1920,
     val height: Int = 1080,
     val subtitles: List<FxSubtitle> = emptyList(),
@@ -55,7 +57,7 @@ internal object JellyfinCatalog {
         episode("ep-office-102", "Diversity Day", OFFICE, 1, 2),
         episode("ep-office-201", "The Dundies", OFFICE, 2, 1),
         episode("ep-office-202", "Sexual Harassment", OFFICE, 2, 2),
-        episode("ep-parks-101", "Pilot", PARKS, 1, 1),
+        episode("ep-parks-101", "Pilot", PARKS, 1, 1).copy(container = "mkv", audio = "truehd", altAudio = "ac3"),
         episode("ep-parks-102", "Canvassing", PARKS, 1, 2),
         FxItem(LOTR, "The Lord of the Rings", "BoxSet", MOVIES),
         FxItem(PLAYLIST, "80s Night", "Playlist", "playlists"),

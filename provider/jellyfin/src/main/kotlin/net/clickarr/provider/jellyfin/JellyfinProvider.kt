@@ -44,7 +44,7 @@ import okhttp3.OkHttpClient
  * A Jellyfin server as a [MediaProvider] (ADR 0022), one instance per connected server and signed-in user. Written
  * from Jellyfin's published REST API; listings are per user because Jellyfin's libraries and played state are.
  */
-@Suppress("TooManyFunctions")
+@Suppress("TooManyFunctions", "LongParameterList")
 class JellyfinProvider(
     override val id: ProviderId,
     override val server: ServerInfo,
@@ -116,14 +116,14 @@ class JellyfinProvider(
 
     override suspend fun items(refs: List<MediaRef>): Outcome<List<MediaItem>> {
         if (refs.isEmpty()) return Outcome.Success(emptyList())
-        val found = HashMap<MediaRef, MediaItem>()
-        for (chunk in refs.map { it.id.value }.distinct().chunked(IDS_PER_REQUEST)) {
-            when (val r = http.get(items("ids" to chunk.joinToString(","), "fields" to PLAYABLE_FIELDS), JfItems.serializer())) {
-                is Outcome.Success -> r.value.items.forEach { v -> map.item(v)?.let { found[it.ref] = it } }
-                is Outcome.Failure -> return r
-            }
+        val chunks = refs.map { it.id.value }.distinct().chunked(IDS_PER_REQUEST)
+        return collectAll(chunks) { chunk ->
+            http.get(items("ids" to chunk.joinToString(","), "fields" to PLAYABLE_FIELDS), JfItems.serializer())
+                .map { r -> r.items.mapNotNull(map::item) }
+        }.map { found ->
+            val byRef = found.associateBy { it.ref }
+            refs.mapNotNull { byRef[it] }
         }
-        return Outcome.Success(refs.mapNotNull { found[it] })
     }
 
     override suspend fun resolve(source: ProgrammingSource): Outcome<List<Playable>> = when (source) {
@@ -185,7 +185,7 @@ class JellyfinProvider(
             .flatMap { info ->
                 val source = info.mediaSources.firstOrNull()
                     ?: return@flatMap Outcome.Failure(ClickarrError.NotFound("Jellyfin offered no way to play ${meta.name}"))
-                decide(meta, source, info.playSessionId, startAt, chosen, captions != null)
+                decide(meta, source, info.playSessionId, startAt, chosen, captions != null, profile)
             }
     }
 
@@ -196,12 +196,13 @@ class JellyfinProvider(
         startAt: Duration,
         chosen: JfStream?,
         captionsOn: Boolean,
+        profile: DeviceProfile,
     ): Outcome<PlaybackSource> {
         val tracks = source.streams.filter { it.type == "Subtitle" }
             .joinToString { "${it.codec}/${it.language}${if (it.isExternal) "/file" else ""}" }
         val transcode = source.transcodingUrl
         return when {
-            source.supportsDirectPlay -> {
+            source.supportsDirectPlay || JellyfinProfile.onlyAudioStandsInTheWay(source, profile) -> {
                 Log.i(TAG) { "direct play ${meta.name}: ${source.container}, subtitles [$tracks]" }
                 Outcome.Success(
                     PlaybackSource.DirectPlay(

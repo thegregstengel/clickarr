@@ -81,6 +81,18 @@ internal object JellyfinProfile {
         return (inLanguage.ifEmpty { subs }).sortedBy { if (it.isText) 0 else 1 }.firstOrNull()
     }
 
+    /**
+     * Jellyfin judges direct play on the file's default audio track only. When that track is the sole reason to
+     * transcode (TrueHD or DTS on a TV without it) and another track is one the TV decodes, the player picks that
+     * track itself, so the file plays as it is instead of being re-encoded.
+     */
+    fun onlyAudioStandsInTheWay(source: JfMediaSource, profile: DeviceProfile): Boolean {
+        val reasons = source.transcodingUrl?.let { Regex("[?&]TranscodeReasons=([^&]*)").find(it)?.groupValues?.get(1) }
+            ?.split(",", "%2C")?.filter { it.isNotBlank() } ?: return false
+        val playableAudio = source.streams.any { it.type == "Audio" && it.codec?.lowercase() in profile.audioCodecs }
+        return reasons == listOf("AudioCodecNotSupported") && playableAudio
+    }
+
     fun mimeType(codec: String?): String? = when (codec?.lowercase()) {
         "srt", "subrip" -> "application/x-subrip"
         "vtt", "webvtt" -> "text/vtt"

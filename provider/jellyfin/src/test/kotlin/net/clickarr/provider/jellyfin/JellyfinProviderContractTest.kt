@@ -150,6 +150,13 @@ class JellyfinProviderContractTest : MediaProviderContractTest() {
     }
 
     @Test
+    fun `a TrueHD default track does not force a transcode when the file also carries AC3`() = runTest {
+        val src = jellyfin().playbackSource(ref("ep-parks-101"), DeviceProfile.Conservative, 0.minutes).value()
+        src.shouldBeInstanceOf<PlaybackSource.DirectPlay>()
+        src.mimeType shouldBe "video/x-matroska"
+    }
+
+    @Test
     fun `artwork URLs need no token and carry the requested size`() {
         val url = jellyfin().artworkUrl(ArtworkRef(providerId, "/Items/movie-towers/Images/Primary?tag=abc"), ArtworkSize.POSTER)
         url shouldContain "/Items/movie-towers/Images/Primary?tag=abc"
