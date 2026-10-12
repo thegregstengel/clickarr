@@ -218,6 +218,7 @@ private fun ServerPane(vm: SettingsViewModel, onDisconnected: () -> Unit) {
     if (servers.isNotEmpty()) {
         Button(onClick = { vm.disconnect(onDisconnected) }) { Text("Disconnect and sign in again") }
         Caption("Channels stay; they resume once the same server is connected again.")
+        WatchReportingBlock()
     }
 }
 

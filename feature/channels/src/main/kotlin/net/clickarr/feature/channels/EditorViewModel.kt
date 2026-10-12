@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.launch
 import net.clickarr.core.common.Outcome
+import net.clickarr.core.common.titleSortKey
 import net.clickarr.core.model.Channel
 import net.clickarr.core.model.ChannelIcon
 import net.clickarr.core.model.ChannelId
@@ -85,12 +86,14 @@ class EditorViewModel @Inject constructor(
     val step: StateFlow<Step> = _step.asStateFlow()
 
     /** Every channel's number and name, so the form can say "12 is already Sitcoms" before anyone presses Save. */
-    val numbers: StateFlow<Map<Int, Channel>> =
-        repository.channels.map { list -> list.associateBy { it.number } }
+    val numbers: StateFlow<Map<Int, List<Channel>>> =
+        repository.channels.map { list -> list.groupBy { it.number } }
             .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
 
-    /** The channel already holding [number], unless it is the one being edited. */
-    fun numberOwner(number: Int, editing: Channel?): Channel? = numbers.value[number]?.takeIf { it.id != editing?.id }
+    /** The channel already holding [number] that [editing] could not share it with, or null when it is free. */
+    fun numberOwner(number: Int, editing: Channel?): Channel? = numbers.value[number].orEmpty().firstOrNull { other ->
+        other.id != editing?.id && !(editing?.holiday != null && other.holiday != null && editing.holiday != other.holiday)
+    }
 
     private var kind: Kind = Kind.SHOWS
     private val provider: MediaProvider? get() = registry.primary
@@ -102,7 +105,7 @@ class EditorViewModel @Inject constructor(
             val p = provider ?: return@launch fail("No server connected")
             when (kind) {
                 Kind.PLAYLIST -> when (val r = p.playlists()) {
-                    is Outcome.Success -> _step.value = Step.PickPlaylist(r.value)
+                    is Outcome.Success -> _step.value = Step.PickPlaylist(r.value.sortedBy { titleSortKey(it.name) })
                     is Outcome.Failure -> fail(r.error.message)
                 }
                 else -> when (val r = p.libraries()) {
@@ -111,7 +114,11 @@ class EditorViewModel @Inject constructor(
                             Kind.SHOWS -> r.value.filter { it.kind == LibraryKind.SHOWS }
                             else -> r.value.filter { it.kind != LibraryKind.OTHER }
                         }
-                        if (wanted.size == 1) chooseLibrary(wanted.single()) else _step.value = Step.ChooseLibrary(wanted)
+                        if (wanted.size == 1) {
+                            chooseLibrary(wanted.single())
+                        } else {
+                            _step.value = Step.ChooseLibrary(wanted.sortedBy { titleSortKey(it.name) })
+                        }
                     }
                     is Outcome.Failure -> fail(r.error.message)
                 }
@@ -125,11 +132,12 @@ class EditorViewModel @Inject constructor(
             val p = provider ?: return@launch fail("No server connected")
             when (kind) {
                 Kind.SHOWS -> when (val r = p.shows(library)) {
-                    is Outcome.Success -> _step.value = Step.PickShows(library, r.value.items.sortedBy { it.title }, emptySet())
+                    is Outcome.Success ->
+                        _step.value = Step.PickShows(library, r.value.items.sortedBy { titleSortKey(it.title) }, emptySet())
                     is Outcome.Failure -> fail(r.error.message)
                 }
                 Kind.COLLECTION -> when (val r = p.collections(library.ref)) {
-                    is Outcome.Success -> _step.value = Step.PickCollection(library, r.value)
+                    is Outcome.Success -> _step.value = Step.PickCollection(library, r.value.sortedBy { titleSortKey(it.name) })
                     is Outcome.Failure -> fail(r.error.message)
                 }
                 Kind.LIBRARY -> loadFilters(library)
@@ -152,7 +160,7 @@ class EditorViewModel @Inject constructor(
                 is Outcome.Failure -> return fail(r.error.message)
             }
         }
-        val genres = items.flatMap { it.first }.groupingBy { it }.eachCount().entries.sortedByDescending { it.value }.map { it.key }
+        val genres = items.flatMap { it.first }.distinct().sortedBy(::titleSortKey)
         val decades = items.mapNotNull { it.second }.map { it - it % 10 }.distinct().sorted()
         _step.value = Step.PickFilters(library, genres, decades, MediaFilter())
     }

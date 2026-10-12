@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -102,28 +103,52 @@ private fun ChooseMode(holiday: Holiday, existing: Channel?, vm: HolidaysViewMod
     if (existing != null) Hint("Choosing again replaces what plays on channel ${existing.number}; its number stays.")
 }
 
+/** The list on the left; the number, the count, and Create on the right, so they are always one press away. */
 @Composable
 private fun Picker(s: Step.Pick, vm: HolidaysViewModel) {
     Text("${s.holiday.label}: pick ${s.mode.label.lowercase()}", style = ClickarrTextStyles.RowTitle)
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-        Button(onClick = vm::create) { Text(if (s.picked.isEmpty()) "Pick at least one" else "Create channel (${s.picked.size})") }
-        Button(onClick = vm::back) { Text("Back") }
-    }
-    if (s.options.isEmpty()) Hint("Nothing to choose from in your library for this.")
-    LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        items(s.options, key = { it.key }) { option ->
-            val on = option.key in s.picked
-            ListItem(
-                selected = on,
-                onClick = { vm.toggle(option.key) },
-                headlineContent = { Text(option.label, style = ClickarrTextStyles.RowTitle) },
-                supportingContent = option.detail?.let { detail ->
-                    { Text(detail, style = ClickarrTextStyles.Caption, color = ClickarrColors.TextSecondary) }
-                },
-                trailingContent = { Text(if (on) "✓" else "", style = ClickarrTextStyles.RowTitle) },
-                modifier = Modifier.width(LIST_WIDTH),
-            )
+    Row(horizontalArrangement = Arrangement.spacedBy(32.dp)) {
+        Column(Modifier.weight(1f)) {
+            if (s.options.isEmpty()) Hint("Nothing to choose from in your library for this.")
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                items(s.options, key = { it.key }) { option ->
+                    val on = option.key in s.picked
+                    ListItem(
+                        selected = on,
+                        onClick = { vm.toggle(option.key) },
+                        headlineContent = { Text(option.label, style = ClickarrTextStyles.RowTitle) },
+                        supportingContent = option.detail?.let { detail ->
+                            { Text(detail, style = ClickarrTextStyles.Caption, color = ClickarrColors.TextSecondary) }
+                        },
+                        trailingContent = { Text(if (on) "✓" else "", style = ClickarrTextStyles.RowTitle) },
+                    )
+                }
+            }
         }
+        PickerPanel(s, vm)
+    }
+}
+
+@Composable
+private fun PickerPanel(s: Step.Pick, vm: HolidaysViewModel) {
+    Column(
+        Modifier.width(PANEL_WIDTH).background(ClickarrColors.BgPanel, RoundedCornerShape(ClickarrDimens.RadiusCard)).padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Text("Channel number", style = ClickarrTextStyles.LabelAllCaps, color = ClickarrColors.TextMuted)
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Button(onClick = { vm.changeNumber(-1) }) { Text("−") }
+            Text(s.number.toString(), style = ClickarrTextStyles.ChannelNumber)
+            Button(onClick = { vm.changeNumber(+1) }) { Text("+") }
+        }
+        Text(
+            s.numberProblem ?: "Holiday channels can all share one number; only one is ever on.",
+            style = ClickarrTextStyles.Caption,
+            color = if (s.numberProblem != null) ClickarrColors.StatusWarn else ClickarrColors.TextMuted,
+        )
+        Text("${s.picked.size} picked", style = ClickarrTextStyles.RowTitle)
+        Button(onClick = vm::create) { Text(if (s.picked.isEmpty()) "Pick at least one" else "Create channel") }
+        Button(onClick = vm::back) { Text("Back") }
     }
 }
 
@@ -133,3 +158,4 @@ private fun Hint(text: String) = Text(text, style = ClickarrTextStyles.Secondary
 private fun day(d: LocalDate) = "${d.month.name.lowercase().replaceFirstChar(Char::uppercase).take(3)} ${d.dayOfMonth}"
 
 private val LIST_WIDTH = 900.dp
+private val PANEL_WIDTH = 380.dp

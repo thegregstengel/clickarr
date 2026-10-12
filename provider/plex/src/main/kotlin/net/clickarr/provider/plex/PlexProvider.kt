@@ -3,6 +3,7 @@ package net.clickarr.provider.plex
 import java.util.UUID
 import kotlin.time.Duration
 import net.clickarr.core.common.ClickarrError
+import net.clickarr.core.common.Log
 import net.clickarr.core.common.Outcome
 import net.clickarr.core.common.flatMap
 import net.clickarr.core.model.ArtworkRef
@@ -137,7 +138,9 @@ class PlexProvider(
             val media = m.media.firstOrNull()
             val part = media?.parts?.firstOrNull()
             val subtitles = PlexSubtitles.of(part)
+            val tracks = subtitles.joinToString { "${it.codec}/${it.languageCode}${if (it.key != null) "/file" else ""}" }
             if (media != null && part?.key != null && profile.canDirectPlay(media)) {
+                Log.i(TAG) { "direct play ${m.title}: ${media.container}/${media.videoCodec}/${media.audioCodec}, subtitles [$tracks]" }
                 Outcome.Success(
                     PlaybackSource.DirectPlay(
                         url = url(part.key, "X-Plex-Token" to token).toString(),
@@ -151,6 +154,10 @@ class PlexProvider(
                 // A transcode starts at the offset on the server, so a separate subtitle file would be out of step;
                 // the chosen track is burned into the picture instead, and "none" keeps a Plex default out of it.
                 val burn = captions?.let { PlexSubtitles.choose(subtitles, it.language) }
+                Log.i(TAG) {
+                    "transcode ${m.title}: ${media?.container}/${media?.videoCodec}/${media?.audioCodec}, subtitles [$tracks], " +
+                        "captions ${if (captions == null) "off" else "on, burning ${burn?.let { "${it.id} ${it.codec}" } ?: "nothing"}"}"
+                }
                 if (burn != null && part?.id != null) {
                     http.touch(url("/library/parts/${part.id}", "subtitleStreamID" to burn.id.toString(), "allParts" to "1"), "PUT")
                 }
@@ -245,3 +252,5 @@ internal fun DeviceProfile.canDirectPlay(media: PlexMedia): Boolean {
     val bitrateOk = (media.bitrate ?: 0) <= (maxBitrateKbps ?: Int.MAX_VALUE)
     return container in containers && videoOk && audio in audioCodecs && sizeOk && bitrateOk
 }
+
+private const val TAG = "Plex"

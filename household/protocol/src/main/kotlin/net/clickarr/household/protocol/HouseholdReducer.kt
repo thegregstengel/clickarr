@@ -2,6 +2,7 @@ package net.clickarr.household.protocol
 
 import net.clickarr.core.model.LineupSnapshot
 import net.clickarr.core.model.Channel
+import net.clickarr.core.model.clashesWith
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Duration.Companion.hours
 import kotlinx.datetime.Instant
@@ -47,7 +48,7 @@ class HouseholdReducer {
     private fun createChannel(state: HouseholdState, c: Command.CreateChannel): Outcome<HouseholdState> {
         val problem = firstProblem(
             "Channel ${c.channel.id.value} already exists" to state.channels.any { it.id == c.channel.id },
-            "Channel number ${c.channel.number} is taken" to state.channels.any { it.number == c.channel.number },
+            "Channel number ${c.channel.number} is taken" to state.channels.any { c.channel.clashesWith(it) },
             "Channel does not reference the supplied lineup" to (c.lineup.id != c.channel.lineup),
             "Lineup is empty" to c.lineup.entries.isEmpty(),
             "Lineup belongs to another channel" to (c.lineup.channelId != c.channel.id),
@@ -62,7 +63,7 @@ class HouseholdReducer {
         val lineups = if (c.lineup != null) state.lineups.filter { it.id != c.lineup.id } + c.lineup else state.lineups
         val known = lineups.map { it.id }.toSet()
         val problem = firstProblem(
-            "Channel number ${c.channel.number} is taken" to state.channels.any { it.id != c.channel.id && it.number == c.channel.number },
+            "Channel number ${c.channel.number} is taken" to state.channels.any { c.channel.clashesWith(it) },
             "Unknown lineup ${c.channel.lineup.value}" to (c.channel.lineup !in known),
             "Unknown pending lineup" to (c.channel.pendingLineup != null && c.channel.pendingLineup !in known),
         ) ?: firstProblem(shape(c.channel, c.lineup))

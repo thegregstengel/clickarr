@@ -81,7 +81,7 @@ interface ChannelDao {
     suspend fun byId(id: String): ChannelEntity?
 
     @Query("SELECT * FROM channel WHERE number = :number")
-    suspend fun byNumber(number: Int): ChannelEntity?
+    suspend fun byNumber(number: Int): List<ChannelEntity>
 
     @Upsert
     suspend fun upsert(channel: ChannelEntity)

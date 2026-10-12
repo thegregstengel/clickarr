@@ -11,6 +11,11 @@ second release the same day); the household protocol, scheduler, and database ca
   TVs already paired keep working.
 
 ### Added
+- Holiday channels can share a channel number (100 by default), since only one is ever on; the number is chosen in the
+  picker, whose Create button now sits beside the list. Database schema 6 keeps everything on upgrade.
+- Captions have a cleaner look: Inter in white with an outline and no box, a little larger, the same for every program.
+- Every picker and list sorts alphabetically, ignoring a leading The, A, or An (the guide keeps channel order).
+- Tell Plex what you watched moved to Settings, Plex Server.
 - Sleep timer (30 minutes to 2 hours) and "Are you still watching?" after 2, 3, or 4 hours without a button press,
   in Settings, Playback. With no answer in a minute, playback stops and the TV's own screensaver can take over; any
   button tunes back in live.
@@ -74,7 +79,7 @@ The first release: everything below, built and verified on Fire TV Stick 4K Max 
 - Settings, General, Settings lock: a four-digit code (entered on an on-screen pad) that covers Settings and the channel editor
   whenever they are opened; the guide, favorites, and watching stay open. The code lives on one TV and is never synced;
   five wrong tries earn a thirty-second wait; clearing the app's data is the recovery for a forgotten code.
-- Settings, Playback, Tell Plex what you watched: Off, Mark watched (default; an episode counts once this TV has played most of
+- Settings, Plex Server, Tell Plex what you watched: Off, Mark watched (default; an episode counts once this TV has played most of
   it in one sitting, so tuning in for the ending or leaving a channel on overnight does not), or Progress too (also sends the
   running position, so episodes appear in Continue Watching).
 - Settings, Channels, Keep lineups current: once a day Clickarr re-reads every channel's source from Plex, so new episodes

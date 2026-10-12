@@ -16,6 +16,7 @@ import kotlinx.datetime.LocalDate
 import net.clickarr.core.common.AppTime
 import net.clickarr.core.common.Clock
 import net.clickarr.core.common.Outcome
+import net.clickarr.core.common.titleSortKey
 import net.clickarr.core.model.Channel
 import net.clickarr.core.model.ChannelIcon
 import net.clickarr.core.model.Holiday
@@ -61,6 +62,10 @@ class HolidaysViewModel @Inject constructor(
             val mode: Mode,
             val options: kotlin.collections.List<Option>,
             val picked: Set<String>,
+            /** The channel number; holiday channels for different holidays can share one. */
+            val number: Int,
+            /** Why [number] cannot be used, or null. */
+            val numberProblem: String? = null,
         ) : Step
         data class Working(val holiday: Holiday) : Step
         data class Failed(val message: String) : Step
@@ -98,9 +103,25 @@ class HolidaysViewModel @Inject constructor(
         viewModelScope.launch {
             _step.value = when (val r = library()) {
                 is Outcome.Failure -> Step.Failed(r.error.message)
-                is Outcome.Success -> Step.Pick(holiday, mode, options(r.value, mode), emptySet())
+                is Outcome.Success -> {
+                    val number = channels.value[holiday]?.number ?: DEFAULT_NUMBER
+                    checkNumber(Step.Pick(holiday, mode, options(r.value, mode), emptySet(), number))
+                }
             }
         }
+    }
+
+    fun changeNumber(delta: Int) {
+        val s = _step.value as? Step.Pick ?: return
+        _step.value = s.copy(number = (s.number + delta).coerceIn(1, MAX_NUMBER))
+        viewModelScope.launch { (_step.value as? Step.Pick)?.let { _step.value = checkNumber(it) } }
+    }
+
+    /** A regular channel on the number blocks it; another holiday's channel does not. */
+    private suspend fun checkNumber(s: Step.Pick): Step.Pick {
+        val existing = channels.value[s.holiday]
+        val taken = repository.numberTaken(s.number, existing?.id, s.holiday)
+        return s.copy(numberProblem = if (taken) "Channel ${s.number} is taken by a regular channel." else null)
     }
 
     fun toggle(key: String) {
@@ -109,13 +130,13 @@ class HolidaysViewModel @Inject constructor(
 
     fun create() {
         val s = _step.value as? Step.Pick ?: return
-        if (s.picked.isEmpty()) return
+        if (s.picked.isEmpty() || s.numberProblem != null) return
         val scan = cached ?: return
         _step.value = Step.Working(s.holiday)
         viewModelScope.launch {
             val existing = channels.value[s.holiday]
             existing?.let { runCatching { repository.delete(it.id) } }
-            val number = existing?.number ?: repository.nextFreeNumber()
+            val number = s.number
             val r = repository.create(
                 number, s.holiday.label, sourceFor(scan, s.mode, s.picked), OrderingMode.SHUFFLE, null,
                 ChannelIcon.Glyph(GLYPH.getValue(s.holiday)), null, s.holiday,
@@ -166,12 +187,12 @@ class HolidaysViewModel @Inject constructor(
 
     private fun options(scan: Scan, mode: Mode): kotlin.collections.List<Option> = when (mode) {
         Mode.GENRES -> scan.movies.values.flatten().flatMap { it.genres }.groupingBy { it }.eachCount().entries
-            .sortedByDescending { it.value }
+            .sortedBy { titleSortKey(it.key) }
             .map { (genre, n) -> Option(genre, genre, "$n movies") }
-        Mode.COLLECTIONS -> scan.collections.map { (lib, c) ->
+        Mode.COLLECTIONS -> scan.collections.sortedBy { titleSortKey(it.second.name) }.map { (lib, c) ->
             Option(key(c.ref), c.name, listOfNotNull(c.itemCount?.let { "$it items" }, lib.name).joinToString(" · "))
         }
-        Mode.SELECTION -> scan.movies.values.flatten().sortedBy { it.title.lowercase() }
+        Mode.SELECTION -> scan.movies.values.flatten().sortedBy { titleSortKey(it.title) }
             .map { m -> Option(key(m.ref), m.title, m.year?.toString()) }
     }
 
@@ -194,6 +215,8 @@ class HolidaysViewModel @Inject constructor(
 
     private companion object {
         const val MAX_MOVIES = 5_000
+        const val DEFAULT_NUMBER = 100
+        const val MAX_NUMBER = 9_999
         val GLYPH = mapOf(
             Holiday.VALENTINES to "heart",
             Holiday.EASTER to "egg",

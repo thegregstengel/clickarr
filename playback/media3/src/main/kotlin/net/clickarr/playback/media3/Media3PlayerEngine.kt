@@ -125,7 +125,16 @@ class Media3PlayerEngine(context: Context, okHttp: OkHttpClient, userAgent: Stri
     /** ExoPlayer leaves text off when no track matches the language; with captions on, any track beats none. */
     private fun pickTextTrackIfNeeded(tracks: Tracks) {
         if (!captionsOn) return
-        val text = tracks.groups.filter { it.type == C.TRACK_TYPE_TEXT && it.isSupported }
+        val all = tracks.groups.filter { it.type == C.TRACK_TYPE_TEXT }
+        if (all.isNotEmpty()) {
+            Log.i(TAG) {
+                "text tracks: " + all.joinToString { g ->
+                    val f = g.mediaTrackGroup.getFormat(0)
+                    "${f.sampleMimeType}/${f.language}${if (g.isSupported) "" else " (unsupported)"}${if (g.isSelected) " *" else ""}"
+                }
+            }
+        }
+        val text = all.filter { it.isSupported }
         if (text.isEmpty() || text.any { it.isSelected }) return
         player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
             .setOverrideForType(TrackSelectionOverride(text.first().mediaTrackGroup, 0))

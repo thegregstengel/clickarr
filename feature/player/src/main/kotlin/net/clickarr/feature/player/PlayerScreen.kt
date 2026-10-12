@@ -91,6 +91,7 @@ fun PlayerScreen(
                     useController = false
                     resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
                     keepScreenOn = true
+                    subtitleView?.applyClickarrStyle()
                 }
             },
             // Asleep, the TV's own screensaver and sleep settings are free to take over.

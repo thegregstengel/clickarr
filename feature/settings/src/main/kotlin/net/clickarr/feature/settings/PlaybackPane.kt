@@ -16,7 +16,7 @@ import net.clickarr.data.DevicePrefs
 import net.clickarr.ui.design.ClickarrColors
 import net.clickarr.ui.design.ClickarrTextStyles
 
-/** Settings, Playback: what this TV decodes, and how watching behaves (between programs, captions, Plex, sleep). */
+/** Settings, Playback: what this TV decodes, and how watching behaves (between programs, captions, sleep). */
 @Composable
 internal fun PlaybackPane(vm: PlaybackSettingsViewModel = hiltViewModel()) {
     val p = vm.profile
@@ -43,6 +43,12 @@ internal fun PlaybackPane(vm: PlaybackSettingsViewModel = hiltViewModel()) {
         "Shows the program's subtitles in this TV's language when it has them. Hold OK while watching to switch. " +
             "Size, colour, and background follow the TV's own caption settings.",
     )
+    SleepBlock(vm)
+}
+
+/** Settings, Plex Server: whether, and how much, Plex hears about what plays on this TV. */
+@Composable
+internal fun WatchReportingBlock(vm: PlaybackSettingsViewModel = hiltViewModel()) {
     val watch by vm.watchReporting.collectAsState()
     PaneLabel("Tell Plex what you watched")
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -59,7 +65,6 @@ internal fun PlaybackPane(vm: PlaybackSettingsViewModel = hiltViewModel()) {
                 "does not count, and nothing lands in Continue Watching."
         },
     )
-    SleepBlock(vm)
 }
 
 /** Sleep timer and "Are you still watching?". */

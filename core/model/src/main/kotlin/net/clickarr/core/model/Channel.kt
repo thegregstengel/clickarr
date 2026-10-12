@@ -182,6 +182,16 @@ enum class Holiday(val label: String) {
     }
 }
 
+/**
+ * Whether this channel and [other] cannot both have this channel's number. Holiday channels for different
+ * holidays may share one (they never air at the same time), so every holiday can sit on channel 100.
+ */
+fun Channel.clashesWith(other: Channel): Boolean {
+    if (other.id == id || other.number != number) return false
+    val bothHolidays = holiday != null && other.holiday != null
+    return !(bothHolidays && holiday != other.holiday)
+}
+
 /** Whether [channel] is shown on [date]: always when it is not a holiday channel. */
 fun Channel.inSeason(date: LocalDate): Boolean = holiday?.contains(date) ?: true
 

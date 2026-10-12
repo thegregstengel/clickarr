@@ -130,7 +130,7 @@ class DevicePrefs(context: Context) {
         store.edit { if (record == null) it.remove(SETTINGS_LOCK) else it[SETTINGS_LOCK] = record }
     }
 
-    /** Settings, Playback: off, watched (mark whole episodes), or progress (also the running position). */
+    /** Settings, Plex Server: off, watched (mark whole episodes), or progress (also the running position). */
     val watchReporting: Flow<String> = store.data.map { it[WATCH_REPORTING] ?: DEFAULT_WATCH_REPORTING }
 
     suspend fun setWatchReporting(mode: String) {

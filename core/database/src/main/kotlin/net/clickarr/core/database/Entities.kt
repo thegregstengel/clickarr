@@ -67,7 +67,8 @@ data class MediaItemEntity(
 
 @Entity(
     tableName = "channel",
-    indices = [Index(value = ["number"], unique = true)],
+    // Not unique since schema 6: holiday channels for different holidays may share a number (Channel.clashesWith).
+    indices = [Index(value = ["number"])],
 )
 data class ChannelEntity(
     @PrimaryKey val id: String,

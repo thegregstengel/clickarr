@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import net.clickarr.core.common.Outcome
+import net.clickarr.core.common.titleSortKey
 import net.clickarr.data.ChannelRepository
 import net.clickarr.data.ChannelSuggester
 
@@ -33,7 +34,8 @@ class SuggestViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             _step.value = when (val r = suggester.suggest()) {
-                is Outcome.Success -> Step.Pick(r.value, r.value.indices.toSet())
+                // Chosen by relevance, listed alphabetically.
+                is Outcome.Success -> r.value.sortedBy { titleSortKey(it.name) }.let { Step.Pick(it, it.indices.toSet()) }
                 is Outcome.Failure -> Step.Failed(r.error.message)
             }
         }

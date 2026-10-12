@@ -21,7 +21,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         HouseholdDeviceEntity::class,
         HouseholdServerEntity::class,
     ],
-    version = 5,
+    version = 6,
     // Schema export is enabled in Phase 4 (reproducible builds), together with migration tests.
     exportSchema = false,
 )
@@ -42,7 +42,7 @@ abstract class ClickarrDatabase : RoomDatabase() {
             Room.databaseBuilder(context.applicationContext, ClickarrDatabase::class.java, name)
                 // Released installs are at 4 or later and keep their data through real migrations from here on.
                 // Only pre-release schemas (1 to 3) are rebuilt from scratch.
-                .addMigrations(MIGRATION_4_5)
+                .addMigrations(MIGRATION_4_5, MIGRATION_5_6)
                 .fallbackToDestructiveMigrationFrom(dropAllTables = true, 1, 2, 3)
                 .build()
 
@@ -50,6 +50,14 @@ abstract class ClickarrDatabase : RoomDatabase() {
         val MIGRATION_4_5 = object : Migration(4, 5) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE channel ADD COLUMN season TEXT")
+            }
+        }
+
+        /** Schema 6: channel numbers are no longer unique, so holiday channels can share one. */
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("DROP INDEX IF EXISTS index_channel_number")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_channel_number ON channel(number)")
             }
         }
 

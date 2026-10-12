@@ -81,6 +81,12 @@ class ChannelRepository @Inject constructor(
         return toLineup(snap, db.lineups().entries(id.value))
     }
 
+    /** Whether [number] is held by a channel this one cannot share it with (Channel.clashesWith). */
+    suspend fun numberTaken(number: Int, id: ChannelId?, holiday: Holiday?): Boolean =
+        db.channels().byNumber(number).map { it.toModel() }.any { other ->
+            other.id != id && !(holiday != null && other.holiday != null && holiday != other.holiday)
+        }
+
     suspend fun nextFreeNumber(): Int {
         val used = db.channels().all().map { it.number }.toSet()
         return generateSequence(1) { it + 1 }.first { it !in used }
@@ -97,7 +103,7 @@ class ChannelRepository @Inject constructor(
         runs: EpisodeRuns? = null,
         holiday: Holiday? = null,
     ): Outcome<Channel> {
-        if (db.channels().byNumber(number) != null) return Outcome.Failure(ClickarrError.Invalid("Channel $number already exists"))
+        if (numberTaken(number, null, holiday)) return Outcome.Failure(ClickarrError.Invalid("Channel $number already exists"))
         return resolveEntries(source).flatMap { entries ->
             if (entries.isEmpty()) return@flatMap Outcome.Failure(ClickarrError.Invalid("Nothing to schedule for that source"))
             val channelId = ChannelId(UUID.randomUUID().toString())
@@ -125,8 +131,7 @@ class ChannelRepository @Inject constructor(
 
     /** Edits that do not touch the lineup: name, number, icon, order, rounding. */
     suspend fun update(channel: Channel): Outcome<Channel> {
-        val clash = db.channels().byNumber(channel.number)
-        if (clash != null && clash.id != channel.id.value) {
+        if (numberTaken(channel.number, channel.id, channel.holiday)) {
             return Outcome.Failure(ClickarrError.Invalid("Channel ${channel.number} already exists"))
         }
         return household.apply(Command.UpdateChannel(channel)).flatMap { handled ->

@@ -242,7 +242,7 @@ private fun DetailsFields(d: EditorViewModel.Draft, vm: EditorViewModel) {
         Button(onClick = { vm.updateDraft { it.copy(number = it.number + 1) } }, modifier = toIcons) { Text("+") }
     }
     val numbers by vm.numbers.collectAsState()
-    val owner = numbers[d.number]?.takeIf { it.id != d.editing?.id }
+    val owner = numbers.let { vm.numberOwner(d.number, d.editing) }
     Text(
         if (owner == null) "Free. Numbers start at the next one not in use." else "Taken: channel ${d.number} is ${owner.name}.",
         style = ClickarrTextStyles.Caption,
