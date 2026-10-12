@@ -1,0 +1,41 @@
+name: Room schema
+
+# Exports the Room database schema (JSON) for any commit, so a schema that shipped before export was turned on
+# can still be committed under core/database/schemas and tested by MigrationTest. Run by hand:
+#   gh workflow run schemas.yml -f ref=v2026.10.11.2
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Commit, tag, or branch to export the schema from
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    name: Export the Room schema
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ inputs.ref }}
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@48b5f213c81028ace310571dc5ec0fbbca0b2947 # v4
+        with:
+          cache-read-only: true
+      - name: Turn on schema export for this checkout only
+        run: |
+          sed -i 's/exportSchema = false/exportSchema = true/' core/database/src/main/kotlin/net/clickarr/core/database/ClickarrDatabase.kt
+          grep -q 'room.schemaLocation' core/database/build.gradle.kts || \
+            sed -i 's|    arg("room.generateKotlin", "true")|    arg("room.generateKotlin", "true")\n    arg("room.schemaLocation", "$projectDir/schemas")|' core/database/build.gradle.kts
+      - name: Run Room's annotation processing
+        run: ./gradlew :core:database:kspDebugKotlin --no-daemon
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: room-schema
+          path: core/database/schemas/

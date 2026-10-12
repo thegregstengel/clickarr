@@ -22,8 +22,8 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         HouseholdServerEntity::class,
     ],
     version = 6,
-    // Schema export is enabled in Phase 4 (reproducible builds), together with migration tests.
-    exportSchema = false,
+    // Exported to core/database/schemas; MigrationTest upgrades each committed version to the current one.
+    exportSchema = true,
 )
 abstract class ClickarrDatabase : RoomDatabase() {
     abstract fun providerConnections(): ProviderConnectionDao

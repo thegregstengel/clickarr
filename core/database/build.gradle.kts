@@ -10,6 +10,8 @@ android {
 
 ksp {
     arg("room.generateKotlin", "true")
+    // Every schema version is committed here and checked by MigrationTest on the emulator (docs/development.md).
+    arg("room.schemaLocation", "$projectDir/schemas")
 }
 
 dependencies {
