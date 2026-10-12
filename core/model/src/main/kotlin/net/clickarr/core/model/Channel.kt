@@ -149,7 +149,7 @@ enum class Holiday(val label: String) {
         private const val VALENTINE_DAY = 14
         private const val HALLOWEEN_DAY = 31
         private const val CHRISTMAS_DAY = 25
-        private const val WEEK = 6
+        private const val WEEK = 7
 
         /** The fourth Thursday of November. */
         fun thanksgiving(year: Int): LocalDate {
