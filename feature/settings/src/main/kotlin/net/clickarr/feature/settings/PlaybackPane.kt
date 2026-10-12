@@ -1,6 +1,8 @@
 package net.clickarr.feature.settings
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.runtime.Composable
@@ -41,7 +43,7 @@ internal fun PlaybackPane(vm: PlaybackSettingsViewModel = hiltViewModel()) {
     }
     PaneCaption(
         "Shows the program's subtitles in this TV's language when it has them. Hold OK while watching to switch. " +
-            "Size, colour, and background follow the TV's own caption settings.",
+            "Clickarr draws them in its own clean style; captions burned in by a Plex transcode keep the server's look.",
     )
     SleepBlock(vm)
 }
@@ -67,12 +69,13 @@ internal fun WatchReportingBlock(vm: PlaybackSettingsViewModel = hiltViewModel()
     )
 }
 
-/** Sleep timer and "Are you still watching?". */
+/** Sleep timer and "Are you still watching?". Five timer chips do not fit one row at every UI size, so they wrap. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun SleepBlock(vm: PlaybackSettingsViewModel) {
     val sleepAt by vm.sleepAt.collectAsState()
     PaneLabel("Sleep timer")
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         PaneChip("Off", selected = sleepAt == null) { vm.setSleepIn(null) }
         SLEEP_CHOICES.forEach { (label, minutes) -> PaneChip(label, selected = false) { vm.setSleepIn(minutes) } }
     }

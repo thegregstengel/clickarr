@@ -45,6 +45,10 @@ Screens from the app as it stands, taken on the Android TV emulator by the test 
     <td width="50%"><img src="site/assets/screens/suggest.png" alt="Suggested channels"><br><sub><b>Suggest channels.</b> A practical starting lineup from what you own: rerun channels, collections, genre themes, decades, a movie channel.</sub></td>
     <td width="50%"><img src="site/assets/screens/household.png" alt="Household settings"><br><sub><b>Household.</b> Several TVs in one home share channels and agree on the schedule over your Wi-Fi. No extra server required.</sub></td>
   </tr>
+  <tr>
+    <td width="50%"><img src="site/assets/screens/holidays.png" alt="Holiday channels"><br><sub><b>Holiday channels.</b> Valentine's Day, Easter, Halloween, Thanksgiving, and Christmas, on air only in the run-up and back every year.</sub></td>
+    <td width="50%"><img src="site/assets/screens/setup.png" alt="First-run setup"><br><sub><b>Setup.</b> Sign in to Plex with a code on your phone, or type an address and token. Your sign-in stays on the TV and is never synced.</sub></td>
+  </tr>
 </table>
 
 ## Get it
