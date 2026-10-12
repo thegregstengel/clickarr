@@ -212,15 +212,10 @@ class HouseholdService @Inject constructor(
             }
         }
         Log.i(TAG) { "coordinator up on $port" }
-        registerOwnServer(c)
+        // Record this TV's media server, so a TV signed in to another server is refused when it joins (ADR 0022).
+        registry.primary?.server?.takeUnless { ServerMatch.listed(it, initial.servers) }
+            ?.let { c.apply(Command.RegisterServer(ServerMatch.location(it)), selfId) }
         return Outcome.Success(Unit)
-    }
-
-    /** Record the coordinator's media server, so a TV signed in to another server is refused when it joins. */
-    private suspend fun registerOwnServer(c: Coordinator) {
-        val mine = registry.primary?.server ?: return
-        if (ServerMatch.listed(mine, store.loadState()?.servers.orEmpty())) return
-        c.apply(Command.RegisterServer(ServerMatch.location(mine)), selfId)
     }
 
     fun beginAddDevice(): Coordinator.ActivePin? {
