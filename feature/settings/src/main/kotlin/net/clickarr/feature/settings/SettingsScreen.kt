@@ -135,10 +135,11 @@ private fun Caption(text: String) = Text(text, style = ClickarrTextStyles.Second
 @Composable
 private fun Label(text: String) = Text(text, style = ClickarrTextStyles.LabelAllCaps, color = ClickarrColors.TextMuted)
 
-/** "Seasonal: Oct 1 to Oct 31" for the channel list. */
-private fun seasonLabel(s: net.clickarr.core.model.SeasonWindow): String {
-    fun md(m: Int, d: Int) = "${java.time.Month.of(m).name.lowercase().replaceFirstChar(Char::uppercase).take(3)} $d"
-    return "Seasonal: ${md(s.startMonth, s.startDay)} to ${md(s.endMonth, s.endDay)}"
+/** "Holiday: Christmas, Dec 1 to Dec 25" for the channel list, with this year's dates. */
+private fun holidayLabel(h: net.clickarr.core.model.Holiday, year: Int): String {
+    val w = h.window(year)
+    fun md(d: kotlinx.datetime.LocalDate) = "${d.month.name.lowercase().replaceFirstChar(Char::uppercase).take(3)} ${d.dayOfMonth}"
+    return "Holiday: ${h.label}, ${md(w.start)} to ${md(w.endInclusive)}"
 }
 
 private fun refreshCaption(r: SettingsViewModel.RefreshInfo): String {
@@ -227,6 +228,7 @@ private fun ChannelsPane(vm: SettingsViewModel, actions: SettingsActions) {
     val message by vm.message.collectAsState()
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Button(onClick = actions.onCreateChannel) { Text("Create channel") }
+        Button(onClick = actions.onHolidayChannels) { Text("Holiday channels") }
         Button(onClick = actions.onSuggestChannels) { Text("Suggest channels") }
         Button(onClick = vm::refreshAllLineups) { Text("Refresh all lineups from Plex") }
     }
@@ -259,8 +261,11 @@ private fun ChannelsPane(vm: SettingsViewModel, actions: SettingsActions) {
             selected = false,
             onClick = { actions.onEditChannel(ch.id) },
             headlineContent = { Text(ch.name, style = ClickarrTextStyles.RowTitle) },
-            supportingContent = ch.season?.let { s ->
-                { Text(seasonLabel(s), style = ClickarrTextStyles.Caption, color = ClickarrColors.TextSecondary) }
+            supportingContent = ch.holiday?.let { h ->
+                {
+                    val year = AppTime.local(vm.now()).year
+                    Text(holidayLabel(h, year), style = ClickarrTextStyles.Caption, color = ClickarrColors.TextSecondary)
+                }
             },
             leadingContent = {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {

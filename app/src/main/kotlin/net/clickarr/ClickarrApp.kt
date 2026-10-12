@@ -19,6 +19,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import androidx.navigation.compose.rememberNavController
 import net.clickarr.feature.channels.ChannelEditorScreen
+import net.clickarr.feature.channels.HolidaysScreen
 import net.clickarr.feature.channels.SuggestScreen
 import net.clickarr.feature.player.PlayerScreen
 import net.clickarr.feature.setup.SetupScreen
@@ -82,6 +83,7 @@ private fun AppNav(nav: NavHostController, start: String, onExit: () -> Unit) {
                     onWatch = { nav.navigate(Routes.PLAYER) { popUpTo(Routes.PLAYER) { inclusive = true } } },
                     onCreateChannel = { nav.navigate(Routes.editor()) },
                     onSuggestChannels = { nav.navigate(Routes.SUGGEST) },
+                    onHolidayChannels = { nav.navigate(Routes.HOLIDAYS) },
                     onEditChannel = { nav.navigate(Routes.editor(it.value)) },
                     onDisconnected = { nav.navigate(Routes.SETUP) { popUpTo(0) { inclusive = true } } },
                     onExit = onExit,
@@ -90,6 +92,9 @@ private fun AppNav(nav: NavHostController, start: String, onExit: () -> Unit) {
         }
         composable(Routes.SUGGEST) {
             SuggestScreen(onDone = { nav.popBackStack() })
+        }
+        composable(Routes.HOLIDAYS) {
+            HolidaysScreen(onDone = { nav.popBackStack() })
         }
         composable(
             Routes.EDITOR,

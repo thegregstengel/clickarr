@@ -8,6 +8,7 @@ class SettingsActions(
     val onExit: () -> Unit,
     val onCreateChannel: () -> Unit,
     val onSuggestChannels: () -> Unit,
+    val onHolidayChannels: () -> Unit,
     val onEditChannel: (ChannelId) -> Unit,
 )
 

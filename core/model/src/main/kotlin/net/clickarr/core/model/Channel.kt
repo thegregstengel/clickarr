@@ -2,7 +2,13 @@ package net.clickarr.core.model
 
 import kotlin.time.Duration
 import kotlinx.datetime.Instant
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.Month
+import kotlinx.datetime.isoDayNumber
+import kotlinx.datetime.minus
+import kotlinx.datetime.plus
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -90,8 +96,8 @@ data class Channel(
     val seed: Long,
     /** Episodes of one show in a row, or null for one at a time (scheduler version 2). */
     val runs: EpisodeRuns? = null,
-    /** Shown in the guide and when surfing only between these dates each year; null means all year. */
-    val season: SeasonWindow? = null,
+    /** A holiday channel is in the guide and surfing only in that holiday's window each year; null means all year. */
+    val holiday: Holiday? = null,
     /** The lineup currently in effect. */
     val lineup: LineupSnapshotId,
     /** Cycle 0 of [lineup] begins here. */
@@ -113,44 +119,71 @@ data class LineupEntry(
 )
 
 /**
- * A yearly window, such as October for a Halloween channel or late November to New Year for Christmas movies.
- * Inclusive at both ends; a window that crosses the new year (start after end) wraps. The channel's schedule keeps
- * running all year so every TV agrees when it reappears; the window only decides whether it is shown.
+ * Holidays a channel can belong to (Settings, Channels, Holiday channels). Each has a window that is worked out per
+ * year, ending on the holiday itself: the week before Valentine's Day and Easter, and from the first of the month
+ * for Halloween, Thanksgiving (US, the fourth Thursday of November), and Christmas. Windows never overlap. The
+ * channel's schedule runs all year so every TV agrees when it returns; the window only decides whether it is shown.
  */
 @Serializable
-data class SeasonWindow(val startMonth: Int, val startDay: Int, val endMonth: Int, val endDay: Int) {
-    init {
-        require(startMonth in 1..12 && endMonth in 1..12 && startDay in 1..31 && endDay in 1..31) { "invalid season window" }
+enum class Holiday(val label: String) {
+    VALENTINES("Valentine's Day"),
+    EASTER("Easter"),
+    HALLOWEEN("Halloween"),
+    THANKSGIVING("Thanksgiving"),
+    CHRISTMAS("Christmas"),
+    ;
+
+    /** The days this holiday's channel is on, in [year]. */
+    fun window(year: Int): ClosedRange<LocalDate> = when (this) {
+        VALENTINES -> LocalDate(year, Month.FEBRUARY, VALENTINE_FIRST)..LocalDate(year, Month.FEBRUARY, VALENTINE_DAY)
+        EASTER -> easter(year).let { it.minus(WEEK, DateTimeUnit.DAY)..it }
+        HALLOWEEN -> LocalDate(year, Month.OCTOBER, 1)..LocalDate(year, Month.OCTOBER, HALLOWEEN_DAY)
+        THANKSGIVING -> LocalDate(year, Month.NOVEMBER, 1)..thanksgiving(year)
+        CHRISTMAS -> LocalDate(year, Month.DECEMBER, 1)..LocalDate(year, Month.DECEMBER, CHRISTMAS_DAY)
     }
 
-    fun contains(date: LocalDate): Boolean {
-        val d = key(date.monthNumber, date.dayOfMonth)
-        val s = key(startMonth, startDay)
-        val e = key(endMonth, endDay)
-        return if (s <= e) d in s..e else d >= s || d <= e
-    }
-
-    /** "10-01..10-31", the stored form. */
-    fun encode(): String = "%02d-%02d..%02d-%02d".format(startMonth, startDay, endMonth, endDay)
+    fun contains(date: LocalDate): Boolean = date in window(date.year)
 
     companion object {
-        private const val MONTH = 100
-        private fun key(month: Int, day: Int) = month * MONTH + day
+        private const val VALENTINE_FIRST = 7
+        private const val VALENTINE_DAY = 14
+        private const val HALLOWEEN_DAY = 31
+        private const val CHRISTMAS_DAY = 25
+        private const val WEEK = 6
 
-        val HALLOWEEN = SeasonWindow(10, 1, 10, 31)
-        val CHRISTMAS = SeasonWindow(11, 25, 12, 31)
-        val SUMMER = SeasonWindow(6, 1, 8, 31)
-
-        fun decode(s: String?): SeasonWindow? = s?.let {
-            val m = Regex("""(\d{2})-(\d{2})\.\.(\d{2})-(\d{2})""").matchEntire(it) ?: return null
-            val v = m.groupValues.drop(1).map(String::toInt)
-            runCatching { SeasonWindow(v[0], v[1], v[2], v[3]) }.getOrNull()
+        /** The fourth Thursday of November. */
+        fun thanksgiving(year: Int): LocalDate {
+            val first = LocalDate(year, Month.NOVEMBER, 1)
+            val toThursday = (DayOfWeek.THURSDAY.isoDayNumber - first.dayOfWeek.isoDayNumber + DAYS_IN_WEEK) % DAYS_IN_WEEK
+            return first.plus(toThursday + 3 * DAYS_IN_WEEK, DateTimeUnit.DAY)
         }
+
+        /** Western (Gregorian) Easter Sunday, by the anonymous Gregorian algorithm (Meeus/Jones/Butcher). */
+        @Suppress("MagicNumber")
+        fun easter(year: Int): LocalDate {
+            val a = year % 19
+            val b = year / 100
+            val c = year % 100
+            val d = b / 4
+            val e = b % 4
+            val f = (b + 8) / 25
+            val g = (b - f + 1) / 3
+            val h = (19 * a + b - d - g + 15) % 30
+            val i = c / 4
+            val k = c % 4
+            val l = (32 + 2 * e + 2 * i - h - k) % 7
+            val m = (a + 11 * h + 22 * l) / 451
+            val month = (h + l - 7 * m + 114) / 31
+            val day = (h + l - 7 * m + 114) % 31 + 1
+            return LocalDate(year, month, day)
+        }
+
+        private const val DAYS_IN_WEEK = 7
     }
 }
 
-/** Whether [channel] is shown on [date]: always when it has no season. */
-fun Channel.inSeason(date: LocalDate): Boolean = season?.contains(date) ?: true
+/** Whether [channel] is shown on [date]: always when it is not a holiday channel. */
+fun Channel.inSeason(date: LocalDate): Boolean = holiday?.contains(date) ?: true
 
 /**
  * How many entries of one group play back to back before the channel moves on: between [min] and [max],

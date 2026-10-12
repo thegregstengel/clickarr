@@ -50,6 +50,8 @@ object ClickarrGlyphs {
     Glyph("gift", "Holiday", R.drawable.ic_glyph_gift),
     Glyph("tree-pine", "Christmas", R.drawable.ic_glyph_tree_pine),
     Glyph("snowflake", "Winter", R.drawable.ic_glyph_snowflake),
+    Glyph("egg", "Easter", R.drawable.ic_glyph_egg),
+    Glyph("drumstick", "Feast", R.drawable.ic_glyph_drumstick),
     )
 
     fun byName(name: String): Glyph? = all.firstOrNull { it.name == name }

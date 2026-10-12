@@ -46,7 +46,7 @@ abstract class ClickarrDatabase : RoomDatabase() {
                 .fallbackToDestructiveMigrationFrom(dropAllTables = true, 1, 2, 3)
                 .build()
 
-        /** Schema 5: a channel can have a season (SeasonWindow), shown only between those dates. */
+        /** Schema 5: a channel can belong to a holiday (the column is named season) (SeasonWindow), shown only between those dates. */
         val MIGRATION_4_5 = object : Migration(4, 5) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE channel ADD COLUMN season TEXT")

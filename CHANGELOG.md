@@ -14,9 +14,10 @@ second release the same day); the household protocol, scheduler, and database ca
 - Sleep timer (30 minutes to 2 hours) and "Are you still watching?" after 2, 3, or 4 hours without a button press,
   in Settings, Playback. With no answer in a minute, playback stops and the TV's own screensaver can take over; any
   button tunes back in live.
-- Seasonal channels: a channel can be in the guide only in October, from Nov 25 to Dec 31, or in summer, and comes
-  back on its own each year. Suggest channels offers Halloween Horror and Christmas Movies from the films you have,
-  found by genre and title with nothing to tag. Glyphs for gift, pine tree, and snowflake.
+- Holiday channels (Settings, Channels): Valentine's Day and Easter (the week before), Halloween, Thanksgiving, and
+  Christmas (from the 1st of the month to the day). Switch one on and fill it from genres, Plex collections, or
+  hand-picked movies; it shows in the guide only in its window and returns each year. Easter and US Thanksgiving are
+  worked out per year. Glyphs for gift, pine tree, snowflake, egg, and drumstick.
 - "Coming up next" between programs on channels with 15, 30, or 60-minute slots: the next program's backdrop, time, and
   synopsis, the rest of the evening, and the show's theme music, all from what Plex already has. Settings, Playback,
   Between programs switches back to the countdown.

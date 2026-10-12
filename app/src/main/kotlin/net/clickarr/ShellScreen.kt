@@ -62,6 +62,7 @@ class ShellCallbacks(
     val onWatch: () -> Unit,
     val onCreateChannel: () -> Unit,
     val onSuggestChannels: () -> Unit,
+    val onHolidayChannels: () -> Unit,
     val onEditChannel: (ChannelId) -> Unit,
     val onDisconnected: () -> Unit,
     val onExit: () -> Unit,
@@ -129,6 +130,7 @@ fun ShellScreen(
                         onExit = callbacks.onExit,
                         onCreateChannel = callbacks.onCreateChannel,
                         onSuggestChannels = callbacks.onSuggestChannels,
+                        onHolidayChannels = callbacks.onHolidayChannels,
                         onEditChannel = callbacks.onEditChannel,
                     ),
                 )

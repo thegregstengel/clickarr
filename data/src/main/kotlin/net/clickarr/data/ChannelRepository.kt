@@ -27,7 +27,7 @@ import net.clickarr.core.model.ChannelIcon
 import net.clickarr.core.model.ChannelId
 import net.clickarr.core.model.Episode
 import net.clickarr.core.model.EpisodeRuns
-import net.clickarr.core.model.SeasonWindow
+import net.clickarr.core.model.Holiday
 import net.clickarr.core.model.LineupEntry
 import net.clickarr.core.model.LineupSnapshot
 import net.clickarr.core.model.LineupSnapshotId
@@ -95,7 +95,7 @@ class ChannelRepository @Inject constructor(
         slotRounding: Duration? = 30.minutes,
         icon: ChannelIcon? = null,
         runs: EpisodeRuns? = null,
-        season: SeasonWindow? = null,
+        holiday: Holiday? = null,
     ): Outcome<Channel> {
         if (db.channels().byNumber(number) != null) return Outcome.Failure(ClickarrError.Invalid("Channel $number already exists"))
         return resolveEntries(source).flatMap { entries ->
@@ -105,7 +105,7 @@ class ChannelRepository @Inject constructor(
             val snapshot = Lineups.create(LineupSnapshotId(UUID.randomUUID().toString()), channelId, entries, now)
             val channel = Channel(
                 id = channelId, number = number, name = name, icon = icon, source = source, order = order,
-                slotRounding = slotRounding, seed = Random.nextLong(), runs = runs, season = season, lineup = snapshot.id,
+                slotRounding = slotRounding, seed = Random.nextLong(), runs = runs, holiday = holiday, lineup = snapshot.id,
                 anchor = alignedAnchor(now, slotRounding),
             )
             persist(channel, snapshot, now)

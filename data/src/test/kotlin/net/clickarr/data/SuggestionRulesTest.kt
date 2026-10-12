@@ -121,28 +121,6 @@ class SuggestionRulesTest {
     }
 
     @Test
-    fun `horror movies become a Halloween channel shown only in October`() {
-        val movies = (1..12).map { movie("Scary $it", "Horror") } + ballast()
-        val halloween = SuggestionRules.plan(scan(movies = movies)).first { it.name == "Halloween Horror" }
-        halloween.season shouldBe net.clickarr.core.model.SeasonWindow.HALLOWEEN
-        halloween.order shouldBe OrderingMode.SHUFFLE
-    }
-
-    @Test
-    fun `Christmas films are found by title or holiday genre, without tagging anything`() {
-        val films = listOf(
-            movie("Elf"), movie("How the Grinch Stole Christmas"), movie("The Polar Express"), movie("Home Alone"),
-            movie("Klaus", "Holiday"), movie("Santa Claus: The Movie"),
-        )
-        val names = (films + listOf(movie("Roman Holiday"), movie("Elfego"))).map { it.title }
-        val found = names.filter { n -> SeasonalSuggestions.isChristmas(movie(n)) }
-        found shouldBe listOf("Elf", "How the Grinch Stole Christmas", "The Polar Express", "Home Alone", "Santa Claus: The Movie")
-        SeasonalSuggestions.isChristmas(movie("Klaus", "Holiday")) shouldBe true
-        val christmas = SuggestionRules.plan(scan(movies = films + ballast())).first { it.name == "Christmas Movies" }
-        christmas.season shouldBe net.clickarr.core.model.SeasonWindow.CHRISTMAS
-    }
-
-    @Test
     fun `decades read the way people say them`() {
         SuggestionRules.decadeName(1980) shouldBe "80s"
         SuggestionRules.decadeName(2000) shouldBe "2000s"

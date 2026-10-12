@@ -14,7 +14,7 @@ import net.clickarr.core.model.NativeItemId
 import net.clickarr.core.model.OrderingMode
 import net.clickarr.core.model.ProgrammingSource
 import net.clickarr.core.model.ProviderId
-import net.clickarr.core.model.SeasonWindow
+import net.clickarr.core.model.Holiday
 
 fun Channel.toEntity(updatedAt: Instant) = ChannelEntity(
     id = id.value,
@@ -27,7 +27,7 @@ fun Channel.toEntity(updatedAt: Instant) = ChannelEntity(
     seed = seed,
     runsMin = runs?.min,
     runsMax = runs?.max,
-    season = season?.encode(),
+    season = holiday?.name,
     lineupId = lineup.value,
     anchorEpochMs = anchor.toEpochMilliseconds(),
     pendingLineupId = pendingLineup?.value,
@@ -46,7 +46,7 @@ fun ChannelEntity.toModel() = Channel(
     slotRounding = slotRoundingMs?.milliseconds,
     seed = seed,
     runs = if (runsMin != null && runsMax != null) EpisodeRuns(runsMin, runsMax) else null,
-    season = SeasonWindow.decode(season),
+    holiday = season?.let { name -> Holiday.entries.firstOrNull { it.name == name } },
     lineup = LineupSnapshotId(lineupId),
     anchor = Instant.fromEpochMilliseconds(anchorEpochMs),
     pendingLineup = pendingLineupId?.let(::LineupSnapshotId),
