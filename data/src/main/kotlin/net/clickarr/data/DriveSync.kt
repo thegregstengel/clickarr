@@ -22,7 +22,6 @@ import net.clickarr.core.scheduling.SCHEDULER_VERSION
 import net.clickarr.core.database.ClickarrDatabase
 import net.clickarr.core.database.SyncStateEntity
 import net.clickarr.core.model.HouseholdState
-import net.clickarr.core.model.ServerLocation
 import net.clickarr.household.coordinator.CoordinatorStore
 import net.clickarr.household.protocol.Command
 import net.clickarr.household.protocol.HouseholdReducer
@@ -221,21 +220,15 @@ class DriveSync(
     }
 
     /** The file belongs to one media server; a state for another server would reference items this one lacks. */
-    private fun sameServer(theirs: HouseholdState): ClickarrError? {
-        val mine = registry.primary?.server ?: return null
-        val listed = theirs.servers
-        if (listed.isEmpty() || listed.any { it.kind == mine.kind && it.serverIdentity == mine.serverIdentity }) return null
-        val other = listed.first()
-        return ClickarrError.Invalid(
-            "This Drive backup belongs to ${other.kind.label} server ${other.name}; this TV is signed into ${mine.name}. Not applied.",
-        )
-    }
+    private fun sameServer(theirs: HouseholdState): ClickarrError? =
+        ServerMatch.mismatch(registry.primary?.server, theirs.servers, "Drive backup")
+            ?.let { ClickarrError.Invalid("${it.message} Not applied.") }
 
     /** Record this TV's media server in the state so other devices can check they match. */
     private suspend fun registerServer(state: HouseholdState): HouseholdState {
         val mine = registry.primary?.server ?: return state
-        if (state.servers.any { it.kind == mine.kind && it.serverIdentity == mine.serverIdentity }) return state
-        val cmd = Command.RegisterServer(ServerLocation(mine.kind, mine.serverIdentity, mine.name, listOf(mine.baseUrl)))
+        if (ServerMatch.listed(mine, state.servers)) return state
+        val cmd = Command.RegisterServer(ServerMatch.location(mine))
         val next = (reducer.apply(state, cmd, clock.now()) as? Outcome.Success)?.value ?: return state
         store.saveState(next)
         return next

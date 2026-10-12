@@ -96,6 +96,10 @@ private fun SettingsBody(
     actions: SettingsActions,
     viewModel: SettingsViewModel,
 ) {
+    val servers by viewModel.servers.collectAsState()
+    val connected = servers.firstOrNull()?.kind
+    // A deep link or a remembered section may name the server this TV does not use; show General instead.
+    val shown = if (section.enabledFor(connected)) section else SettingsSection.GENERAL
     Row(Modifier.fillMaxSize()) {
         // Lazy so the focused entry scrolls into view; eight rows do not fit above the fold at 1080p.
         LazyColumn(
@@ -104,7 +108,8 @@ private fun SettingsBody(
         ) {
             items(SettingsSection.entries) { s ->
                 ListItem(
-                    selected = section == s,
+                    selected = shown == s,
+                    enabled = s.enabledFor(connected),
                     onClick = { onSection(s) },
                     headlineContent = { Text(s.label, style = ClickarrTextStyles.RowTitle) },
                     modifier = if (s == SettingsSection.entries.first()) Modifier.focusRequester(navFirst) else Modifier,
@@ -115,10 +120,11 @@ private fun SettingsBody(
             Modifier.fillMaxSize().padding(horizontal = 32.dp, vertical = 24.dp).verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text(section.label, style = ClickarrTextStyles.ScreenTitle)
-            when (section) {
+            Text(shown.label, style = ClickarrTextStyles.ScreenTitle)
+            when (shown) {
                 SettingsSection.GENERAL -> GeneralPane(viewModel, park)
-                SettingsSection.SERVER -> ServerPane(viewModel, actions.onDisconnected)
+                SettingsSection.PLEX -> PlexPane(viewModel, actions.onDisconnected)
+                SettingsSection.JELLYFIN -> JellyfinPane(viewModel, actions.onDisconnected)
                 SettingsSection.CHANNELS -> ChannelsPane(viewModel, actions)
                 SettingsSection.PLAYBACK -> PlaybackPane()
                 SettingsSection.SYNC -> SyncPane()
@@ -205,24 +211,6 @@ private fun zoneOptions(): List<PickerOption<String?>> =
     listOf(PickerOption<String?>(null, "Device", AppTime.zone.id)) + ZONES.map { (label, id) -> PickerOption<String?>(id, label, id) }
 
 @Composable
-private fun ServerPane(vm: SettingsViewModel, onDisconnected: () -> Unit) {
-    val servers by vm.servers.collectAsState()
-    if (servers.isEmpty()) {
-        Caption("No server connected.")
-    }
-    servers.forEach { s ->
-        Label(s.kind.label)
-        Text(s.name, style = ClickarrTextStyles.RowTitle)
-        Caption("${s.baseUrl}${s.version?.let { "  ·  v$it" } ?: ""}")
-    }
-    if (servers.isNotEmpty()) {
-        Button(onClick = { vm.disconnect(onDisconnected) }) { Text("Disconnect and sign in again") }
-        Caption("Channels stay; they resume once the same server is connected again.")
-        WatchReportingBlock(servers.first().kind.label)
-    }
-}
-
-@Composable
 private fun ChannelsPane(vm: SettingsViewModel, actions: SettingsActions) {
     val list by vm.channelList.collectAsState()
     val favorites by vm.favorites.collectAsState()
@@ -302,7 +290,7 @@ private fun DiagnosticsPane(vm: SettingsViewModel) {
 private fun AboutPane(appVersion: String, appVersionCode: Int, vm: SettingsViewModel, actions: SettingsActions) {
     Text("Clickarr $appVersion (build $appVersionCode)", style = ClickarrTextStyles.RowTitle)
     Caption("Turn your media library into TV. Open source, MIT licensed. clickarr.net")
-    Caption("Plex is a trademark of Plex, Inc. Clickarr is an independent project, not affiliated with Plex or Jellyfin.")
+    Caption("Clickarr is an independent project, not affiliated with Plex or Jellyfin.")
     UpdatesBlock(appVersionCode, vm)
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Button(onClick = actions.onExit) { Text("Exit Clickarr") }

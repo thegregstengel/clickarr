@@ -203,7 +203,7 @@ class FirstRunFlowTest {
         openSettings()
         waitForText("This TV")
         shot("09-settings-general")
-        click("Media Server")
+        click("Plex")
         waitForText("Disconnect and sign in again")
         waitForText("Tell Plex what you watched")
         shot("10-settings-server")

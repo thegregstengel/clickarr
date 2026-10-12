@@ -48,7 +48,7 @@ internal fun PlaybackPane(vm: PlaybackSettingsViewModel = hiltViewModel()) {
     SleepBlock(vm)
 }
 
-/** Settings, Media Server: whether, and how much, the server hears about what plays on this TV. */
+/** Settings, Plex or Jellyfin: whether, and how much, the server hears about what plays on this TV. */
 @Composable
 internal fun WatchReportingBlock(server: String, vm: PlaybackSettingsViewModel = hiltViewModel()) {
     val watch by vm.watchReporting.collectAsState()

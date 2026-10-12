@@ -39,7 +39,7 @@ class ProviderRegistry @Inject constructor(
 
     fun get(id: ProviderId): MediaProvider? = _providers.value[id]
 
-    /** One server per TV; this is the one the setup and channel editor use. */
+    /** The TV's one server (ADR 0022); the setup, channel editor, and sync use it. */
     val primary: MediaProvider? get() = _providers.value.values.firstOrNull()
 
     val hasAny: Boolean get() = _providers.value.isNotEmpty()
@@ -73,10 +73,7 @@ class ProviderRegistry @Inject constructor(
             when (val ping = factory.create(probe, credentials).ping()) {
                 is Outcome.Success -> {
                     val info = ping.value.copy(providerId = ProviderId(ping.value.serverIdentity), baseUrl = url.trimEnd('/'))
-                    persist(info, urls, credentials)
-                    val live = factory.create(info, credentials)
-                    _providers.update { it + (info.providerId to live) }
-                    return Outcome.Success(live)
+                    return adopt(factory, info, urls, credentials)
                 }
                 is Outcome.Failure -> {
                     Log.i(TAG) { "$name not reachable at $url: ${ping.error.message}" }
@@ -85,6 +82,31 @@ class ProviderRegistry @Inject constructor(
             }
         }
         return Outcome.Failure(if (urls.size > 1) ClickarrError.Unreachable("Could not reach $name on any address") else last)
+    }
+
+    private suspend fun adopt(
+        factory: MediaProviderFactory,
+        info: ServerInfo,
+        urls: List<String>,
+        credentials: ProviderCredentials,
+    ): Outcome<MediaProvider> {
+        oneServerOnly(info)?.let { return Outcome.Failure(it) }
+        persist(info, urls, credentials)
+        val live = factory.create(info, credentials)
+        _providers.update { it + (info.providerId to live) }
+        return Outcome.Success(live)
+    }
+
+    /**
+     * A TV is signed in to one server, Plex or Jellyfin (ADR 0022): channels, sync, and the guide all assume it.
+     * Signing in to the same server again is fine (a new token or address); a different one needs a disconnect first.
+     */
+    private fun oneServerOnly(info: ServerInfo): ClickarrError? {
+        val other = _providers.value.values.firstOrNull { it.id != info.providerId } ?: return null
+        return ClickarrError.Invalid(
+            "This TV is already signed in to ${other.kind.label} server ${other.server.name}. " +
+                "Disconnect it in Settings, ${other.kind.label} before signing in to another.",
+        )
     }
 
     suspend fun remove(id: ProviderId) {

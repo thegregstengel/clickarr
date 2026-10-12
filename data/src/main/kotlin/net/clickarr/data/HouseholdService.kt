@@ -31,6 +31,7 @@ import net.clickarr.core.common.ClickarrError
 import net.clickarr.core.common.Clock
 import net.clickarr.core.common.Log
 import net.clickarr.core.common.Outcome
+import net.clickarr.core.common.flatMap
 import net.clickarr.core.database.ClickarrDatabase
 import net.clickarr.core.database.HouseholdEntity
 import net.clickarr.core.database.toModel
@@ -211,7 +212,15 @@ class HouseholdService @Inject constructor(
             }
         }
         Log.i(TAG) { "coordinator up on $port" }
+        registerOwnServer(c)
         return Outcome.Success(Unit)
+    }
+
+    /** Record the coordinator's media server, so a TV signed in to another server is refused when it joins. */
+    private suspend fun registerOwnServer(c: Coordinator) {
+        val mine = registry.primary?.server ?: return
+        if (ServerMatch.listed(mine, store.loadState()?.servers.orEmpty())) return
+        c.apply(Command.RegisterServer(ServerMatch.location(mine)), selfId)
     }
 
     fun beginAddDevice(): Coordinator.ActivePin? {
@@ -240,7 +249,7 @@ class HouseholdService @Inject constructor(
             return Outcome.Failure(ClickarrError.Invalid("Households talk over TLS only; enter the address without http://"))
         }
         val candidates = listOf(if ("://" in typed) typed else "https://$typed")
-        val p = when (val r = pairAny(candidates, coordinatorFingerprint, pin)) {
+        val p = when (val r = pairAny(candidates, coordinatorFingerprint, pin).flatMap(::sameServer)) {
             is Outcome.Success -> r.value
             is Outcome.Failure -> return r
         }
@@ -266,6 +275,12 @@ class HouseholdService @Inject constructor(
     }
 
     private class Paired(val response: PairCompleteResponse, val url: String, val fingerprint: String)
+
+    /** Refuse a household whose lineup is on another media server; nothing is saved, so this TV stays as it was. */
+    private fun sameServer(p: Paired): Outcome<Paired> =
+        ServerMatch.mismatch(registry.primary?.server, p.response.state.servers, "household")
+            ?.let { Outcome.Failure(ClickarrError.Invalid("${it.message} Sign in to the same server to join.")) }
+            ?: Outcome.Success(p)
 
     /** Tries each address in turn, moving on only when the coordinator was unreachable there. */
     private suspend fun pairAny(urls: List<String>, coordinatorFingerprint: String?, pin: String): Outcome<Paired> {
@@ -362,6 +377,10 @@ class HouseholdService @Inject constructor(
     private suspend fun applyRemote(state: HouseholdState) {
         if (state.schedulerVersion > SCHEDULER_VERSION) {
             Log.w(TAG) { "coordinator runs scheduler v${state.schedulerVersion}; this build has v$SCHEDULER_VERSION, not applying" }
+            return
+        }
+        ServerMatch.mismatch(registry.primary?.server, state.servers, "household")?.let {
+            Log.w(TAG) { "not applying the household state: ${it.message}" }
             return
         }
         store.saveState(state)
