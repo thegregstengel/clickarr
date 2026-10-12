@@ -1,6 +1,6 @@
 # 0019. Clickarr targets Plex only
 
-**Status:** Accepted
+**Status:** Superseded by [ADR-0022](0022-jellyfin-alongside-plex.md)
 **Date:** 2026-10-09 (revised the same day: originally "Plex only for the MVP", now "Plex only")
 
 ## Context

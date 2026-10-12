@@ -14,6 +14,7 @@ import kotlinx.coroutines.launch
 import net.clickarr.core.common.Log
 import net.clickarr.core.common.Outcome
 import net.clickarr.provider.plex.PlexAuth
+import net.clickarr.provider.plex.PlexProviderFactory
 import net.clickarr.provider.plex.PlexServerCandidate
 
 /**
@@ -91,7 +92,8 @@ class SetupViewModel @Inject constructor(
 
     private suspend fun connect(candidate: PlexServerCandidate) {
         _step.value = Step.Connecting(candidate.server.name)
-        _step.value = when (val r = connector.connectPlex(candidate)) {
+        val credentials = PlexProviderFactory.credentials(candidate.token)
+        _step.value = when (val r = connector.connect(candidate.server.name, candidate.server.urls, credentials)) {
             is Outcome.Success -> Step.Done(r.value.server.name)
             is Outcome.Failure -> Step.Failed(r.error.message)
         }
@@ -105,7 +107,8 @@ class SetupViewModel @Inject constructor(
     fun connectManual(baseUrl: String, token: String) {
         viewModelScope.launch {
             _step.value = Step.Connecting(baseUrl)
-            _step.value = when (val r = connector.connectPlexManual(baseUrl.trim(), token.trim())) {
+            val url = baseUrl.trim()
+            _step.value = when (val r = connector.connect(url, listOf(url), PlexProviderFactory.credentials(token.trim()))) {
                 is Outcome.Success -> Step.Done(r.value.server.name)
                 is Outcome.Failure -> Step.Failed(r.error.message)
             }

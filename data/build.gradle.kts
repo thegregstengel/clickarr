@@ -15,7 +15,6 @@ dependencies {
     api(project(":core:database"))
     api(project(":core:secrets"))
     api(project(":provider:api"))
-    api(project(":provider:plex"))
     api(project(":household:protocol"))
     api(project(":household:coordinator"))
     api(project(":household:client"))

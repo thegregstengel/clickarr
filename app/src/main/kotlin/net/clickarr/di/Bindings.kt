@@ -9,14 +9,12 @@ import net.clickarr.core.common.Outcome
 import net.clickarr.data.ProviderRegistry
 import net.clickarr.feature.setup.ServerConnector
 import net.clickarr.provider.api.MediaProvider
-import net.clickarr.provider.plex.PlexServerCandidate
+import net.clickarr.provider.api.ProviderCredentials
 
 /** Adapts the app's registry to the small interfaces feature modules declare. */
 class RegistryConnector @Inject constructor(private val registry: ProviderRegistry) : ServerConnector {
-    override suspend fun connectPlex(candidate: PlexServerCandidate): Outcome<MediaProvider> = registry.addPlex(candidate)
-
-    override suspend fun connectPlexManual(baseUrl: String, token: String): Outcome<MediaProvider> =
-        registry.addPlexManual(baseUrl, token)
+    override suspend fun connect(name: String, urls: List<String>, credentials: ProviderCredentials): Outcome<MediaProvider> =
+        registry.connect(name, urls, credentials)
 }
 
 @Module

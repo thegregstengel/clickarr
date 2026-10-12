@@ -28,6 +28,8 @@ import net.clickarr.playback.media3.DeviceProfiles
 import net.clickarr.provider.api.DeviceProfile
 import net.clickarr.provider.plex.PlexAuth
 import net.clickarr.provider.plex.PlexProviderFactory
+import net.clickarr.provider.api.MediaProviderFactory
+import dagger.multibindings.IntoSet
 import okhttp3.OkHttpClient
 
 @Module
@@ -79,7 +81,8 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun plexFactory(okHttp: OkHttpClient, identity: ClientIdentity): PlexProviderFactory =
+    @IntoSet
+    fun plexFactory(okHttp: OkHttpClient, identity: ClientIdentity): MediaProviderFactory =
         // The Plex client never follows a redirect: X-Plex-Token travels as a query parameter, and a
         // redirect from a server on cleartext would otherwise carry it to whatever host answered.
         PlexProviderFactory(okHttp.newBuilder().followRedirects(false).followSslRedirects(false).build(), identity)

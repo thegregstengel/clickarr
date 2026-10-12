@@ -3,15 +3,15 @@ package net.clickarr.core.model
 import kotlin.time.Duration
 import kotlinx.serialization.Serializable
 
+/** The media servers Clickarr connects to (ADR 0022); a TV uses one at a time. */
 @Serializable
-/** Clickarr supports Plex. The provider boundary stays so the fake provider and tests can stand in for it. */
-enum class ProviderKind { PLEX }
+enum class ProviderKind(val label: String) { PLEX("Plex"), JELLYFIN("Jellyfin") }
 
 @Serializable
 data class ServerInfo(
     val providerId: ProviderId,
     val kind: ProviderKind,
-    /** Stable across URL changes: the Plex machineIdentifier. */
+    /** Stable across URL changes: Plex's machineIdentifier, Jellyfin's server Id. */
     val serverIdentity: String,
     val name: String,
     val baseUrl: String,
@@ -32,7 +32,7 @@ data class Artwork(
     val poster: ArtworkRef? = null,
     val thumb: ArtworkRef? = null,
     val backdrop: ArtworkRef? = null,
-    /** Theme music (Plex's show theme), played under the "Coming up next" promo. Audio, not an image. */
+    /** Theme music (the server's show theme), played under the "Coming up next" promo. Audio, not an image. */
     val theme: ArtworkRef? = null,
 )
 
@@ -75,7 +75,7 @@ data class Show(
     val network: String? = null,
     val seasonCount: Int = 0,
     val episodeCount: Int = 0,
-    /** Plex's synopsis, for the guide's preview card. */
+    /** The server's synopsis, for the guide's preview card. */
     val summary: String? = null,
 ) : MediaItem
 
@@ -104,7 +104,7 @@ data class Episode(
     val episodeIndex: Int,
     override val runtime: Duration,
     override val media: List<MediaVersion> = emptyList(),
-    /** Plex's synopsis, for the guide's preview card. */
+    /** The server's synopsis, for the guide's preview card. */
     val summary: String? = null,
 ) : MediaItem, Playable
 
@@ -118,14 +118,14 @@ data class Movie(
     val studio: String? = null,
     override val runtime: Duration,
     override val media: List<MediaVersion> = emptyList(),
-    /** Plex's synopsis, for the guide's preview card. */
+    /** The server's synopsis, for the guide's preview card. */
     val summary: String? = null,
 ) : MediaItem, Playable
 
-/** [itemCount] is how many titles the server says it holds, when it says (Plex childCount). */
+/** [itemCount] is how many titles the server says it holds, when it says (Plex childCount, Jellyfin ChildCount). */
 @Serializable
 data class Collection(val ref: MediaRef, val name: String, val itemCount: Int? = null)
 
-/** [itemCount] is how many items the server says it holds, when it says (Plex leafCount). */
+/** [itemCount] is how many items the server says it holds, when it says (Plex leafCount, Jellyfin ChildCount). */
 @Serializable
 data class Playlist(val ref: MediaRef, val name: String, val itemCount: Int? = null)
