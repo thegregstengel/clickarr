@@ -249,7 +249,13 @@ class HouseholdService @Inject constructor(
             return Outcome.Failure(ClickarrError.Invalid("Households talk over TLS only; enter the address without http://"))
         }
         val candidates = listOf(if ("://" in typed) typed else "https://$typed")
-        val p = when (val r = pairAny(candidates, coordinatorFingerprint, pin).flatMap(::sameServer)) {
+        // Refuse a household whose lineup is on another media server; nothing is saved, so this TV stays as it was.
+        val checked = pairAny(candidates, coordinatorFingerprint, pin).flatMap { p ->
+            ServerMatch.mismatch(registry.primary?.server, p.response.state.servers, "household")
+                ?.let { Outcome.Failure(ClickarrError.Invalid("${it.message} Sign in to the same server to join.")) }
+                ?: Outcome.Success(p)
+        }
+        val p = when (val r = checked) {
             is Outcome.Success -> r.value
             is Outcome.Failure -> return r
         }
@@ -275,12 +281,6 @@ class HouseholdService @Inject constructor(
     }
 
     private class Paired(val response: PairCompleteResponse, val url: String, val fingerprint: String)
-
-    /** Refuse a household whose lineup is on another media server; nothing is saved, so this TV stays as it was. */
-    private fun sameServer(p: Paired): Outcome<Paired> =
-        ServerMatch.mismatch(registry.primary?.server, p.response.state.servers, "household")
-            ?.let { Outcome.Failure(ClickarrError.Invalid("${it.message} Sign in to the same server to join.")) }
-            ?: Outcome.Success(p)
 
     /** Tries each address in turn, moving on only when the coordinator was unreachable there. */
     private suspend fun pairAny(urls: List<String>, coordinatorFingerprint: String?, pin: String): Outcome<Paired> {
