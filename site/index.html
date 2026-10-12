@@ -63,7 +63,7 @@
     .flip .card.on h3 { color: var(--glow); }
     .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
     .tile { background: var(--bg-panel); border: 1px solid var(--bg-border); border-radius: var(--radius); overflow: hidden; }
-    .tile img { aspect-ratio: 3 / 2; object-fit: cover; }
+    .tile img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: contain; }
     .tile div { padding: 20px 24px 24px; }
     .tile h3 { margin: 0 0 6px; font-size: 20px; }
     .tile p { margin: 0; color: var(--text-2); }
