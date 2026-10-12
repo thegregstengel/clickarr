@@ -26,7 +26,7 @@ Three things follow:
 |  HouseholdService . ProviderRegistry . MetadataCache        |
 +---------------+-------------------+-------------------------+
 | Scheduling    | Providers         | Household               |
-| (pure Kotlin) | Plex client       | Discovery . Pairing     |
+| (pure Kotlin) | Plex . Jellyfin   | Discovery . Pairing     |
 |               | behind one API    | Coordinator . Client    |
 +---------------+-------------------+-------------------------+
 |  Platform adapters                                          |
@@ -67,7 +67,9 @@ Gradle Kotlin DSL, a version catalog, convention plugins in `build-logic/`, and 
 | `core:common` | `Result`, `Clock` abstraction, logging facade | no |
 | `core:database` | Room entities, DAOs, migrations, mappers | yes |
 | `provider:api` | `MediaProvider` interface and normalized contracts | no |
-| `provider:plex` | Plex client and mapper | yes |
+| `provider:plex` | Plex client and mapper | no |
+| `provider:jellyfin` | Jellyfin client, mapper, device profile, Quick Connect and password sign-in (ADR 0022) | no |
+| `provider:plex-fixtures`, `provider:jellyfin-fixtures` | Fake servers on MockWebServer for unit and emulator tests | no |
 | `provider:testing` | `FakeMediaProvider`, fixtures, contract test suite | no |
 | `household:protocol` | Message and state types, versioning, golden tests | no |
 | `household:discovery` | NSD wrapper, manual fallback | yes |
@@ -83,9 +85,9 @@ Rules: `core:*`, `provider:api`, and `household:protocol` are `kotlin("jvm")` mo
 
 All types are Kotlin `data class` or `value class` in `core:model`. Identifiers are typed, never raw strings.
 
-**Identity.** `ProviderId` (one per configured server connection), `NativeItemId` (the Plex ratingKey), and `MediaRef = (ProviderId, NativeItemId)`, which is globally unique inside Clickarr. Also `ChannelId`, `DeviceId` (generated once per install), and `HouseholdId`. Every reference to media carries the provider it came from.
+**Identity.** `ProviderId` (one per configured server connection), `NativeItemId` (the Plex ratingKey or the Jellyfin item Id), and `MediaRef = (ProviderId, NativeItemId)`, which is globally unique inside Clickarr. Also `ChannelId`, `DeviceId` (generated once per install), and `HouseholdId`. Every reference to media carries the provider it came from.
 
-**Media (normalized).** `ServerInfo` carries `kind` (PLEX), a `serverIdentity` that is stable across URLs, and `baseUrl`. `MediaItem` is a sealed interface with `Show`, `Season`, `Episode`, and `Movie`; `Episode` and `Movie` are `Playable` and carry `runtime` and a list of `MediaVersion`. `runtime` is the **file duration** reported by the server for the chosen version, not the metadata runtime; the schedule depends on it being accurate. `Artwork` holds provider-relative `ArtworkRef`s resolved to URLs by the provider.
+**Media (normalized).** `ServerInfo` carries `kind` (PLEX or JELLYFIN), a `serverIdentity` that is stable across URLs (Plex's machineIdentifier, Jellyfin's server Id), and `baseUrl`. A TV connects to one server ([ADR-0022](adr/0022-jellyfin-alongside-plex.md)); `ProviderRegistry` holds one `MediaProviderFactory` per kind, stores credentials as `ProviderCredentials` JSON in the `SecretStore` (a bare token from before is read as Plex), and refuses a second, different server until the first is disconnected. `MediaItem` is a sealed interface with `Show`, `Season`, `Episode`, and `Movie`; `Episode` and `Movie` are `Playable` and carry `runtime` and a list of `MediaVersion`. `runtime` is the **file duration** reported by the server for the chosen version, not the metadata runtime; the schedule depends on it being accurate. `Artwork` holds provider-relative `ArtworkRef`s resolved to URLs by the provider.
 
 **Channel.** `Channel(id, number, name, icon, source, order, slotRounding, seed, lineup, anchor, enabled)`. `source` is a sealed `ProgrammingSource`: `Shows` (with aired or interleaved episode order), `Library` (with an optional `MediaFilter`), `Collection`, `Playlist`, or `Explicit`. The MVP implements `Shows`, `Library` without filter, and `Explicit`. `order` is SEQUENTIAL or SHUFFLE. `seed` is fixed at creation. `anchor` is the schedule epoch where cycle 0 begins. `slotRounding` (for example 30 minutes) pads each program to the grid.
 
@@ -117,7 +119,7 @@ Future strategies validated against the model but not scheduled: `TimeBlockStrat
 
 The player is created once and reused across channel changes. It lives in the player screen's ViewModel scope; there is no foreground service.
 
-Latency budget on channel change: the overlay switches to the new channel's info immediately from local data; `airingAt` is sub-millisecond; `playbackSource` is one metadata GET for direct play; transcodes cost a decision round trip plus server spin-up. Direct play from a LAN server typically shows first frame in about a second, HLS transcodes in three to six. The MVP prefers direct play aggressively, debounces 300 ms during rapid surfing so intermediate channels never start loading, and stops Plex transcode sessions on departure.
+Latency budget on channel change: the overlay switches to the new channel's info immediately from local data; `airingAt` is sub-millisecond; `playbackSource` is one metadata GET for direct play; transcodes cost a decision round trip plus server spin-up. Direct play from a LAN server typically shows first frame in about a second, HLS transcodes in three to six. The MVP prefers direct play aggressively, debounces 300 ms during rapid surfing so intermediate channels never start loading, and stops server transcode sessions on departure.
 
 Program boundaries are seamless: when `airing.end - now < 20 s`, the next program is appended to the ExoPlayer playlist with a `clippingConfiguration`, and the current item is clipped at `contentEnd`. If the file is shorter than the lineup claims, filler shows until `end`; if longer, it is cut at `contentEnd`.
 
@@ -127,9 +129,9 @@ The device profile is built once at startup from `MediaCodecList` and display ca
 
 Remote mapping: Channel Up/Down and D-pad Up/Down change channel; D-pad Left/Right open the mini-guide; a tap of OK toggles the overlay and a hold of OK switches captions (`OkKeyGesture`); a remote's captions key also switches them; Back closes overlay or guide and prompts to exit at the root; Menu opens the guide; digits enter a channel number with a 2-second commit.
 
-**Captions.** The provider returns a source with its subtitles: on direct play, separate text files are attached as sidecars and tracks inside the container are found by the player; on a transcode, the chosen track is selected on the Plex part and burned in, because a separate file would drift from a stream that starts at the tune-in offset (and `subtitles=none` is sent when captions are off). The track is Plex's own choice, else full subtitles in the TV's language, else forced, else any. Media3 selects text by preferred language and falls back to any supported track. Captions are drawn in Clickarr's style (Inter, white, outlined, no box), ignoring styling embedded in subtitle files. Each load logs whether it direct played or transcoded and which tracks exist, for Diagnostics.
+**Captions.** The provider returns a source with its subtitles: on direct play, separate text files are attached as sidecars and tracks inside the container are found by the player; on a transcode, the chosen track is burned in. Plex: the track is selected on the part, because a separate file would drift from a stream that starts at the tune-in offset, and `subtitles=none` is sent when captions are off; the track is Plex's own choice, else full subtitles in the TV's language, else forced, else any. Jellyfin: the device profile asks for text formats as external files and image formats (PGS, DVD) burned in, and the HLS URL carries `SubtitleStreamIndex` with `SubtitleMethod=Encode` when captions are on; the track is the TV's language first, text before image. Media3 selects text by preferred language and falls back to any supported track. Captions are drawn in Clickarr's style (Inter, white, outlined, no box), ignoring styling embedded in subtitle files. Each load logs whether it direct played or transcoded and which tracks exist, for Diagnostics.
 
-**Between programs.** On padded slots the gap shows a "Coming up next" promo (`PromoDirector`): the next program's backdrop, time, synopsis, and the next three programs, with the show's theme music on a second small player, started at the matching second when tuning in mid-gap and silent past two minutes. Everything comes from Plex's existing metadata (art, grandparentArt, theme, grandparentTheme). Settings, Playback can switch back to the countdown card.
+**Between programs.** On padded slots the gap shows a "Coming up next" promo (`PromoDirector`): the next program's backdrop, time, synopsis, and the next three programs, with the show's theme music on a second small player, started at the matching second when tuning in mid-gap and silent past two minutes. Everything comes from the server's existing metadata: Plex's art, grandparentArt, theme, and grandparentTheme; Jellyfin's backdrops (theme music needs Jellyfin's Theme Songs plugin and is not wired yet, so a Jellyfin promo plays silently). Settings, Playback can switch back to the countdown card.
 
 **Sleep.** `SleepGuard` checks every few seconds for the sleep timer (an app-clock instant in `SleepPrefs`) and for the configured hours without a key press, asks "Are you still watching?" with a one-minute answer window, and on sleep stops the tune controller and releases keep-screen-on so the TV's own screensaver can act. Any key wakes it and re-tunes live.
 
@@ -153,7 +155,7 @@ Media server tokens are never synchronized. The household shares server location
 
 Versioning: `protocolVersion` and `schedulerVersion` are independent integers. A member refuses a coordinator or state with a higher major version and prompts for an update. Within a version, unknown JSON fields are ignored and new fields are optional.
 
-**Sync mode.** A device runs in one of three modes chosen in Settings: Off, Local household (the above), or Google Drive ([ADR-0020](adr/0020-sync-mode-lan-household-or-google-drive.md)). In Drive mode the same `HouseholdState` document lives as one file in a "Clickarr" folder in the viewer's Drive, under the `drive.file` scope (Clickarr sees only files it created; the TV device flow does not allow the hidden app-data scope); writes are the same commands through the same reducer, uploaded with a version precondition and replayed on top of a newer remote state when another device wrote first; reads happen on launch, after local writes, on foreground, and every 15 minutes. Before applying a remote state the device checks that it is signed into the same Plex server the state names. Sign-in uses Google's device code flow over plain HTTPS, so there is no Play Services dependency. Plex tokens are never in the document; the Google token is in the `SecretStore`. Built and verified on Fire TV.
+**Sync mode.** A device runs in one of three modes chosen in Settings: Off, Local household (the above), or Google Drive ([ADR-0020](adr/0020-sync-mode-lan-household-or-google-drive.md)). In Drive mode the same `HouseholdState` document lives as one file in a "Clickarr" folder in the viewer's Drive, under the `drive.file` scope (Clickarr sees only files it created; the TV device flow does not allow the hidden app-data scope); writes are the same commands through the same reducer, uploaded with a version precondition and replayed on top of a newer remote state when another device wrote first; reads happen on launch, after local writes, on foreground, and every 15 minutes. Before applying a remote state the device checks that it is signed into the same media server, kind and identity, that the state names; a LAN coordinator records its server too, and a member on another server is refused on join and ignores states it cannot play (`ServerMatch`). Sign-in uses Google's device code flow over plain HTTPS, so there is no Play Services dependency. Server tokens are never in the document; the Google token is in the `SecretStore`. Built and verified on Fire TV.
 
 ## 10. Quality, release, and licensing
 

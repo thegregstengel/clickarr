@@ -45,7 +45,7 @@ See [architecture.md](architecture.md#module-map). Pure-Kotlin modules (`core:*`
 
 ## App flow (Phase 1)
 
-Launch goes to Plex sign-in when no server is connected, otherwise straight to the player on the last channel. Back from the player opens the shell: Guide, Favorites (can be hidden), and the settings cog. Settings has General (appearance, time, settings lock), Plex Server (sign-in, Tell Plex what you watched), Channels (create, suggest, holiday channels, edit, refresh, guide length, Favorites tab), Playback (profile, between programs, captions, sleep timer, still watching), Sync (off, LAN household, or Google Drive), Diagnostics (schedule math and the recent redacted log, including how each program played and its subtitle tracks; the thing to quote in bug reports), and About (version and updates).
+Launch goes to sign-in (Plex or Jellyfin) when no server is connected, otherwise straight to the player on the last channel. Back from the player opens the shell: Guide, Favorites (can be hidden), and the settings cog. Settings has General (appearance, time, settings lock), Plex and Jellyfin (the connected server, disconnect, Tell the server what you watched; the one this TV does not use is disabled), Channels (create, suggest, holiday channels, edit, refresh, guide length, Favorites tab), Playback (profile, between programs, captions, sleep timer, still watching), Sync (off, LAN household, or Google Drive), Diagnostics (schedule math and the recent redacted log, including how each program played and its subtitle tracks; the thing to quote in bug reports), and About (version and updates).
 
 ## Database migrations
 
@@ -69,7 +69,10 @@ adb logcat -s 'Clickarr/*'
 every push to `main` that touches code, installs the debug APK, and runs `app/src/androidTest`. The
 test `FirstRunFlowTest` walks the real first-run path against a fake Plex server that runs inside the
 test process (`provider:plex-fixtures`): manual connect, create a channel from a show, tune, overlay,
-guide. The run uploads an `emulator-run` artifact with numbered screenshots, a screen recording,
+guide. `JellyfinFlowTest` does the same against a fake Jellyfin server (`provider:jellyfin-fixtures`): address,
+Quick Connect, a show channel and a collection channel, tune, guide, and Settings with Jellyfin enabled and Plex
+disabled. It runs in a second `connectedDebugAndroidTest` invocation, so a fresh install with no server
+(`.github/scripts/emulator-tests.sh`); its screenshots are prefixed `j`. The run uploads an `emulator-run` artifact with numbered screenshots, a screen recording,
 redacted logcat, and the HTML test report. Open the latest run under Actions, download the artifact,
 and look at the PNGs to see what the app actually drew.
 
@@ -89,8 +92,9 @@ adb pull /sdcard/Pictures/clickarr ./screenshots
 Settings, Sync, Google Drive. `GoogleDeviceAuth` runs Google's device-code flow (the TV shows a code, the viewer enters
 it at google.com/device), `DriveAppData` talks to the Drive v3 API under the `drive.file` scope (a "Clickarr" folder the viewer can see), and `DriveSync` keeps the household
 document there: commands apply locally through the `HouseholdReducer`, queue in the `sync_state` table, and are
-pushed; a newer remote state is taken and the queue replayed on top. The Plex server identity in the document must
-match the signed-in server before a remote state is applied. The OAuth client comes from `CLICKARR_GOOGLE_CLIENT_ID`
+pushed; a newer remote state is taken and the queue replayed on top. The media server (kind and identity) in the document must
+match the signed-in server before a remote state is applied; a LAN household checks the same on join and sync
+(`ServerMatch`, ADR 0022). The OAuth client comes from `CLICKARR_GOOGLE_CLIENT_ID`
 and `CLICKARR_GOOGLE_CLIENT_SECRET` at build time (CI secrets); without them the pane says the build is not configured.
 
 ## Households (Phase 2)
@@ -121,4 +125,22 @@ runs a coordinator with one movie channel inside the test process on a loopback 
 the emulator's own household, joins that coordinator by address and PIN, and checks the synced channel shows up on the
 Channels list under Settings (screens 15 to 17). Joining by a typed address trusts the fingerprint the coordinator states on first
 use; joining from the discovery list checks the stated fingerprint against the one that was advertised.
+
+## Jellyfin
+
+`provider:jellyfin` is written from Jellyfin's published REST API (ADR 0022); nothing comes from Jellyfin's own
+clients. Notes for working on it:
+
+- Every request carries `Authorization: MediaBrowser Client="Clickarr", Device=…, DeviceId=…, Version=…, Token=…`.
+  Header values are ASCII-cleaned, and `Redact` masks the Token field and `ApiKey` query parameters.
+- Listings are per user (`userId`), so the stored credential is a token plus a user id (`ProviderCredentials`).
+- Time is in 100-nanosecond ticks (`JellyfinMapper.ticks`).
+- Playback posts `/Items/{id}/PlaybackInfo` with Clickarr's device profile (`JellyfinProfile`). Direct play streams
+  `/Videos/{id}/stream?static=true` with the Authorization header; otherwise the server's HLS `TranscodingUrl`, with
+  `SubtitleStreamIndex` and `SubtitleMethod=Encode` set when captions are on. When the only transcode reason is an
+  unsupported default audio track and the file carries another the TV decodes, Clickarr direct plays anyway.
+- Collections live outside libraries; `/Items?parentId=<library>&includeItemTypes=BoxSet&recursive=true` lists the
+  ones holding that library's items.
+- To poke a real server by hand, sign in once with `POST /Users/AuthenticateByName` and keep the token out of the
+  repo; the fixture server's catalog is synthetic and must stay that way.
 

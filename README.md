@@ -5,7 +5,7 @@
 <h3 align="center">Turn your media library into TV.</h3>
 
 <p align="center">
-  An open-source Android TV app that gives your Plex library a channel lineup, a program guide, and a remote-control experience. Something is always on. Just change the channel.
+  An open-source Android TV app that gives your Plex or Jellyfin library a channel lineup, a program guide, and a remote-control experience. Something is always on. Just change the channel.
 </p>
 
 <p align="center">
@@ -13,7 +13,7 @@
   <a href="https://github.com/thegregstengel/clickarr/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/thegregstengel/clickarr?color=7E4DFD&label=release"></a>
   <img alt="Platforms" src="https://img.shields.io/badge/platforms-Android%20TV%20%7C%20Google%20TV%20%7C%20Fire%20TV-0CE568">
   <a href="https://clickarr.net"><img alt="Website" src="https://img.shields.io/badge/web-clickarr.net-00ACFF"></a>
-  <img alt="Server" src="https://img.shields.io/badge/server-Plex-E5A00D">
+  <img alt="Server" src="https://img.shields.io/badge/server-Plex%20%7C%20Jellyfin-E5A00D">
 </p>
 
 ---
@@ -47,7 +47,7 @@ Screens from the app as it stands, taken on the Android TV emulator by the test 
   </tr>
   <tr>
     <td width="50%"><img src="site/assets/screens/holidays.png" alt="Holiday channels"><br><sub><b>Holiday channels.</b> Valentine's Day, Easter, Halloween, Thanksgiving, and Christmas, on air only in the run-up and back every year.</sub></td>
-    <td width="50%"><img src="site/assets/screens/setup.png" alt="First-run setup"><br><sub><b>Setup.</b> Sign in to Plex with a code on your phone, or type an address and token. Your sign-in stays on the TV and is never synced.</sub></td>
+    <td width="50%"><img src="site/assets/screens/setup.png" alt="First-run setup"><br><sub><b>Setup.</b> Plex: a code on your phone, or an address and token. Jellyfin: the server's address, then Quick Connect or a password. Your sign-in stays on the TV and is never synced.</sub></td>
   </tr>
 </table>
 
@@ -64,16 +64,17 @@ Nightlies are signed with one long-lived key, so each one installs over the last
 
 Everything below is in the nightly and has been exercised on real Fire TV Sticks as well as the emulator.
 
-- **Channels** from shows, whole libraries with genre and decade filters, Plex collections, playlists, and hand-picked lists. In order or shuffled. Back to back, or padded to 15, 30, or 60-minute slots with a "Coming up next" promo between programs: the next show's backdrop, time, and synopsis over its theme music.
+- **Plex or Jellyfin.** One server per TV, chosen at first run ([ADR 0022](docs/adr/0022-jellyfin-alongside-plex.md)). Plex signs in with a code at plex.tv/link; Jellyfin with Quick Connect or a password. Settings has a section for each; the one you do not use is disabled.
+- **Channels** from shows, whole libraries with genre and decade filters, collections, playlists, and hand-picked lists. In order or shuffled. Back to back, or padded to 15, 30, or 60-minute slots with a "Coming up next" promo between programs: the next show's backdrop, time, and synopsis over its theme music.
 - **Episodes in a row.** A shuffled channel can still play two, three, or a range of one show's episodes back to back in aired order before moving on; a channel of several shows alternates between them.
 - **Suggest channels.** Reads your library once and proposes a starting lineup the way you would make it by hand: a rerun channel for each show you have the most of, collections and playlists with enough in them, genre themes such as Sitcoms, Cartoons, and Horror Movies, strong decades, and one shuffled movie channel.
-- **Keep lineups current.** Once a day Clickarr re-reads every channel's source from Plex, so new episodes join at the next program boundary without anyone pressing Refresh.
+- **Keep lineups current.** Once a day Clickarr re-reads every channel's source from your server, so new episodes join at the next program boundary without anyone pressing Refresh.
 - **Guide** two hours across with a now-line, a preview card, favorites, numeric channel entry, and a mini-guide inside the player on Left and Right.
 - **Player** that tunes in mid-program like television, with an overlay, Up Next, and automatic advancement at each boundary. **Captions** in your language: off by default, on in Settings or with a hold of OK.
 - **Deterministic schedules.** A channel is a function from time to program; every TV computes the same answer from the same frozen lineup, so nothing drifts and nothing streams between TVs.
 - **Households.** TVs pair over the LAN with a PIN over TLS with pinned certificates. One coordinates, the others cache the lineup and keep playing if it is off. Manual coordinator migration when the coordinating TV moves on.
-- **Google Drive sync** as the alternative to a LAN household: backup, restore, and TVs in different homes on one lineup, as long as they use the same Plex server. TV code sign-in, no Google Play Services. Built; waits on a Google OAuth client in the build ([ADR 0020](docs/adr/0020-sync-mode-lan-household-or-google-drive.md)).
-- **Tell Plex what you watched,** off unless you turn it on. Episodes you sit through are marked watched, measured from the player's own position so tuning in for the ending does not count; optionally the running position too, for Continue Watching.
+- **Google Drive sync** as the alternative to a LAN household: backup, restore, and TVs in different homes on one lineup, as long as they use the same media server. TV code sign-in, no Google Play Services. Built; waits on a Google OAuth client in the build ([ADR 0020](docs/adr/0020-sync-mode-lan-household-or-google-drive.md)).
+- **Tell Plex or Jellyfin what you watched,** off unless you turn it on. Episodes you sit through are marked watched, measured from the player's own position so tuning in for the ending does not count; optionally the running position too, for Continue Watching.
 - **Settings lock.** A four-digit code on an on-screen pad covers Settings and the channel editor; the guide and watching stay open. Per TV, never synced.
 - **Appearance and time.** Four themes (Clickarr navy, Dark, a slate Light, Dracula), three sizes, a clock in the shell, automatic network time and a time zone. The Favorites tab can be hidden.
 - **Updates and diagnostics.** Check, download with checksum, and install from Settings, About, on a nightly or release channel. A Diagnostics pane with everything a bug report needs, tokens never included. Reproducible release builds verified in CI.
@@ -81,7 +82,7 @@ Everything below is in the nightly and has been exercised on real Fire TV Sticks
 ## How it works
 
 ```text
-                     Plex Media Server
+                 Plex or Jellyfin server
                              │
                              │  metadata + direct video stream
                              ▼
@@ -129,7 +130,7 @@ The full reasoning, with the options that were considered and rejected, is in th
 
 Clickarr is developed in the open and help is welcome. The most useful things right now, in order:
 
-1. **Run the nightly on a real TV and report what breaks.** Chromecast with Google TV, Shield, Sony and TCL sets, older Fire TV models: each one is a little different, and CI only has an emulator. Open an issue with the device, the Plex server version, and the lines from Settings, Diagnostics.
+1. **Run the nightly on a real TV and report what breaks.** Chromecast with Google TV, Shield, Sony and TCL sets, older Fire TV models: each one is a little different, and CI only has an emulator. Open an issue with the device, the Plex or Jellyfin server version, and the lines from Settings, Diagnostics.
 2. **Try your library against Suggest channels and the channel editor.** Odd metadata (specials, multi-part episodes, mixed libraries) is where schedulers go wrong.
 3. **Send a pull request** for a bug you can reproduce or a small, well-scoped feature. Open an issue first for anything bigger than an afternoon so we agree on the shape before you write it.
 
@@ -137,8 +138,8 @@ How a change gets in:
 
 - Fork the repo and work on a branch in your fork. Nobody but the maintainer can push to `main`, and `main` only takes squash-merged pull requests that pass CI and have been reviewed and merged by the maintainer. That is deliberate: one person is paying attention to every line, and there is no second remote to drift.
 - CI (detekt, unit tests, lint, a debug build) runs on your pull request after the maintainer approves the run; the emulator suite and the nightly publish run only on `main`. Please run `./gradlew detekt test` yourself first.
-- Read [CONTRIBUTING.md](CONTRIBUTING.md) for the rules that will not change: no code copied from other media clients (Clickarr is MIT and stays clean-room), no secrets or server tokens in the repo, Plex only, and tests alongside scheduler and protocol changes. [docs/development.md](docs/development.md) has the toolchain.
+- Read [CONTRIBUTING.md](CONTRIBUTING.md) for the rules that will not change: no code copied from other media clients (Clickarr is MIT and stays clean-room), no secrets or server tokens in the repo, Plex and Jellyfin only, and tests alongside scheduler and protocol changes. [docs/development.md](docs/development.md) has the toolchain.
 
 ## License
 
-MIT. See [LICENSE](LICENSE). Inter is bundled under the SIL Open Font License, and channel glyphs come from [Lucide](https://lucide.dev) (ISC); see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Plex is a trademark of Plex, Inc.; Clickarr is an independent project and is not affiliated with or endorsed by Plex.
+MIT. See [LICENSE](LICENSE). Inter is bundled under the SIL Open Font License, and channel glyphs come from [Lucide](https://lucide.dev) (ISC); see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Plex is a trademark of Plex, Inc.; Clickarr is an independent project and is not affiliated with or endorsed by Plex or the Jellyfin project.

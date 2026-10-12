@@ -27,8 +27,8 @@ See [docs/development.md](docs/development.md). Short version: JDK 17, Android S
 
 ## Rules of the road
 
-- **No code from other media clients.** Do not copy from Plex, Kodi, QuasiTV, or any other media client, GPL or otherwise. Clickarr is MIT and must stay clean. Read the API docs, not the apps.
-- **Plex only.** Clickarr is a Plex client by design (ADR 0019); pull requests that add another media server, or abstract toward one, will be declined.
+- **No code from other media clients.** Do not copy from Plex, Jellyfin, Kodi, QuasiTV, or any other media client, GPL or otherwise. Clickarr is MIT and must stay clean. Read the API docs, not the apps.
+- **Plex and Jellyfin.** Clickarr supports those two servers, one per TV (ADR 0022, which replaced the Plex-only ADR 0019). A pull request for another server needs an ADR first; Emby is not planned.
 - **No secrets in the repo.** Tokens, keystores, and local server addresses never get committed. `.gitignore` covers the obvious ones; think before adding files.
 - **Pure Kotlin stays pure.** `core:*` and `household:protocol` must not import Android. The build enforces it; please do not work around it.
 - **Tests go with the code.** Scheduler and protocol changes need unit tests. Provider changes need fixture-based tests. UI changes should at least keep the existing Compose tests green.
@@ -45,7 +45,7 @@ Conventional commit prefixes (`feat:`, `fix:`, `docs:`, `build:`, `test:`, `refa
 
 ## Reporting bugs
 
-Copy the lines from Settings, Diagnostics (device, scheduler version, each channel's lineup hash and current slot, recent redacted log), and say which device and which Plex server version you use. "Channel 10 is wrong on the bedroom TV" bugs need the lineup hash and clock offset from that screen.
+Copy the lines from Settings, Diagnostics (device, scheduler version, each channel's lineup hash and current slot, recent redacted log), and say which device and which Plex or Jellyfin server version you use. "Channel 10 is wrong on the bedroom TV" bugs need the lineup hash and clock offset from that screen.
 
 ## Security
 

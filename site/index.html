@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Clickarr</title>
-  <meta name="description" content="Clickarr turns your Plex library into live TV channels with a real guide, on Fire TV, Android TV, and Google TV. Free, open source, no server, no subscription.">
+  <meta name="description" content="Clickarr turns your Plex or Jellyfin library into live TV channels with a real guide, on Fire TV, Android TV, and Google TV. Free, open source, no server, no subscription.">
   <link rel="canonical" href="https://clickarr.net/">
   <link rel="icon" href="assets/favicon.ico" sizes="any">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
@@ -14,7 +14,7 @@
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://clickarr.net/">
   <meta property="og:title" content="Clickarr: turn your media library into TV">
-  <meta property="og:description" content="Live TV channels from your Plex library. Free, open source, no server, no subscription. For Fire TV and Android TV.">
+  <meta property="og:description" content="Live TV channels from your Plex or Jellyfin library. Free, open source, no server, no subscription. For Fire TV and Android TV.">
   <meta property="og:image" content="https://clickarr.net/assets/og-image.png">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -134,7 +134,7 @@
     <div class="wrap">
       <span class="pill"><b>●</b> Free · Open source · No server · No subscription</span>
       <h1>Turn your media library<br>into <span>television</span>.</h1>
-      <p>Live TV channels from your own Plex library, with a real guide and a remote that surfs. No subscription, no server to babysit, and no cloud account in the middle.</p>
+      <p>Live TV channels from your own Plex or Jellyfin library, with a real guide and a remote that surfs. No subscription, no server to babysit, and no cloud account in the middle.</p>
       <div class="cta">
         <a class="btn" href="https://github.com/thegregstengel/clickarr/releases/latest">Download for Android TV &amp; Fire TV</a>
         <a class="btn ghost" href="https://github.com/thegregstengel/clickarr/releases/tag/nightly">Nightly build</a>
@@ -147,7 +147,7 @@
   <section id="why">
     <div class="wrap">
       <h2>The other options kept missing the mark</h2>
-      <p class="lead">Turning a Plex library into live channels is not a new idea. But the ways to do it tend to cost money every month, need a server or container running around the clock, put a cloud account between your TVs, or leave out the things that make it feel like TV. Clickarr was built to be the one without the catch.</p>
+      <p class="lead">Turning a media library into live channels is not a new idea. But the ways to do it tend to cost money every month, need a server or container running around the clock, put a cloud account between your TVs, or leave out the things that make it feel like TV. Clickarr was built to be the one without the catch.</p>
       <div class="cmp-wrap">
         <table class="cmp">
           <thead><tr><th></th><th>Often elsewhere</th><th class="us">Clickarr</th></tr></thead>
@@ -155,9 +155,9 @@
             <tr><td>Price</td><td class="them">A monthly or yearly subscription</td><td class="us">Free, MIT licensed, no ads, no tracking</td></tr>
             <tr><td>What you run</td><td class="them">A server or Docker container, always on</td><td class="us">One APK on the TV. Every TV works out the schedule itself</td></tr>
             <tr><td>Keeping TVs in sync</td><td class="them">The vendor's cloud account</td><td class="us">Your own Wi-Fi, or your own Google Drive</td></tr>
-            <tr><td>Your Plex history</td><td class="them">Continue Watching fills up with half-watched channel episodes</td><td class="us">Off, mark watched only when you sat through it, or full progress: your call</td></tr>
-            <tr><td>Your Plex sign-in</td><td class="them">Handed to a server or a service</td><td class="us">Stays in the TV's Keystore and never syncs</td></tr>
-            <tr><td>Video</td><td class="them">Sometimes relayed through another box</td><td class="us">Straight from your Plex server to the TV</td></tr>
+            <tr><td>Your watch history</td><td class="them">Continue Watching fills up with half-watched channel episodes</td><td class="us">Off, mark watched only when you sat through it, or full progress: your call</td></tr>
+            <tr><td>Your server sign-in</td><td class="them">Handed to a server or a service</td><td class="us">Stays in the TV's Keystore and never syncs</td></tr>
+            <tr><td>Video</td><td class="them">Sometimes relayed through another box</td><td class="us">Straight from your Plex or Jellyfin server to the TV</td></tr>
           </tbody>
         </table>
       </div>
@@ -229,9 +229,9 @@ Parks and Rec is 22 minutes in.</pre>
           </ul>
         </div>
         <div class="group">
-          <h3>No mess in Plex</h3>
+          <h3>No mess on your server</h3>
           <ul>
-            <li>Tell Plex what you watched: <b>off, mark watched, or full progress</b>.</li>
+            <li>Tell Plex or Jellyfin what you watched: <b>off, mark watched, or full progress</b>.</li>
             <li>Mark watched only counts what you <b>actually sat through</b>. Tuning in for the ending does not count.</li>
             <li>Your <b>Continue Watching stays clean</b> unless you choose full progress.</li>
           </ul>
@@ -271,13 +271,13 @@ Parks and Rec is 22 minutes in.</pre>
   <section id="security" style="background: var(--bg-panel)">
     <div class="wrap">
       <h2>Security, done properly</h2>
-      <p class="lead">An app that holds your Plex sign-in should earn it.</p>
+      <p class="lead">An app that holds your server sign-in should earn it.</p>
       <div class="feat">
-        <div class="f"><span class="k">1</span><h3>Your token stays put</h3><p>The Plex sign-in lives in the TV's Android Keystore. It never syncs to other TVs and never appears in logs or Diagnostics.</p></div>
+        <div class="f"><span class="k">1</span><h3>Your token stays put</h3><p>Your Plex or Jellyfin sign-in lives in the TV's Android Keystore; for Jellyfin only the token, never the password. It never syncs to other TVs and never appears in logs or Diagnostics.</p></div>
         <div class="f"><span class="k">2</span><h3>Pairing over TLS</h3><p>TVs pair with a one-time PIN and pinned certificates, so a random device on your Wi-Fi cannot join your household.</p></div>
         <div class="f"><span class="k">3</span><h3>The narrowest Drive access</h3><p>Google Drive sync uses the smallest permission Google offers. Clickarr can see the one file it created, not the rest of your Drive.</p></div>
         <div class="f"><span class="k">4</span><h3>Signed and reproducible</h3><p>Every release is built twice in CI and checked to match, then signed. The signing fingerprint is published so you can verify the APK.</p></div>
-        <div class="f"><span class="k">5</span><h3>Nothing phones home</h3><p>No analytics and no Clickarr servers. It talks to your Plex server, to GitHub when you check for updates, and to Google only if you turn on Drive sync.</p></div>
+        <div class="f"><span class="k">5</span><h3>Nothing phones home</h3><p>No analytics and no Clickarr servers. It talks to your Plex or Jellyfin server, to GitHub when you check for updates, and to Google only if you turn on Drive sync.</p></div>
         <div class="f"><span class="k">6</span><h3>Reviewed in public</h3><p>The security review, including the known limitations, is written up in <a href="https://github.com/thegregstengel/clickarr/blob/main/SECURITY.md">SECURITY.md</a>.</p></div>
       </div>
     </div>
@@ -300,13 +300,13 @@ Parks and Rec is 22 minutes in.</pre>
         <div><h3>Android TV &amp; Google TV</h3><p>Download the APK from <a href="https://github.com/thegregstengel/clickarr/releases/latest">GitHub Releases</a> and install it with your favorite file manager or ADB.</p></div>
         <div><h3>Living on the edge</h3><p>The daily build is at <code>clickarr.net/nightly</code>. Switch between release and nightly in Settings, About.</p></div>
       </div>
-      <p style="margin:28px 0 0;color:var(--text-2)">Questions, lineups, and bug reports: <a href="https://www.reddit.com/r/Clickarr/">r/Clickarr</a> and <a href="https://github.com/thegregstengel/clickarr/issues">GitHub issues</a>. Built for Plex first, with a lot of help from Claude.</p>
+      <p style="margin:28px 0 0;color:var(--text-2)">Questions, lineups, and bug reports: <a href="https://www.reddit.com/r/Clickarr/">r/Clickarr</a> and <a href="https://github.com/thegregstengel/clickarr/issues">GitHub issues</a>. Built for Plex and Jellyfin, with a lot of help from Claude.</p>
     </div>
   </section>
 
   <footer>
     <div class="wrap row">
-      <div><img src="assets/logo-mark.png" alt="" width="32" height="32" style="display:inline-block;vertical-align:middle;margin-right:10px">MIT licensed. Plex is a trademark of Plex, Inc.; Clickarr is not affiliated with Plex.</div>
+      <div><img src="assets/logo-mark.png" alt="" width="32" height="32" style="display:inline-block;vertical-align:middle;margin-right:10px">MIT licensed. Plex is a trademark of Plex, Inc.; Clickarr is not affiliated with Plex or the Jellyfin project.</div>
       <div><a href="https://github.com/thegregstengel/clickarr">GitHub</a> · <a href="privacy/">Privacy</a> · <a href="https://github.com/thegregstengel/clickarr/blob/main/docs/architecture.md">Architecture</a> · <a href="https://github.com/thegregstengel/clickarr/blob/main/docs/design/design-language.md">Design language</a></div>
     </div>
   </footer>

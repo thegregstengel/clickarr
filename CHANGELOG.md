@@ -11,6 +11,12 @@ second release the same day); the household protocol, scheduler, and database ca
   TVs already paired keep working.
 
 ### Added
+- Jellyfin, alongside Plex (ADR 0022, replacing the Plex-only ADR 0019). Setup offers Jellyfin: type the server's
+  address, then approve a Quick Connect code in a Jellyfin app or sign in with username and password (sent once; only
+  the token is kept, on the TV). Channels, the guide, captions, "Coming up next" (without theme music for now),
+  watch reporting, households, and Drive sync work the same. Jellyfin picks direct play or HLS from Clickarr's
+  device profile; a file whose default audio track the TV cannot decode, but which carries another it can, plays
+  as it is rather than being re-encoded.
 - Holiday channels (Settings, Channels): Valentine's Day and Easter (the week before), Halloween, Thanksgiving, and
   Christmas (from the 1st of the month to the day). Switch one on and fill it from genres, Plex collections, or
   hand-picked movies; it shows in the guide only in its window and returns each year. Easter and US Thanksgiving are
@@ -28,6 +34,10 @@ second release the same day); the household protocol, scheduler, and database ca
   button tunes back in live.
 
 ### Changed
+- A TV is signed in to one server, Plex or Jellyfin. Settings has a Plex section and a Jellyfin section in place of
+  Plex Server; the one this TV does not use is disabled. Signing in to a different server needs a disconnect first.
+- A LAN household records its server, and a TV signed in to another server, or another kind, is refused when it
+  joins; Drive sync checks the kind as well as the server.
 - Tell Plex what you watched moved to Settings, Plex Server, and is now off by default. A TV that already chose a
   setting keeps it.
 - Every picker and list sorts alphabetically, ignoring a leading The, A, or An (the guide keeps channel order).
