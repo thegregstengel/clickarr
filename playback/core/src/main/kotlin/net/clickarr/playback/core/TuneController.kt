@@ -2,6 +2,7 @@ package net.clickarr.playback.core
 
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -64,6 +65,8 @@ class TuneController(
     private var sessionJob: Job? = null
     private var currentSource: PlaybackSource? = null
     private var currentProvider: MediaProvider? = null
+    private var reconnects = 0
+    private var lastDrop: Instant? = null
 
     init {
         scope.launch {
@@ -201,7 +204,31 @@ class TuneController(
         _state.update { it.copy(status = TuneStatus.Filler) }
     }
 
+    /**
+     * A stream that drops mid-programme (the server ended a transcode, a segment came back with an error, the network
+     * blinked) is picked up again at the live position, the way a TV picks a channel back up. Only when it keeps failing
+     * does the unavailable card take over the rest of the slot.
+     */
     private fun onPlayerError(error: PlayerEvent.Error) {
+        val s = _state.value
+        val channel = s.channel
+        val now = clock.now()
+        val onAir = (s.status == TuneStatus.Playing || s.status == TuneStatus.Loading) && s.airing?.let { now < it.contentEnd } == true
+        if (error.recoverable && onAir && channel != null) {
+            if (lastDrop?.let { now - it > reconnectWindow } != false) reconnects = 0
+            lastDrop = now
+            if (reconnects < MAX_RECONNECTS) {
+                reconnects++
+                Log.w(TAG) { "player error: ${error.message}, reconnecting ($reconnects of $MAX_RECONNECTS)" }
+                _state.update { it.copy(status = TuneStatus.Loading) }
+                tuneJob?.cancel()
+                tuneJob = scope.launch {
+                    delay(RECONNECT_DELAY * reconnects)
+                    startSession(channel)
+                }
+                return
+            }
+        }
         Log.w(TAG) { "player error: ${error.message}" }
         _state.update { it.copy(status = TuneStatus.Unavailable(error.message)) }
     }
@@ -216,6 +243,11 @@ class TuneController(
 
     companion object {
         private const val TAG = "Tune"
+        private const val MAX_RECONNECTS = 3
+        private val RECONNECT_DELAY = 2.seconds
+
+        /** Drops further apart than this are separate incidents, each with its own reconnect attempts. */
+        private val reconnectWindow = 5.minutes
     }
 }
 

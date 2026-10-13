@@ -10,6 +10,7 @@ import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.HttpDataSource
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
@@ -56,8 +57,13 @@ class Media3PlayerEngine(context: Context, okHttp: OkHttpClient, userAgent: Stri
                 override fun onTracksChanged(tracks: Tracks) = pickTextTrackIfNeeded(tracks)
 
                 override fun onPlayerError(error: PlaybackException) {
-                    Log.w(TAG, error) { "ExoPlayer error ${error.errorCodeName}" }
-                    _events.tryEmit(PlayerEvent.Error(error.errorCodeName, recoverable = error.errorCode in RECOVERABLE))
+                    // The status and path say which side failed (a 404 on a segment is a transcode the server ended).
+                    val http = generateSequence<Throwable>(error) { it.cause }
+                        .filterIsInstance<HttpDataSource.InvalidResponseCodeException>().firstOrNull()
+                    val detail = http?.let { " HTTP ${it.responseCode} on ${it.dataSpec.uri.path}" }.orEmpty()
+                    Log.w(TAG, error) { "ExoPlayer error ${error.errorCodeName}$detail" }
+                    val recoverable = error.errorCode in IO_ERRORS || error.errorCode == PlaybackException.ERROR_CODE_BEHIND_LIVE_WINDOW
+                    _events.tryEmit(PlayerEvent.Error(error.errorCodeName, recoverable = recoverable))
                 }
             },
         )
@@ -154,10 +160,7 @@ class Media3PlayerEngine(context: Context, okHttp: OkHttpClient, userAgent: Stri
 
     companion object {
         private const val TAG = "Media3"
-        private val RECOVERABLE = setOf(
-            PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED,
-            PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT,
-            PlaybackException.ERROR_CODE_BEHIND_LIVE_WINDOW,
-        )
+        /** Media3's input and output codes (network, HTTP status, missing segment); worth reconnecting for. */
+        private val IO_ERRORS = 2000..2999
     }
 }

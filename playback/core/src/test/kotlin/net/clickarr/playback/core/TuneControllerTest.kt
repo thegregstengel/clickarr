@@ -191,4 +191,52 @@ class TuneControllerTest {
         h.engine.stops shouldBe 1
         h.controller.state.value.status shouldBe TuneStatus.Idle
     }
+
+    @Test
+    fun `a stream that drops mid-programme is picked up again at the live position`() = runTest {
+        val h = Harness(this, provider, lineup, anchor + 10.minutes)
+        h.controller.tune(channel)
+        advanceTimeBy(301)
+        runCurrent()
+        h.engine.emit(PlayerEvent.FirstFrame)
+        advanceTimeBy(5.minutes.inWholeMilliseconds)
+        h.engine.emit(PlayerEvent.Error("ERROR_CODE_IO_BAD_HTTP_STATUS", recoverable = true))
+        runCurrent()
+        h.controller.state.value.status shouldBe TuneStatus.Loading
+        advanceTimeBy(2.seconds.inWholeMilliseconds + 1)
+        runCurrent()
+        h.engine.loads.size shouldBe 2
+        h.engine.loads.last().startAt shouldBe 15.minutes + 2.seconds + 301.milliseconds
+        h.controller.state.value.airing.shouldNotBeNull().entry.title shouldBe entries[0].title
+    }
+
+    @Test
+    fun `an error that is not worth retrying shows the unavailable card`() = runTest {
+        val h = Harness(this, provider, lineup, anchor + 10.minutes)
+        h.controller.tune(channel)
+        advanceTimeBy(301)
+        runCurrent()
+        h.engine.emit(PlayerEvent.Error("ERROR_CODE_DECODING_FAILED"))
+        runCurrent()
+        h.controller.state.value.status.shouldBeInstanceOf<TuneStatus.Unavailable>()
+        advanceTimeBy(10.seconds.inWholeMilliseconds)
+        h.engine.loads.size shouldBe 1
+    }
+
+    @Test
+    fun `a stream that keeps dropping gives up after three reconnects`() = runTest {
+        val h = Harness(this, provider, lineup, anchor + 10.minutes)
+        h.controller.tune(channel)
+        advanceTimeBy(301)
+        runCurrent()
+        repeat(3) {
+            h.engine.emit(PlayerEvent.Error("ERROR_CODE_IO_BAD_HTTP_STATUS", recoverable = true))
+            advanceTimeBy(10.seconds.inWholeMilliseconds)
+            runCurrent()
+        }
+        h.engine.loads.size shouldBe 4
+        h.engine.emit(PlayerEvent.Error("ERROR_CODE_IO_BAD_HTTP_STATUS", recoverable = true))
+        runCurrent()
+        h.controller.state.value.status.shouldBeInstanceOf<TuneStatus.Unavailable>()
+    }
 }

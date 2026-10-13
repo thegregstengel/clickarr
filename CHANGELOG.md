@@ -5,6 +5,10 @@ second release the same day); the household protocol, scheduler, and database ca
 
 ## [Unreleased]
 
+### Fixed
+
+- A stream that drops in the middle of a programme, for example when the server ends a transcode, now reconnects at the live position, up to three times. It no longer gives up and shows "Up next" for the rest of the slot. The log now records the HTTP status and path of the failed request.
+
 ## 2026.10.12
 
 ### Security
