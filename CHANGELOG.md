@@ -7,9 +7,10 @@ second release the same day); the household protocol, scheduler, and database ca
 
 ### Added
 
-- Settings, Channels: each regular channel row has a reorder handle on the left (Up/Down or drag) and Delete on the
-  right. Reordering renumbers those channels immediately and syncs through the household or Drive. Holiday channels
-  keep their numbers and do not show either control.
+- Settings, Channels: each regular channel row has a reorder handle on the left and Delete on the right. Select the
+  handle to enter move mode, then Up/Down or drag to reorder among regulars; select again to commit. Outside move
+  mode, Up/Down moves focus down the reorder column. Delete asks for confirmation first. Holiday channels keep their
+  numbers and do not show either control. Reordering syncs through the household or Drive.
 
 ### Fixed
 
