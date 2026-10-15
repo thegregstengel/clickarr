@@ -38,9 +38,11 @@ class JellyfinFlowTest : TvFlow() {
         // The viewer approves the code in a Jellyfin app; the TV notices on its next poll.
         jellyfin.approveQuickConnect()
 
-        waitForText("Create channel", timeoutMs = 30_000)
-        click("Create channel")
-        waitForText("What goes on this channel?")
+        waitForText("Custom channel", timeoutMs = 30_000)
+        click("Custom channel")
+        waitForText("Which library?")
+        click("Shows")
+        waitForText("What from Shows?")
         click("Shows")
         waitForText("The Office (US)")
         shot("j04-pick-shows")
@@ -48,15 +50,15 @@ class JellyfinFlowTest : TvFlow() {
         click("Continue")
         waitForText("Channel number")
         click("Create channel")
-        waitForText("Create channel")
+        waitForText("Custom channel")
         waitForText("The Office (US)")
 
         // A collection channel, so the Jellyfin collection path is exercised end to end.
-        click("Create channel")
-        waitForText("What goes on this channel?")
-        click("Collection")
-        waitForText("Movies") // two libraries, so the editor asks which one
+        click("Custom channel")
+        waitForText("Which library?")
         click("Movies")
+        waitForText("What from Movies?")
+        click("Collections")
         waitForText("Which collection?")
         click("The Lord of the Rings")
         waitForText("Channel number")

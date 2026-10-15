@@ -57,7 +57,7 @@ fun FillerCard(state: TuneState, now: Instant, reason: String?, showHeader: Bool
             } else if (channel == null) {
                 Text("No channels yet", style = ClickarrTextStyles.ProgramTitle)
                 Text(
-                    "Press Back for the Channels tab and choose Create channel.",
+                    "Press Back for the Channels tab and choose Custom channel.",
                     style = ClickarrTextStyles.Secondary,
                     color = ClickarrColors.TextSecondary,
                 )

@@ -364,7 +364,7 @@ All at 1920×1080, 48 dp safe area. Numbers are dp.
 - **Channel names** display as entered in lists and as uppercase in the `label.allcaps` role only. Never force case in data.
 - **Numbers** right-aligned in columns. Channel numbers have no leading zeros.
 - **Status lines** say what and when: "Synced 2 minutes ago", "Living Room (Coordinator)", "This device".
-- **Empty states** say what to do next in one sentence and offer one button: "No channels yet. Create one from a show, a collection, or a playlist." + "Create channel".
+- **Empty states** say what to do next in one sentence and offer one button: "No channels yet. Create one from a show, a collection, or a playlist." + "Custom channel".
 - **Never** use exclamation marks, "Oops", or jokes in errors. Never show a stack trace outside Diagnostics.
 - Strings are externalized from day one; English is the source language.
 
