@@ -18,6 +18,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -91,6 +92,10 @@ fun ShellScreen(
     val lastKeyAt = remember { longArrayOf(0L) }
     // Down from the settings cog lands on the first section (or the lock pad), not on whatever pane content is nearest.
     val settingsEntry = remember { FocusRequester() }
+    // Up from the first guide row lands here. Spatial search alone often misses the top row when Favorites is hidden
+    // (Guide is far left, Settings far right), which traps focus in the grid.
+    val guideTabFocus = remember { FocusRequester() }
+    val favoritesTabFocus = remember { FocusRequester() }
     // The tab opened from the player gets focus inside it; after that, moving across the row keeps focus on the
     // row until Down is pressed, so Guide and Favorites do not pull focus into the grid as they go by.
     var switched by rememberSaveable { mutableStateOf(false) }
@@ -112,14 +117,25 @@ fun ShellScreen(
             tab,
             showFavorites = showFavorites,
             settingsEntry = settingsEntry,
+            guideTabFocus = guideTabFocus,
+            favoritesTabFocus = favoritesTabFocus,
             onFocusTab = ::select,
             onSelectTab = { t -> switched = switched || t != tab; tab = t },
             now = viewModel::now,
         )
         Box(Modifier.fillMaxSize()) {
             when (tab) {
-                ShellTab.GUIDE -> GuideScreen(onWatch = callbacks.onWatch, takeFocus = !switched)
-                ShellTab.FAVORITES -> GuideScreen(onWatch = callbacks.onWatch, onlyFavorites = true, takeFocus = !switched)
+                ShellTab.GUIDE -> GuideScreen(
+                    onWatch = callbacks.onWatch,
+                    takeFocus = !switched,
+                    exitFocus = guideTabFocus,
+                )
+                ShellTab.FAVORITES -> GuideScreen(
+                    onWatch = callbacks.onWatch,
+                    onlyFavorites = true,
+                    takeFocus = !switched,
+                    exitFocus = favoritesTabFocus,
+                )
                 ShellTab.SETTINGS -> SettingsScreen(
                     appVersion = BuildConfig.VERSION_NAME,
                     appVersionCode = BuildConfig.VERSION_CODE,
@@ -150,6 +166,8 @@ private fun ShellTopRow(
     tab: ShellTab,
     showFavorites: Boolean,
     settingsEntry: FocusRequester,
+    guideTabFocus: FocusRequester,
+    favoritesTabFocus: FocusRequester,
     onFocusTab: (ShellTab) -> Unit,
     onSelectTab: (ShellTab) -> Unit,
     now: () -> Instant,
@@ -162,7 +180,14 @@ private fun ShellTopRow(
         ClickarrLogoHorizontal(markSize = 40.dp)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOfNotNull(ShellTab.GUIDE, ShellTab.FAVORITES.takeIf { showFavorites }).forEach { t ->
-                ShellTabPill(t, selected = tab == t, onFocus = { onFocusTab(t) }, onSelect = { onSelectTab(t) })
+                val tabFocus = if (t == ShellTab.GUIDE) guideTabFocus else favoritesTabFocus
+                ShellTabPill(
+                    t,
+                    selected = tab == t,
+                    onFocus = { onFocusTab(t) },
+                    onSelect = { onSelectTab(t) },
+                    modifier = Modifier.focusRequester(tabFocus),
+                )
             }
         }
         Spacer(Modifier.weight(1f))

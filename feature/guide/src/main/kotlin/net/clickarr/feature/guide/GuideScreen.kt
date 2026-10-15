@@ -106,6 +106,8 @@ fun GuideScreen(
     onWatch: () -> Unit,
     onlyFavorites: Boolean = false,
     takeFocus: Boolean = true,
+    /** Tab (or other chrome) above the grid; Up from the first row lands here when set. */
+    exitFocus: FocusRequester? = null,
     viewModel: GuideViewModel = hiltViewModel(),
 ) {
     val window by viewModel.window.collectAsState()
@@ -130,7 +132,7 @@ fun GuideScreen(
         val minutePx = with(density) { (halfHour / 30).toPx() }
         val grid = GuideGrid(w, minutePx, halfHour, scroll, focus)
         CompositionLocalProvider(LocalBringIntoViewSpec provides PlainBringIntoViewSpec) {
-            GuideBody(grid, onlyFavorites, takeFocus, focused, preview, details, actions)
+            GuideBody(grid, onlyFavorites, takeFocus, exitFocus, focused, preview, details, actions)
         }
     }
 }
@@ -148,6 +150,7 @@ private fun GuideBody(
     grid: GuideGrid,
     onlyFavorites: Boolean,
     takeFocus: Boolean,
+    exitFocus: FocusRequester?,
     focused: Airing?,
     preview: GuideViewModel.Preview?,
     details: Pair<Channel, Airing>?,
@@ -192,6 +195,7 @@ private fun GuideBody(
                         grid = grid,
                         isCurrent = row.channel.id.value == w.currentChannelId,
                         isFavorite = row.channel.id.value in w.favorites,
+                        exitFocus = exitFocus,
                         actions = actions,
                         onEnter = onEnter,
                     )
@@ -314,6 +318,7 @@ private fun GuideRow(
     grid: GuideGrid,
     isCurrent: Boolean,
     isFavorite: Boolean,
+    exitFocus: FocusRequester?,
     actions: GuideActions,
     onEnter: () -> Unit,
 ) {
@@ -324,8 +329,9 @@ private fun GuideRow(
     focus.airings[rowIndex].let { it.clear(); it.addAll(row.airings) }
     val scope = rememberCoroutineScope()
     val density = LocalDensity.current
+    val leaveUp = exitFocus.takeIf { rowIndex == 0 }
     Row(Modifier.fillMaxWidth().height(ROW_HEIGHT).padding(vertical = ClickarrDimens.GuideCellGutter / 2)) {
-        ChannelCell(row.channel, isCurrent, isFavorite, onEnter) { actions.onToggleFavorite(row.channel) }
+        ChannelCell(row.channel, isCurrent, isFavorite, leaveUp, onEnter) { actions.onToggleFavorite(row.channel) }
         Box(Modifier.fillMaxSize().clipToBounds().onSizeChanged { scroll.viewportSize = it.width }) {
             Layout(
                 modifier = Modifier.offset { IntOffset(-scroll.value, 0) },
@@ -338,7 +344,12 @@ private fun GuideRow(
                             modifier = Modifier
                                 .focusRequester(focus.requester(rowIndex, i))
                                 .focusProperties {
-                                    focus.cellAt(rowIndex - 1, focusTime)?.let { c -> up = focus.requester(rowIndex - 1, c) }
+                                    when {
+                                        leaveUp != null -> up = leaveUp
+                                        else -> focus.cellAt(rowIndex - 1, focusTime)?.let { c ->
+                                            up = focus.requester(rowIndex - 1, c)
+                                        }
+                                    }
                                     focus.cellAt(rowIndex + 1, focusTime)?.let { c -> down = focus.requester(rowIndex + 1, c) }
                                 },
                             onFocus = {
@@ -385,6 +396,7 @@ private fun ChannelCell(
     channel: Channel,
     isCurrent: Boolean,
     isFavorite: Boolean,
+    exitFocus: FocusRequester?,
     onEnter: () -> Unit,
     onToggleFavorite: () -> Unit,
 ) {
@@ -394,6 +406,7 @@ private fun ChannelCell(
             .width(CHANNEL_COLUMN)
             .fillMaxHeight()
             .padding(end = 16.dp)
+            .then(if (exitFocus != null) Modifier.focusProperties { up = exitFocus } else Modifier)
             .clickarrFocusable(
                 interaction,
                 idleColor = if (isCurrent) ClickarrColors.AccentPrimaryDeep else ClickarrColors.BgPanel,
