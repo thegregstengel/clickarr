@@ -1,18 +1,31 @@
 package net.clickarr.feature.settings
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
@@ -22,14 +35,18 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.tv.material3.Button
 import androidx.tv.material3.ListItem
 import androidx.tv.material3.Text
 import net.clickarr.core.common.AppTime
 import net.clickarr.core.model.Channel
 import net.clickarr.core.model.ChannelIcon
+import net.clickarr.core.model.ChannelId
 import net.clickarr.core.model.Holiday
 import net.clickarr.ui.design.ClickarrColors
+import net.clickarr.ui.design.ClickarrDimens
 import net.clickarr.ui.design.ClickarrTextStyles
 import net.clickarr.ui.design.GlyphIcon
 
@@ -39,6 +56,8 @@ internal fun ChannelsPane(vm: SettingsViewModel, actions: SettingsActions, park:
     val list by vm.channelList.collectAsState()
     val favorites by vm.favorites.collectAsState()
     val message by vm.message.collectAsState()
+    var movingId by remember { mutableStateOf<ChannelId?>(null) }
+    BackHandler(enabled = movingId != null) { movingId = null }
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Button(onClick = actions.onCreateChannel) { Text("Create channel") }
         Button(onClick = actions.onHolidayChannels) { Text("Holiday channels") }
@@ -68,15 +87,20 @@ internal fun ChannelsPane(vm: SettingsViewModel, actions: SettingsActions, park:
     if (list.isEmpty()) {
         Caption("No channels yet. Create one from a show, a whole library, a collection, or a playlist.")
     }
+    val year = AppTime.local(vm.now()).year
     list.forEach { ch ->
-        ChannelRow(
-            ch = ch,
-            favorite = ch.id in favorites,
-            year = AppTime.local(vm.now()).year,
-            onEdit = { actions.onEditChannel(ch.id) },
-            onMove = { delta -> vm.moveChannel(ch.id, delta) },
-            onDelete = { park.park(); vm.deleteChannel(ch.id) },
-        )
+        key(ch.id) {
+            ChannelRow(
+                ch = ch,
+                favorite = ch.id in favorites,
+                year = year,
+                moving = movingId == ch.id,
+                onEdit = { actions.onEditChannel(ch.id) },
+                onToggleMove = { movingId = if (movingId == ch.id) null else ch.id },
+                onMove = { delta -> vm.moveChannel(ch.id, delta) },
+                onDelete = { park.park(); movingId = null; vm.deleteChannel(ch.id) },
+            )
+        }
     }
 }
 
@@ -85,20 +109,26 @@ internal fun ChannelsPane(vm: SettingsViewModel, actions: SettingsActions, park:
  * right; holiday channels do not (they are managed under Holiday channels).
  */
 @Composable
+@Suppress("LongParameterList")
 private fun ChannelRow(
     ch: Channel,
     favorite: Boolean,
     year: Int,
+    moving: Boolean,
     onEdit: () -> Unit,
+    onToggleMove: () -> Unit,
     onMove: (Int) -> Unit,
     onDelete: () -> Unit,
 ) {
     val regular = ch.holiday == null
+    var confirmDelete by remember { mutableStateOf(false) }
+    var restoreDeleteFocus by remember { mutableStateOf(true) }
+    val deleteFocus = remember { FocusRequester() }
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        if (regular) ReorderHandle(onMove)
+        if (regular) ReorderHandle(moving, onToggleMove, onMove)
         ListItem(
             selected = false,
             onClick = onEdit,
@@ -120,49 +150,127 @@ private fun ChannelRow(
             modifier = Modifier.weight(1f),
         )
         if (regular) {
-            Button(onClick = onDelete, modifier = Modifier.semantics { contentDescription = "Delete ${ch.name}" }) {
-                Text("Delete")
-            }
+            Button(
+                onClick = { confirmDelete = true },
+                modifier = Modifier
+                    .focusRequester(deleteFocus)
+                    .semantics { contentDescription = "Delete ${ch.name}" },
+            ) { Text("Delete") }
         }
+    }
+    if (confirmDelete) {
+        DeleteChannelDialog(
+            name = ch.name,
+            onConfirm = {
+                restoreDeleteFocus = false
+                confirmDelete = false
+                onDelete()
+            },
+            onDismiss = {
+                restoreDeleteFocus = true
+                confirmDelete = false
+            },
+        )
+    }
+    var wasConfirm by remember { mutableStateOf(false) }
+    LaunchedEffect(confirmDelete) {
+        if (wasConfirm && !confirmDelete && restoreDeleteFocus) {
+            runCatching { deleteFocus.requestFocus() }
+        }
+        wasConfirm = confirmDelete
     }
 }
 
 /**
- * Focus and press Up/Down to move the channel among regulars; a vertical drag does the same.
- * Holiday channels never receive this control.
+ * Select to enter move mode; Up/Down then moves among regulars; select again to commit. Outside move mode,
+ * Up/Down leave the key alone so focus walks the reorder column like the name and Delete columns.
  */
 @Composable
-private fun ReorderHandle(onMove: (Int) -> Unit) {
+private fun ReorderHandle(moving: Boolean, onToggle: () -> Unit, onMove: (Int) -> Unit) {
     var drag by remember { mutableFloatStateOf(0f) }
+    val label = if (moving) "Reorder, moving" else "Reorder"
     Button(
-        onClick = { Unit },
+        onClick = onToggle,
         modifier = Modifier
             .width(56.dp)
-            .semantics { contentDescription = "Reorder" }
+            .semantics { contentDescription = label }
             .onPreviewKeyEvent { e ->
-                if (e.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                if (!moving || e.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
                 when (e.key) {
-                    Key.DirectionUp -> { onMove(-1); true }
-                    Key.DirectionDown -> { onMove(+1); true }
+                    Key.DirectionUp -> {
+                        onMove(-1)
+                        true
+                    }
+                    Key.DirectionDown -> {
+                        onMove(+1)
+                        true
+                    }
                     else -> false
                 }
             }
-            .pointerInput(Unit) {
+            .pointerInput(moving) {
+                if (!moving) return@pointerInput
                 detectVerticalDragGestures(
                     onDragEnd = { drag = 0f },
                     onVerticalDrag = { _, amount ->
                         drag += amount
                         when {
-                            drag <= -DRAG_STEP -> { onMove(-1); drag = 0f }
-                            drag >= DRAG_STEP -> { onMove(+1); drag = 0f }
+                            drag <= -DRAG_STEP -> {
+                                onMove(-1)
+                                drag = 0f
+                            }
+                            drag >= DRAG_STEP -> {
+                                onMove(+1)
+                                drag = 0f
+                            }
                         }
                     },
                 )
             },
-    ) { Text("≡") }
+    ) {
+        Text(
+            "≡",
+            color = if (moving) ClickarrColors.AccentGlow else ClickarrColors.TextPrimary,
+        )
+    }
+}
+
+/** Confirm before removing a channel; Back or Cancel leaves it. Matches the Settings picker dialog shell. */
+@Composable
+private fun DeleteChannelDialog(name: String, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    val confirmFocus = remember { FocusRequester() }
+    LaunchedEffect(Unit) { runCatching { confirmFocus.requestFocus() } }
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Box(
+            Modifier.fillMaxSize().background(ClickarrColors.BgBase.copy(alpha = SCRIM_ALPHA)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Column(
+                Modifier
+                    .width(DIALOG_WIDTH)
+                    .clip(RoundedCornerShape(ClickarrDimens.RadiusCard))
+                    .background(ClickarrColors.BgPanel)
+                    .padding(ClickarrDimens.CardPadding),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Text(
+                    "Are you sure you want to delete $name?",
+                    style = ClickarrTextStyles.RowTitle,
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Button(onClick = onConfirm, modifier = Modifier.focusRequester(confirmFocus)) {
+                        Text("Delete")
+                    }
+                    Button(onClick = onDismiss) { Text("Cancel") }
+                }
+            }
+        }
+    }
 }
 
 private const val DRAG_STEP = 48f
+private val DIALOG_WIDTH = 560.dp
+private const val SCRIM_ALPHA = 0.85f
 
 @Composable
 private fun Caption(text: String) = Text(text, style = ClickarrTextStyles.Secondary, color = ClickarrColors.TextSecondary)
