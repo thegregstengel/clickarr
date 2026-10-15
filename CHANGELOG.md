@@ -5,6 +5,12 @@ second release the same day); the household protocol, scheduler, and database ca
 
 ## [Unreleased]
 
+### Added
+
+- Settings, Channels: each regular channel row has a reorder handle on the left (Up/Down or drag) and Delete on the
+  right. Reordering renumbers those channels immediately and syncs through the household or Drive. Holiday channels
+  keep their numbers and do not show either control.
+
 ### Fixed
 
 - When the Favorites tab is hidden, Up from the guide reaches the top row again (Guide, then Settings) instead of trapping focus in the grid.

@@ -41,10 +41,6 @@ import androidx.tv.material3.ListItem
 import androidx.tv.material3.Text
 import net.clickarr.data.UpdateChecker
 import net.clickarr.ui.design.ClickarrColors
-import net.clickarr.ui.design.GlyphIcon
-import net.clickarr.core.model.ChannelIcon
-import net.clickarr.core.model.ChannelId
-import androidx.compose.ui.Alignment
 import net.clickarr.ui.design.ClickarrPalettes
 import net.clickarr.ui.design.ClickarrDimens
 import net.clickarr.ui.design.ClickarrTextStyles
@@ -125,7 +121,7 @@ private fun SettingsBody(
                 SettingsSection.GENERAL -> GeneralPane(viewModel, park)
                 SettingsSection.PLEX -> PlexPane(viewModel, actions.onDisconnected)
                 SettingsSection.JELLYFIN -> JellyfinPane(viewModel, actions.onDisconnected)
-                SettingsSection.CHANNELS -> ChannelsPane(viewModel, actions)
+                SettingsSection.CHANNELS -> ChannelsPane(viewModel, actions, park)
                 SettingsSection.PLAYBACK -> PlaybackPane()
                 SettingsSection.SYNC -> SyncPane()
                 SettingsSection.DIAGNOSTICS -> DiagnosticsPane(viewModel)
@@ -141,27 +137,6 @@ private fun Caption(text: String) = Text(text, style = ClickarrTextStyles.Second
 @Composable
 private fun Label(text: String) = Text(text, style = ClickarrTextStyles.LabelAllCaps, color = ClickarrColors.TextMuted)
 
-/** "Holiday: Christmas, Dec 1 to Dec 25" for the channel list, with this year's dates. */
-private fun holidayLabel(h: net.clickarr.core.model.Holiday, year: Int): String {
-    val w = h.window(year)
-    fun md(d: kotlinx.datetime.LocalDate) = "${d.month.name.lowercase().replaceFirstChar(Char::uppercase).take(3)} ${d.dayOfMonth}"
-    return "Holiday: ${h.label}, ${md(w.start)} to ${md(w.endInclusive)}"
-}
-
-private fun refreshCaption(r: SettingsViewModel.RefreshInfo): String {
-    val last = r.lastAt?.let { at ->
-        val local = AppTime.local(at)
-        val month = local.month.name.lowercase().replaceFirstChar(Char::uppercase).take(MONTH_ABBREVIATION)
-        "$month ${local.dayOfMonth}, ${AppTime.timeOfDay(at)}"
-    }
-    return when {
-        !r.automatic -> "New episodes join a channel only when you press Refresh."
-        last == null -> "Each channel's source is re-read from the server once a day; new episodes join at the next program boundary."
-        else -> "Last automatic refresh $last: ${r.note ?: "no changes"}."
-    }
-}
-
-private const val MONTH_ABBREVIATION = 3
 private val ZONES = listOf(
     "Eastern" to "America/New_York", "Central" to "America/Chicago", "Mountain" to "America/Denver",
     "Arizona" to "America/Phoenix", "Pacific" to "America/Los_Angeles", "Alaska" to "America/Anchorage",
@@ -209,67 +184,6 @@ private val CLOCKS = listOf(
 
 private fun zoneOptions(): List<PickerOption<String?>> =
     listOf(PickerOption<String?>(null, "Device", AppTime.zone.id)) + ZONES.map { (label, id) -> PickerOption<String?>(id, label, id) }
-
-@Composable
-private fun ChannelsPane(vm: SettingsViewModel, actions: SettingsActions) {
-    val list by vm.channelList.collectAsState()
-    val favorites by vm.favorites.collectAsState()
-    val message by vm.message.collectAsState()
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Button(onClick = actions.onCreateChannel) { Text("Create channel") }
-        Button(onClick = actions.onHolidayChannels) { Text("Holiday channels") }
-        Button(onClick = actions.onSuggestChannels) { Text("Suggest channels") }
-        Button(onClick = vm::refreshAllLineups) { Text("Refresh all lineups") }
-    }
-    message?.let { Caption(it) }
-    val refresh by vm.refreshInfo.collectAsState()
-    Label("Keep lineups current")
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Chip("Automatic, daily", selected = refresh.automatic) { vm.setAutoRefresh(true) }
-        Chip("Only when I press Refresh", selected = !refresh.automatic) { vm.setAutoRefresh(false) }
-    }
-    Caption(refreshCaption(refresh))
-    val g by vm.general.collectAsState()
-    Label("Guide shows the next")
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        listOf(3, 6, 12, 24).forEach { h -> Chip("$h hours", selected = g.guideHours == h) { vm.setGuideHours(h) } }
-    }
-    val favoritesTab by vm.favoritesTab.collectAsState()
-    Label("Favorites tab")
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Chip("Show", selected = favoritesTab) { vm.setFavoritesTab(true) }
-        Chip("Hide", selected = !favoritesTab) { vm.setFavoritesTab(false) }
-    }
-    Caption("Hide takes Favorites out of the top row. Stars in the guide still work, for whenever you want it back.")
-    if (list.isEmpty()) {
-        Caption("No channels yet. Create one from a show, a whole library, a collection, or a playlist.")
-    }
-    // Select a channel to edit it. Stars are set from the guide's channel column.
-    list.forEach { ch ->
-        ListItem(
-            selected = false,
-            onClick = { actions.onEditChannel(ch.id) },
-            headlineContent = { Text(ch.name, style = ClickarrTextStyles.RowTitle) },
-            supportingContent = ch.holiday?.let { h ->
-                {
-                    val year = AppTime.local(vm.now()).year
-                    Text(holidayLabel(h, year), style = ClickarrTextStyles.Caption, color = ClickarrColors.TextSecondary)
-                }
-            },
-            leadingContent = {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(ch.number.toString(), style = ClickarrTextStyles.RowTitle, modifier = Modifier.width(56.dp))
-                    (ch.icon as? ChannelIcon.Glyph)?.let { GlyphIcon(it.name, 32.dp) }
-                }
-            },
-            trailingContent = {
-                if (ch.id in favorites) Text("★", style = ClickarrTextStyles.RowTitle, color = ClickarrColors.AccentGlow)
-            },
-        )
-    }
-}
-
-
 
 @Composable
 private fun DiagnosticsPane(vm: SettingsViewModel) {

@@ -40,6 +40,7 @@ import net.clickarr.core.model.ProviderId
 import net.clickarr.core.scheduling.Lineups
 import net.clickarr.core.scheduling.ScheduleStrategy
 import net.clickarr.household.protocol.Command
+import net.clickarr.household.protocol.applyRegularChannelOrder
 
 /**
  * Channels and their lineup snapshots. Creating a channel resolves its programming source through the
@@ -145,6 +146,25 @@ class ChannelRepository @Inject constructor(
         db.channels().delete(id.value)
         db.lineups().orphanIds().forEach { db.lineups().delete(it) }
     }
+
+    /** Persist a new order for every non-holiday channel. Holiday channels are unchanged. */
+    suspend fun reorderRegulars(orderedIds: List<ChannelId>): Outcome<Unit> =
+        household.apply(Command.ReorderChannels(orderedIds)).flatMap { handled ->
+            if (!handled) {
+                val current = all()
+                when (val next = applyRegularChannelOrder(current, orderedIds)) {
+                    is Outcome.Failure -> return@flatMap next
+                    is Outcome.Success -> {
+                        val before = current.associateBy { it.id }
+                        val now = clock.now()
+                        next.value.forEach { ch ->
+                            if (before[ch.id] != ch) db.channels().upsert(ch.toEntity(now))
+                        }
+                    }
+                }
+            }
+            Outcome.Success(Unit)
+        }
 
     /**
      * Re-resolve the source. With [applyNow] the new lineup starts immediately at a fresh anchor;

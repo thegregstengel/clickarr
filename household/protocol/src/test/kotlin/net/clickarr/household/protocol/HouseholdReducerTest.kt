@@ -10,6 +10,7 @@ import net.clickarr.core.common.Outcome
 import net.clickarr.core.model.Channel
 import net.clickarr.core.model.ChannelId
 import net.clickarr.core.model.DeviceId
+import net.clickarr.core.model.Holiday
 import net.clickarr.core.model.Household
 import net.clickarr.core.model.HouseholdDevice
 import net.clickarr.core.model.HouseholdId
@@ -34,9 +35,9 @@ class HouseholdReducerTest {
         now,
     )
 
-    private fun channel(id: String, number: Int, lineupId: String = "l-$id") = Channel(
+    private fun channel(id: String, number: Int, lineupId: String = "l-$id", holiday: Holiday? = null) = Channel(
         id = ChannelId(id), number = number, name = id, source = ProgrammingSource.Explicit(emptyList()),
-        seed = 1, lineup = LineupSnapshotId(lineupId), anchor = now,
+        seed = 1, holiday = holiday, lineup = LineupSnapshotId(lineupId), anchor = now,
     )
 
     private val empty = HouseholdState(
@@ -107,5 +108,27 @@ class HouseholdReducerTest {
         val b = a.copy(urls = listOf("http://b"))
         val s = empty.apply(Command.RegisterServer(a)).apply(Command.RegisterServer(b))
         s.servers shouldContainExactly listOf(b)
+    }
+
+    @Test
+    fun `reordering regulars swaps their numbers and leaves holiday channels alone`() {
+        val s = empty
+            .apply(Command.CreateChannel(channel("a", 1), lineup(ChannelId("a"))))
+            .apply(Command.CreateChannel(channel("b", 2), lineup(ChannelId("b"))))
+            .apply(Command.CreateChannel(channel("xmas", 100, holiday = Holiday.CHRISTMAS), lineup(ChannelId("xmas"))))
+        val after = s.apply(Command.ReorderChannels(listOf(ChannelId("b"), ChannelId("a"))))
+        after.channels.associate { it.id.value to it.number } shouldBe mapOf("a" to 2, "b" to 1, "xmas" to 100)
+        after.revision shouldBe s.revision + 1
+    }
+
+    @Test
+    fun `reorder that includes a holiday or omits a regular is rejected`() {
+        val s = empty
+            .apply(Command.CreateChannel(channel("a", 1), lineup(ChannelId("a"))))
+            .apply(Command.CreateChannel(channel("xmas", 100, holiday = Holiday.CHRISTMAS), lineup(ChannelId("xmas"))))
+        reducer.apply(s, Command.ReorderChannels(listOf(ChannelId("a"), ChannelId("xmas"))), now)
+            .shouldBeInstanceOf<Outcome.Failure>()
+        reducer.apply(s, Command.ReorderChannels(emptyList()), now)
+            .shouldBeInstanceOf<Outcome.Failure>()
     }
 }

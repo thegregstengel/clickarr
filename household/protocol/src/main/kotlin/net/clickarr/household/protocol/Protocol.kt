@@ -88,6 +88,14 @@ sealed interface Command {
     @SerialName("deleteChannel")
     data class DeleteChannel(val channelId: ChannelId) : Command
 
+    /**
+     * New order for every non-holiday channel. Holiday channels are omitted: they keep their numbers
+     * and are never moved by this command. [orderedIds] must list each regular channel exactly once.
+     */
+    @Serializable
+    @SerialName("reorderChannels")
+    data class ReorderChannels(val orderedIds: List<ChannelId>) : Command
+
     @Serializable
     @SerialName("setFavorite")
     data class SetFavorite(val channelId: ChannelId, val favorite: Boolean) : Command

@@ -226,6 +226,36 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    /** Settings, Channels row: remove a regular channel. Holiday channels use Holiday channels instead. */
+    fun deleteChannel(id: ChannelId) {
+        viewModelScope.launch {
+            runCatching { channels.delete(id) }
+                .onFailure { _message.value = it.message ?: "Could not delete the channel" }
+        }
+    }
+
+    /** Settings, Channels row: move a regular channel among the other regulars ([delta] −1 / +1). */
+    fun moveChannel(id: ChannelId, delta: Int) {
+        viewModelScope.launch {
+            val regulars = channels.all().filter { it.holiday == null }.sortedBy { it.number }
+            val from = regulars.indexOfFirst { it.id == id }
+            if (from < 0) {
+                _message.value = "Only regular channels can be reordered"
+                return@launch
+            }
+            val to = from + delta
+            if (to !in regulars.indices) return@launch
+            val ordered = regulars.toMutableList().also { list ->
+                val moved = list.removeAt(from)
+                list.add(to, moved)
+            }.map { it.id }
+            when (val r = channels.reorderRegulars(ordered)) {
+                is Outcome.Failure -> _message.value = r.error.message
+                is Outcome.Success -> Unit
+            }
+        }
+    }
+
     /** Everything a bug report needs, as plain lines (design language 5, "Diagnostics"). */
     data class Diagnostics(val lines: List<String>, val log: List<String>)
 
