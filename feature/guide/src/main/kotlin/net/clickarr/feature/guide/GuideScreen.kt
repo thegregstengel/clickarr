@@ -130,9 +130,9 @@ fun GuideScreen(
     BoxWithConstraints {
         val halfHour = (maxWidth - ClickarrDimens.SafeArea - CHANNEL_COLUMN) / VISIBLE_HALF_HOURS
         val minutePx = with(density) { (halfHour / 30).toPx() }
-        val grid = GuideGrid(w, minutePx, halfHour, scroll, focus)
+        val grid = GuideGrid(w, minutePx, halfHour, scroll, focus, exitFocus)
         CompositionLocalProvider(LocalBringIntoViewSpec provides PlainBringIntoViewSpec) {
-            GuideBody(grid, onlyFavorites, takeFocus, exitFocus, focused, preview, details, actions)
+            GuideBody(grid, onlyFavorites, takeFocus, focused, preview, details, actions)
         }
     }
 }
@@ -150,7 +150,6 @@ private fun GuideBody(
     grid: GuideGrid,
     onlyFavorites: Boolean,
     takeFocus: Boolean,
-    exitFocus: FocusRequester?,
     focused: Airing?,
     preview: GuideViewModel.Preview?,
     details: Pair<Channel, Airing>?,
@@ -195,7 +194,6 @@ private fun GuideBody(
                         grid = grid,
                         isCurrent = row.channel.id.value == w.currentChannelId,
                         isFavorite = row.channel.id.value in w.favorites,
-                        exitFocus = exitFocus,
                         actions = actions,
                         onEnter = onEnter,
                     )
@@ -309,6 +307,7 @@ private class GuideGrid(
     val halfHourWidth: Dp,
     val scroll: GuideScroll,
     val focus: GuideFocus,
+    val exitFocus: FocusRequester?,
 )
 
 @Composable
@@ -318,7 +317,6 @@ private fun GuideRow(
     grid: GuideGrid,
     isCurrent: Boolean,
     isFavorite: Boolean,
-    exitFocus: FocusRequester?,
     actions: GuideActions,
     onEnter: () -> Unit,
 ) {
@@ -329,7 +327,7 @@ private fun GuideRow(
     focus.airings[rowIndex].let { it.clear(); it.addAll(row.airings) }
     val scope = rememberCoroutineScope()
     val density = LocalDensity.current
-    val leaveUp = exitFocus.takeIf { rowIndex == 0 }
+    val leaveUp = grid.exitFocus.takeIf { rowIndex == 0 }
     Row(Modifier.fillMaxWidth().height(ROW_HEIGHT).padding(vertical = ClickarrDimens.GuideCellGutter / 2)) {
         ChannelCell(row.channel, isCurrent, isFavorite, leaveUp, onEnter) { actions.onToggleFavorite(row.channel) }
         Box(Modifier.fillMaxSize().clipToBounds().onSizeChanged { scroll.viewportSize = it.width }) {
