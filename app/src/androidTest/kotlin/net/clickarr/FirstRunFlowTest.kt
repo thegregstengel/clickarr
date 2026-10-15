@@ -33,10 +33,12 @@ class FirstRunFlowTest : TvFlow() {
         shot("02-manual-entry")
         click("Connect")
 
-        waitForText("Create channel")
+        waitForText("Custom channel")
         shot("03-channels-empty")
-        click("Create channel")
-        waitForText("What goes on this channel?")
+        click("Custom channel")
+        waitForText("Which library?")
+        click("TV Shows")
+        waitForText("What from TV Shows?")
         click("Shows")
         waitForText("The Office (US)")
         shot("04-pick-shows")
@@ -46,12 +48,14 @@ class FirstRunFlowTest : TvFlow() {
         shot("05-details")
         click("Create channel")
 
-        waitForText("Create channel") // back on Settings, Channels
+        waitForText("Custom channel") // back on Settings, Channels
         waitForText("The Office (US)")
 
         // A second channel so the guide has two rows to move between.
-        click("Create channel")
-        waitForText("What goes on this channel?")
+        click("Custom channel")
+        waitForText("Which library?")
+        click("TV Shows")
+        waitForText("What from TV Shows?")
         click("Shows")
         waitForText("Parks and Recreation")
         click("Parks and Recreation")
@@ -59,14 +63,14 @@ class FirstRunFlowTest : TvFlow() {
         waitForText("Channel number")
         reach("Create channel")
         click("Create channel")
-        waitForText("Create channel")
+        waitForText("Custom channel")
         waitForText("Parks and Recreation")
         shot("06-channels-list")
         click("Suggest channels")
         waitForText("Create selected")
         shot("06b-suggest")
         device.pressBack()
-        waitForText("Create channel")
+        waitForText("Custom channel")
 
         // Holiday channels: Christmas from two hand-picked movies, on the shared default number 100.
         // Christmas is out of season for most of the year, so the guide steps below are unaffected.
@@ -193,8 +197,10 @@ class FirstRunFlowTest : TvFlow() {
         shot("17-channels-synced")
 
         // A member's edits go through the coordinator: create a channel here, see it come back in the sync.
-        click("Create channel")
-        waitForText("What goes on this channel?")
+        click("Custom channel")
+        waitForText("Which library?")
+        click("TV Shows")
+        waitForText("What from TV Shows?")
         click("Shows")
         waitForText("The Office (US)")
         click("The Office (US)")
@@ -202,7 +208,7 @@ class FirstRunFlowTest : TvFlow() {
         waitForText("Channel number")
         reach("Create channel")
         click("Create channel")
-        waitForText("Create channel")
+        waitForText("Custom channel")
         waitForText("The Office (US)")
         shot("18-channel-via-coordinator")
         val created = otherTv.coordinator.state.value.channels.single { it.name == "The Office (US)" }
@@ -219,7 +225,7 @@ class FirstRunFlowTest : TvFlow() {
         shot("19-edit-channel")
         reach("Save changes")
         click("Save changes")
-        waitForText("Create channel") // back on the Channels tab
+        waitForText("Custom channel") // back on the Channels tab
         waitForText("Office Reruns")
         shot("20-channels-edited")
         val edited = otherTv.coordinator.state.value.channels.single { it.id == created.id }

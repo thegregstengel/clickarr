@@ -32,14 +32,19 @@ sealed interface ChannelIcon {
 
 /**
  * Narrows a library to the media a channel wants. All sets are OR within a field and AND across fields:
- * genres {Comedy} + decade 1980 means "comedies from the 1980s". Empty means "no restriction".
- * Examples: a retro channel is `MediaFilter(genres = setOf("Comedy"), decadeStart = 1980)`.
+ * genres {Comedy} + decades {1980} means "comedies from the 1980s". Empty means "no restriction".
+ * Examples: a retro channel is `MediaFilter(genres = setOf("Comedy"), decades = setOf(1980))`.
  */
 @Serializable
 data class MediaFilter(
     val genres: Set<String> = emptySet(),
-    /** First year of the decade, e.g. 1980 for the 1980s. */
+    /**
+     * First year of a single decade, e.g. 1980 for the 1980s. Kept so older snapshots still decode;
+     * new filters prefer [decades].
+     */
     val decadeStart: Int? = null,
+    /** First years of decades. OR within the set. Empty (and no [decadeStart]) means no restriction. */
+    val decades: Set<Int> = emptySet(),
     val yearFrom: Int? = null,
     val yearTo: Int? = null,
     val networks: Set<String> = emptySet(),
@@ -48,6 +53,13 @@ data class MediaFilter(
     val labels: Set<String> = emptySet(),
     val contentRatings: Set<String> = emptySet(),
 )
+
+/** Decades that restrict this filter: [MediaFilter.decades] when set, else the legacy [MediaFilter.decadeStart]. */
+fun MediaFilter.decadeSet(): Set<Int> = when {
+    decades.isNotEmpty() -> decades
+    decadeStart != null -> setOf(decadeStart)
+    else -> emptySet()
+}
 
 /** What media is eligible for a channel. Resolved by a provider into a [LineupSnapshot]. */
 @Serializable

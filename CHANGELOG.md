@@ -11,11 +11,17 @@ second release the same day); the household protocol, scheduler, and database ca
   handle to enter move mode, then Up/Down or drag to reorder among regulars; select again to commit. Outside move
   mode, Up/Down moves focus down the reorder column. Delete asks for confirmation first. Holiday channels keep their
   numbers and do not show either control. Reordering syncs through the household or Drive.
+- Custom channel (renamed from Create channel): pick a library first, then Whole library, Shows (TV libraries),
+  Collections, or Playlists. Whole library offers multi-select genre and decade filters, a live title list for what
+  the channel will include, an A–Z jump index, and Create / Cancel on the far right so they stay reachable from the
+  list. Decades may be combined with genres.
 
 ### Fixed
 
 - When the Favorites tab is hidden, Up from the guide reaches the top row again (Guide, then Settings) instead of trapping focus in the grid.
 - A stream that drops in the middle of a programme, for example when the server ends a transcode, now reconnects at the live position, up to three times. It no longer gives up and shows "Up next" for the rest of the slot. The log now records the HTTP status and path of the failed request.
+- Custom channel, Whole library, decade filter: later decades (1990s and after) wrap onto following rows and stay
+  reachable with the D-pad instead of laying out vertically and trapping focus on 1990.
 
 ## 2026.10.12
 

@@ -22,6 +22,7 @@ import net.clickarr.core.model.ProviderId
 import net.clickarr.core.model.ProviderKind
 import net.clickarr.core.model.ServerInfo
 import net.clickarr.core.model.Show
+import net.clickarr.core.model.decadeSet
 import net.clickarr.provider.api.ArtworkSize
 import net.clickarr.provider.api.DeviceProfile
 import net.clickarr.provider.api.MediaProvider
@@ -88,8 +89,9 @@ class FakeMediaProvider(
             (movies + eps).filter { p ->
                 val item = p as MediaItem
                 val genreOk = f.genres.isEmpty() || item.genres.any { g -> f.genres.any { it.equals(g, ignoreCase = true) } }
-                val decade = f.decadeStart
-                val decadeOk = decade == null || (item.year ?: -1) in decade until decade + 10
+                val decades = f.decadeSet()
+                val year = item.year ?: -1
+                val decadeOk = decades.isEmpty() || decades.any { d -> year in d until d + 10 }
                 genreOk && decadeOk
             }
         }

@@ -59,7 +59,7 @@ internal fun ChannelsPane(vm: SettingsViewModel, actions: SettingsActions, park:
     var movingId by remember { mutableStateOf<ChannelId?>(null) }
     BackHandler(enabled = movingId != null) { movingId = null }
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Button(onClick = actions.onCreateChannel) { Text("Create channel") }
+        Button(onClick = actions.onCreateChannel) { Text("Custom channel") }
         Button(onClick = actions.onHolidayChannels) { Text("Holiday channels") }
         Button(onClick = actions.onSuggestChannels) { Text("Suggest channels") }
         Button(onClick = vm::refreshAllLineups) { Text("Refresh all lineups") }

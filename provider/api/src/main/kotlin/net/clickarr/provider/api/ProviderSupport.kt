@@ -5,6 +5,7 @@ import net.clickarr.core.model.MediaFilter
 import net.clickarr.core.model.MediaItem
 import net.clickarr.core.model.Movie
 import net.clickarr.core.model.Show
+import net.clickarr.core.model.decadeSet
 
 /** Helpers every provider needs: paging to the end, gathering per-item results, and evaluating a [MediaFilter]. */
 
@@ -49,7 +50,13 @@ fun MediaFilter.matches(item: MediaItem): Boolean = predicates().all { it(item) 
 
 private fun MediaFilter.predicates(): List<(MediaItem) -> Boolean> = buildList {
     if (genres.isNotEmpty()) add { it.genres.any { g -> genres.any { wanted -> wanted.equals(g, ignoreCase = true) } } }
-    decadeStart?.let { d -> add { (it.year ?: -1) in d until d + 10 } }
+    val decades = decadeSet()
+    if (decades.isNotEmpty()) {
+        add { item ->
+            val year = item.year ?: -1
+            decades.any { d -> year in d until d + 10 }
+        }
+    }
     yearFrom?.let { from -> add { (it.year ?: Int.MIN_VALUE) >= from } }
     yearTo?.let { to -> add { (it.year ?: Int.MAX_VALUE) <= to } }
     if (studios.isNotEmpty()) add { it.studioOrNull() in studios }

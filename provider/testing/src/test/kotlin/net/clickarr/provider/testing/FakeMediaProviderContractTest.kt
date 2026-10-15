@@ -20,6 +20,8 @@ class FakeMediaProviderContractTest : MediaProviderContractTest() {
         val movieLib = p.libraries().value()[1].ref
         val eighties = p.resolve(ProgrammingSource.Library(movieLib, MediaFilter(decadeStart = 1980))).value()
         eighties.map { it.ref.id.value }.sorted() shouldBe listOf("mv-bttf", "mv-goonies")
+        val multi = p.resolve(ProgrammingSource.Library(movieLib, MediaFilter(decades = setOf(1980, 2000)))).value()
+        multi.map { it.ref.id.value }.sorted() shouldBe listOf("mv-bttf", "mv-fellowship", "mv-goonies", "mv-towers")
         val sciFiEighties = MediaFilter(genres = setOf("Sci-Fi"), decadeStart = 1980)
         val eightiesComedy = p.resolve(ProgrammingSource.Library(movieLib, sciFiEighties)).value()
         eightiesComedy.map { it.ref.id.value } shouldBe listOf("mv-bttf")
