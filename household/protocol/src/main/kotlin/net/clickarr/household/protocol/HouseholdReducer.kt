@@ -22,6 +22,7 @@ class HouseholdReducer {
             is Command.CreateChannel -> createChannel(state, command)
             is Command.UpdateChannel -> updateChannel(state, command)
             is Command.DeleteChannel -> deleteChannel(state, command)
+            is Command.ReorderChannels -> reorderChannels(state, command)
             is Command.SetFavorite -> setFavorite(state, command)
             is Command.RenameHousehold -> rename(state, command.name)
             is Command.RenameDevice -> renameDevice(state, command)
@@ -95,6 +96,9 @@ class HouseholdReducer {
             state.copy(channels = state.channels.filter { it.id != c.channelId }, favorites = state.favorites - c.channelId),
         )
     }
+
+    private fun reorderChannels(state: HouseholdState, c: Command.ReorderChannels): Outcome<HouseholdState> =
+        applyRegularChannelOrder(state.channels, c.orderedIds).map { state.copy(channels = it) }
 
     private fun setFavorite(state: HouseholdState, c: Command.SetFavorite): Outcome<HouseholdState> {
         if (state.channels.none { it.id == c.channelId }) return notFound(c.channelId.value)

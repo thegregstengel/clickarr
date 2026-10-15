@@ -5,6 +5,12 @@ second release the same day); the household protocol, scheduler, and database ca
 
 ## [Unreleased]
 
+### Added
+
+- Settings, Channels: each regular channel row has a reorder handle on the left (Up/Down or drag) and Delete on the
+  right. Reordering renumbers those channels immediately and syncs through the household or Drive. Holiday channels
+  keep their numbers and do not show either control.
+
 ### Fixed
 
 - A stream that drops in the middle of a programme, for example when the server ends a transcode, now reconnects at the live position, up to three times. It no longer gives up and shows "Up next" for the rest of the slot. The log now records the HTTP status and path of the failed request.
