@@ -22,6 +22,9 @@ second release the same day); the household protocol, scheduler, and database ca
 - A stream that drops in the middle of a programme, for example when the server ends a transcode, now reconnects at the live position, up to three times. It no longer gives up and shows "Up next" for the rest of the slot. The log now records the HTTP status and path of the failed request.
 - Custom channel, Whole library, decade filter: later decades (1990s and after) wrap onto following rows and stay
   reachable with the D-pad instead of laying out vertically and trapping focus on 1990.
+- Custom channel, Whole library (and Shows): the title list loads every page from the server, not only the first
+  container page, so titles past early letters (A/B) appear. Pagination advances by how many items came back when a
+  page is shorter than requested.
 
 ## 2026.10.12
 

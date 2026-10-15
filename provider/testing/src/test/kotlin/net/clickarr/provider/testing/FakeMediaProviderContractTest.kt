@@ -9,10 +9,24 @@ import net.clickarr.core.model.MediaFilter
 import net.clickarr.core.model.ProgrammingSource
 import net.clickarr.provider.api.DeviceProfile
 import net.clickarr.provider.api.MediaProvider
+import net.clickarr.provider.api.Page
+import net.clickarr.provider.api.allPages
+import net.clickarr.provider.api.pageTotalWhenUnknown
 import org.junit.jupiter.api.Test
 
 class FakeMediaProviderContractTest : MediaProviderContractTest() {
     override fun provider(): MediaProvider = FakeMediaProvider()
+
+    @Test
+    fun `allPages walks short pages without skipping titles`() = runTest {
+        val p = FakeMediaProvider()
+        val movieLib = p.libraries().value()[1].ref
+        val pageSize = 1
+        val all = allPages { page -> p.movies(movieLib, Page(page.offset, pageSize)) }.value()
+        all.map { it.ref.id.value }.sorted() shouldBe listOf("mv-bttf", "mv-fellowship", "mv-goonies", "mv-towers")
+        pageTotalWhenUnknown(Page(0, 200), itemCount = 40) shouldBe 40
+        pageTotalWhenUnknown(Page(0, 40), itemCount = 40) shouldBe 41
+    }
 
     @Test
     fun `library filter by decade and genre narrows the result`() = runTest {
