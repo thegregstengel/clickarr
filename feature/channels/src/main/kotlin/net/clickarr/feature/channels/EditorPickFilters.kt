@@ -141,7 +141,7 @@ private fun LetterIndex(titles: List<PreviewTitle>, onLetter: (String) -> Unit) 
         Modifier.width(56.dp).verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        ('A'..'Z').forEach { letter ->
+        for (letter in 'A'..'Z') {
             val enabled = letter in present
             ListItem(
                 selected = false,

@@ -22,6 +22,7 @@ import androidx.tv.material3.Button
 import androidx.tv.material3.ListItem
 import androidx.tv.material3.Text
 import net.clickarr.core.model.ChannelId
+import net.clickarr.core.model.ProgrammingSource
 import net.clickarr.ui.design.ClickarrColors
 import net.clickarr.ui.design.ClickarrDimens
 import net.clickarr.ui.design.ClickarrTextStyles
@@ -63,9 +64,11 @@ private fun StepContent(step: EditorStep, viewModel: EditorViewModel) {
         is EditorStep.PickShows -> PickShows(s, viewModel)
         is EditorStep.PickFilters -> PickFilters(s, viewModel)
         is EditorStep.PickCollection -> Picker("Which collection?", s.collections, { it.name }) {
-            viewModel.confirmCollection(it)
+            viewModel.confirmSource(ProgrammingSource.Collection(it.ref), it.name)
         }
-        is EditorStep.PickPlaylist -> Picker("Which playlist?", s.playlists, { it.name }) { viewModel.confirmPlaylist(it) }
+        is EditorStep.PickPlaylist -> Picker("Which playlist?", s.playlists, { it.name }) {
+            viewModel.confirmSource(ProgrammingSource.Playlist(it.ref), it.name)
+        }
         is EditorStep.Details -> EditorDetails(s.draft, viewModel)
         is EditorStep.Saving -> Text(
             if (s.building) "Building the schedule for ${s.name}…" else "Saving ${s.name}…",

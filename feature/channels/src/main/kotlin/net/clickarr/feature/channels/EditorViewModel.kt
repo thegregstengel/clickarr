@@ -15,10 +15,8 @@ import kotlinx.coroutines.launch
 import net.clickarr.core.common.Outcome
 import net.clickarr.core.model.Channel
 import net.clickarr.core.model.ChannelId
-import net.clickarr.core.model.Collection
 import net.clickarr.core.model.Library
 import net.clickarr.core.model.MediaRef
-import net.clickarr.core.model.Playlist
 import net.clickarr.core.model.ProgrammingSource
 import net.clickarr.core.model.decadeSet
 import net.clickarr.data.ChannelRepository
@@ -129,15 +127,16 @@ class EditorViewModel @Inject constructor(
         toDetails(ProgrammingSource.Library(s.library.ref, s.filter), parts.joinToString(" "))
     }
 
-    fun confirmCollection(c: Collection) = toDetails(ProgrammingSource.Collection(c.ref), c.name)
-
-    fun confirmPlaylist(p: Playlist) = toDetails(ProgrammingSource.Playlist(p.ref), p.name)
+    fun confirmSource(source: ProgrammingSource, name: String) = toDetails(source, name)
 
     /** Open the details form for an existing channel. */
     fun load(id: ChannelId) {
         _step.value = EditorStep.Loading
         viewModelScope.launch {
-            val c = repository.byId(id) ?: return@launch fail("That channel no longer exists")
+            val c = repository.byId(id) ?: run {
+                _step.value = EditorStep.Failed("That channel no longer exists")
+                return@launch
+            }
             _step.value = EditorStep.Details(
                 EditorDraft(c.source, c.name, c.name, c.number, c.order, c.slotRounding, c.icon, c.runs, editing = c),
             )
@@ -191,9 +190,12 @@ class EditorViewModel @Inject constructor(
         _step.value = EditorStep.Loading
         viewModelScope.launch {
             when (val r = loader.libraries()) {
-                is Outcome.Success -> if (r.value.isEmpty()) fail("No libraries on this server")
-                else _step.value = EditorStep.ChooseLibrary(r.value)
-                is Outcome.Failure -> fail(r.error.message)
+                is Outcome.Success -> if (r.value.isEmpty()) {
+                    _step.value = EditorStep.Failed("No libraries on this server")
+                } else {
+                    _step.value = EditorStep.ChooseLibrary(r.value)
+                }
+                is Outcome.Failure -> _step.value = EditorStep.Failed(r.error.message)
             }
         }
     }
@@ -219,9 +221,5 @@ class EditorViewModel @Inject constructor(
             val number = repository.nextFreeNumber()
             _step.value = EditorStep.Details(EditorDraft(source, suggestedName, suggestedName, number))
         }
-    }
-
-    private fun fail(message: String) {
-        _step.value = EditorStep.Failed(message)
     }
 }
