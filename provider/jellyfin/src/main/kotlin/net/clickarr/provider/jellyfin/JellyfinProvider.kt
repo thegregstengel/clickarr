@@ -36,6 +36,7 @@ import net.clickarr.provider.api.allPages
 import net.clickarr.provider.api.collectAll
 import net.clickarr.provider.api.matches
 import net.clickarr.provider.api.mimeFor
+import net.clickarr.provider.api.pageTotalWhenUnknown
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
@@ -91,7 +92,7 @@ class JellyfinProvider(
             JfItems.serializer(),
         ).map { r ->
             val list = r.items.map(mapper)
-            PageOf(list, page, r.total ?: (page.offset + list.size))
+            PageOf(list, page, r.total ?: pageTotalWhenUnknown(page, list.size))
         }
 
     override suspend fun episodes(show: MediaRef): Outcome<List<Episode>> =

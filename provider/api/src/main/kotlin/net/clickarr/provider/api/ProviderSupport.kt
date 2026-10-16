@@ -20,8 +20,19 @@ suspend fun <T> allPages(fetch: suspend (Page) -> Outcome<PageOf<T>>): Outcome<L
         }
         out += p.items
         if (!p.hasMore || p.items.isEmpty()) return Outcome.Success(out)
-        page = page.next()
+        // Advance by how many came back: servers may return fewer than [Page.size] per call.
+        page = Page(page.offset + p.items.size, page.size)
     }
+}
+
+/**
+ * When a server omits a total count: empty or short page means end; a full page means try one more.
+ * Callers that know the real total should pass that instead.
+ */
+fun pageTotalWhenUnknown(page: Page, itemCount: Int): Int = when {
+    itemCount == 0 -> page.offset
+    itemCount < page.size -> page.offset + itemCount
+    else -> page.offset + itemCount + 1
 }
 
 /** [fetch] for each input in order, concatenated, stopping at the first failure. */

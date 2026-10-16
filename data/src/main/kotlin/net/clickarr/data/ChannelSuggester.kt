@@ -69,8 +69,8 @@ class ChannelSuggester @Inject constructor(private val registry: ProviderRegistr
         while (true) {
             val r = fetch(page) as? Outcome.Success ?: return if (all.isEmpty()) null else all
             all += r.value.items
-            if (!r.value.hasMore || all.size >= MAX_ITEMS_SCANNED) return all
-            page = page.next()
+            if (!r.value.hasMore || r.value.items.isEmpty() || all.size >= MAX_ITEMS_SCANNED) return all
+            page = Page(page.offset + r.value.items.size, page.size)
         }
     }
 
