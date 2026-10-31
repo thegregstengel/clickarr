@@ -139,8 +139,8 @@ class PlexProvider(
         item: MediaRef,
         profile: DeviceProfile,
         startAt: Duration,
-        captions: CaptionRequest? = null,
-        choice: PlaybackChoice? = null,
+        captions: CaptionRequest?,
+        choice: PlaybackChoice?,
     ): Outcome<PlaybackSource> =
         http.get(url("/library/metadata/${item.id.value}"), PlexResponse.serializer()).flatMap { r ->
             val m = r.container.metadata.firstOrNull()
