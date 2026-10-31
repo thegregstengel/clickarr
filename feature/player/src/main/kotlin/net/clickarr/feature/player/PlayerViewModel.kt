@@ -160,6 +160,9 @@ class PlayerViewModel @Inject constructor(
     /** OK: a short press shows or hides the overlay, a hold switches captions. */
     val ok = OkKeyGesture(onTap = { toggleOverlay() }, onHold = { toggleCaptions() })
 
+    /** OK on the overlay gear: short press opens Audio & video; hold still switches captions. */
+    val gearOk = OkKeyGesture(onTap = { streams.open() }, onHold = { toggleCaptions() })
+
     /** The channels in season today; surfing and numbers skip a Christmas channel in July. */
     val channels: StateFlow<List<Channel>> = deps.channels.channels
         .map { list -> list.filter { it.inSeason(AppTime.local(deps.clock.now()).date) } }

@@ -20,14 +20,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.KeyEventType
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onKeyEvent
-import androidx.compose.ui.input.key.type
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.Icon
@@ -54,6 +51,7 @@ fun ChannelOverlay(
     captionsOn: Boolean = false,
     sleepInMinutes: Long? = null,
     gearFocus: FocusRequester = rememberUnusedFocus(),
+    onGearFocused: (Boolean) -> Unit = {},
     onOpenStreams: (() -> Unit)? = null,
 ) {
     val channel = state.channel ?: return
@@ -80,7 +78,7 @@ fun ChannelOverlay(
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 ChannelBadge(if (digits.isNotEmpty()) digits else channel.number.toString(), highlight = digits.isNotEmpty())
                 if (onOpenStreams != null) {
-                    StreamGear(onOpen = onOpenStreams, focus = gearFocus)
+                    StreamGear(focus = gearFocus, onFocused = onGearFocused)
                 }
             }
             Spacer(Modifier.width(20.dp))
@@ -103,19 +101,22 @@ fun ChannelOverlay(
 @Composable
 private fun rememberUnusedFocus(): FocusRequester = remember { FocusRequester() }
 
-/** Ghost gear under the channel badge (design language overlay); OK opens Audio & video. */
+/**
+ * Ghost gear under the channel badge. Focus lands here on Left / overlay show; OK is handled by
+ * [PlayerViewModel.gearOk] while this has focus so hold-OK captions still work.
+ */
 @Composable
-private fun StreamGear(onOpen: () -> Unit, focus: FocusRequester) {
+private fun StreamGear(focus: FocusRequester, onFocused: (Boolean) -> Unit) {
     val interaction = remember { MutableInteractionSource() }
     Box(
         Modifier
             .focusRequester(focus)
-            .clickarrFocusable(interaction, radius = ClickarrDimens.RadiusBadge, idleColor = Color.Transparent)
-            .onKeyEvent { e ->
-                val ok = e.type == KeyEventType.KeyUp && (e.key == Key.DirectionCenter || e.key == Key.Enter)
-                if (ok) onOpen()
-                ok
+            .onFocusChanged { onFocused(it.isFocused) }
+            .focusProperties {
+                // Stay on the gear for Left; Right is handled as mini-guide in player keys.
+                left = FocusRequester.Cancel
             }
+            .clickarrFocusable(interaction, radius = ClickarrDimens.RadiusBadge, idleColor = Color.Transparent)
             .focusable(interactionSource = interaction)
             .padding(8.dp),
         contentAlignment = Alignment.Center,
