@@ -171,8 +171,8 @@ class JellyfinProvider(
         item: MediaRef,
         profile: DeviceProfile,
         startAt: Duration,
-        captions: CaptionRequest? = null,
-        choice: PlaybackChoice? = null,
+        captions: CaptionRequest?,
+        choice: PlaybackChoice?,
     ): Outcome<PlaybackSource> {
         // One round trip: the decision lists the file's streams, so the caption track is chosen from its answer. The
         // request asks for no subtitles (-1) so a server default is never burned in; a burn is added to the HLS URL.
