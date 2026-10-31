@@ -21,9 +21,16 @@ import net.clickarr.ui.design.ClickarrTextStyles
 /**
  * Shown between a program's content end and its slot end, and when a program cannot play
  * (design language 4, "Filler card"). The countdown is the activity indicator; there is no spinner.
+ * Mid-stream failures use different copy from a natural gap so they do not read as intentional up-next.
  */
 @Composable
-fun FillerCard(state: TuneState, now: Instant, reason: String?, showHeader: Boolean = true) {
+fun FillerCard(
+    state: TuneState,
+    now: Instant,
+    reason: String?,
+    streamFailed: Boolean = false,
+    showHeader: Boolean = true,
+) {
     val channel = state.channel
     val airing = state.airing
     Box(Modifier.fillMaxSize().background(ClickarrColors.BgBase)) {
@@ -42,12 +49,19 @@ fun FillerCard(state: TuneState, now: Instant, reason: String?, showHeader: Bool
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            if (reason != null) {
+            if (streamFailed) {
+                Text("Couldn't keep this stream", style = ClickarrTextStyles.ScreenTitle, color = ClickarrColors.TextSecondary)
+                reason?.let { Text(humanizePlayerError(it), style = ClickarrTextStyles.Caption, color = ClickarrColors.TextMuted) }
+            } else if (reason != null) {
                 Text(reason, style = ClickarrTextStyles.ScreenTitle, color = ClickarrColors.TextSecondary)
             }
             val next = state.next
             if (next != null) {
-                Text("Up next", style = ClickarrTextStyles.Caption, color = ClickarrColors.TextMuted)
+                Text(
+                    if (streamFailed) "Next programme" else "Up next",
+                    style = ClickarrTextStyles.Caption,
+                    color = ClickarrColors.TextMuted,
+                )
                 Text(next.entry.title, style = ClickarrTextStyles.ProgramTitle)
                 Text(slotRange(next), style = ClickarrTextStyles.Secondary, color = ClickarrColors.TextSecondary)
                 val remaining = (next.start - now).coerceAtLeast(Duration.ZERO)
@@ -64,6 +78,14 @@ fun FillerCard(state: TuneState, now: Instant, reason: String?, showHeader: Bool
             }
         }
     }
+}
+
+/** Soften raw Media3 codes for the card; Diagnostics still carries the exact log line. */
+internal fun humanizePlayerError(raw: String): String = when {
+    raw.startsWith("ERROR_CODE_IO") -> "The server or network dropped the stream."
+    raw.startsWith("ERROR_CODE_DECODING") -> "This TV could not decode the stream."
+    raw.startsWith("ERROR_CODE_") -> "Playback stopped ($raw)."
+    else -> raw
 }
 
 private val FILLER_TOP_WITH_OVERLAY = 96.dp

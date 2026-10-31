@@ -12,14 +12,20 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /** The TV mark from brand/svg/logo-mark.svg. */
 @Composable
-fun ClickarrMark(size: Dp, modifier: Modifier = Modifier) {
-    Image(painterResource(R.drawable.ic_clickarr_mark), contentDescription = null, modifier = modifier.size(size))
+fun ClickarrMark(size: Dp, modifier: Modifier = Modifier, colorFilter: ColorFilter? = null) {
+    Image(
+        painterResource(R.drawable.ic_clickarr_mark),
+        contentDescription = null,
+        modifier = modifier.size(size),
+        colorFilter = colorFilter,
+    )
 }
 
 /** The outlined wordmark ("Click" white, "arr" in the brand gradient). Height sets the scale. */

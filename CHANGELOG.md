@@ -7,6 +7,13 @@ second release the same day); the household protocol, scheduler, and database ca
 
 ### Added
 
+- Player: Audio & video panel from the gear under the channel badge. Pick a server version and an audio track for the
+  current programme (Plex and Jellyfin). Settings, Playback adds Preferred audio (device language, original, or English).
+  Hold OK still toggles captions.
+- Double-Back (or Back with nothing left to leave) asks "Leave Clickarr?" before exiting. About, Exit Clickarr uses the
+  same confirm. Keep watching stays focused first; Back dismisses the dialog.
+- Sleep timer and unanswered still-watching: playback still stops, and Clickarr shows a bouncing logo screensaver on
+  black with keep-screen-on so the animation can run. Press any button to tune back in live.
 - Settings, Channels: each regular channel row has a reorder handle on the left and Delete on the right. Select the
   handle to enter move mode, then Up/Down or drag to reorder among regulars; select again to commit. Outside move
   mode, Up/Down moves focus down the reorder column. Delete asks for confirmation first. Holiday channels keep their
@@ -19,12 +26,17 @@ second release the same day); the household protocol, scheduler, and database ca
 ### Fixed
 
 - When the Favorites tab is hidden, Up from the guide reaches the top row again (Guide, then Settings) instead of trapping focus in the grid.
-- A stream that drops in the middle of a programme, for example when the server ends a transcode, now reconnects at the live position, up to three times. It no longer gives up and shows "Up next" for the rest of the slot. The log now records the HTTP status and path of the failed request.
+- A stream that drops in the middle of a programme, for example when the server ends a transcode, now reconnects at the live position, up to four times. A successful first frame resets that budget. When reconnects are exhausted, the card says "Couldn't keep this stream" and "Next programme" instead of reading like an intentional Up next interstitial. The log still records the HTTP status and path. Diagnostics notes which lines to copy for a report.
 - Custom channel, Whole library, decade filter: later decades (1990s and after) wrap onto following rows and stay
   reachable with the D-pad instead of laying out vertically and trapping focus on 1990.
 - Custom channel, Whole library (and Shows): the title list loads every page from the server, not only the first
   container page, so titles past early letters (A/B) appear. Pagination advances by how many items came back when a
   page is shorter than requested.
+
+### Changed
+
+- Sleep no longer hands the panel to the TV's own screensaver while Clickarr is asleep; Clickarr keeps the screen on for
+  its bounce screensaver instead. The TV may still blank under its display-sleep settings.
 
 ## 2026.10.12
 

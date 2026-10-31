@@ -78,6 +78,7 @@ fun ShellScreen(
     initialTab: String,
     initialSection: String?,
     callbacks: ShellCallbacks,
+    exitGate: ExitConfirmGate,
     viewModel: AppViewModel = hiltViewModel(),
 ) {
     val channelCount by viewModel.channelCount.collectAsState()
@@ -85,7 +86,12 @@ fun ShellScreen(
     // Settings, Channels, Favorites tab: hidden for people with five channels who do not want a second list.
     val showFavorites by viewModel.favoritesTab.collectAsState()
     LaunchedEffect(showFavorites) { if (!showFavorites && tab == ShellTab.FAVORITES) tab = ShellTab.GUIDE }
-    BackHandler { shellBack(channelCount, callbacks) }
+    // Do not ask to exit while sleep UI is up (player owns that); here Back is the shell root or player hop.
+    BackHandler(enabled = !exitGate.open) {
+        exitGate.onRootBack(wouldFinish = channelCount == 0) {
+            if (channelCount > 0) callbacks.onWatch()
+        }
+    }
     // Tabs follow focus, but only focus the viewer moved there. When a focused control disappears (a pane swaps
     // its content, a text field closes), Compose hands focus to the first focusable, which is the Guide tab, and
     // that must not change tabs. A key press within the last moment is the signal that the viewer did it.
@@ -157,11 +163,6 @@ private class ShellFocus(
     val favoritesTab: FocusRequester,
     val settingsEntry: FocusRequester,
 )
-
-/** Back from the shell: to the player, or out when there is nothing to play. */
-private fun shellBack(channelCount: Int, callbacks: ShellCallbacks) {
-    if (channelCount > 0) callbacks.onWatch() else callbacks.onExit()
-}
 
 /** Logo, Guide and Favorites, and the settings cog at the far right. */
 @Composable

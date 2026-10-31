@@ -28,11 +28,22 @@ interface PlayerEngine {
      */
     fun setCaptions(enabled: Boolean, language: String?): Boolean
 
+    /**
+     * Demuxed audio tracks on the loaded item (direct play). Empty for HLS / nothing loaded.
+     * [selectAudio] returns false when the change needs a retune (transcode path).
+     */
+    fun audioTracks(): List<EngineAudioTrack> = emptyList()
+
+    fun selectAudio(trackId: String?, language: String?): Boolean = true
+
     /** Current playback position within the loaded item, or null if nothing is loaded. */
     fun position(): Duration?
 
     val isPlaying: Boolean
 }
+
+/** One audio track the engine can select for direct play. */
+data class EngineAudioTrack(val id: String, val language: String?, val label: String)
 
 sealed interface PlayerEvent {
     /** First video frame rendered for the most recent [PlayerEngine.load]. */

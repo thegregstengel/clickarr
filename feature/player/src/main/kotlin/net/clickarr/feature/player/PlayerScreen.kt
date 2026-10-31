@@ -48,6 +48,8 @@ import net.clickarr.ui.design.ClickarrMotion
 fun PlayerScreen(
     onOpenGuide: () -> Unit,
     onOpenShell: () -> Unit,
+    /** Root Back after mini-guide and overlay are closed: arm double-Back or open the shell. */
+    onRootBack: (navigate: () -> Unit) -> Boolean = { navigate -> navigate(); true },
     viewModel: PlayerViewModel = hiltViewModel(),
 ) {
     val tune by viewModel.tune.collectAsState()
@@ -58,13 +60,26 @@ fun PlayerScreen(
     val promoState by viewModel.promo.collectAsState()
     val sleepState by viewModel.sleep.state.collectAsState()
     val miniGuide by viewModel.miniGuide.collectAsState()
+    val streamPanel by viewModel.streams.open.collectAsState()
     // Back arrives as a key on Fire OS but through the back dispatcher on newer Android (predictive back),
-    // so it is handled here rather than in the key map: close the mini-guide, then the overlay, then leave.
-    BackHandler { if (!viewModel.handleBack()) onOpenShell() }
+    // so it is handled here rather than in the key map: close the stream panel, mini-guide, then overlay, then leave.
+    // Sleep Ask/Asleep consumes keys in playerKey; do not show exit confirm over them.
+    val sleepBlocking = sleepState != SleepGuard.State.Awake
+    BackHandler(enabled = !sleepBlocking) {
+        if (!viewModel.handleBack()) onRootBack(onOpenShell)
+    }
     val focus = remember { FocusRequester() }
+    val gearFocus = remember { FocusRequester() }
     val lifecycleOwner = LocalLifecycleOwner.current
 
     LaunchedEffect(Unit) { focus.requestFocus() }
+    LaunchedEffect(overlayVisible, streamPanel) {
+        when {
+            streamPanel -> Unit
+            overlayVisible -> runCatching { gearFocus.requestFocus() }
+            else -> runCatching { focus.requestFocus() }
+        }
+    }
     LaunchedEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
@@ -94,8 +109,8 @@ fun PlayerScreen(
                     subtitleView?.applyClickarrStyle()
                 }
             },
-            // Asleep, the TV's own screensaver and sleep settings are free to take over.
-            update = { view -> view.keepScreenOn = sleepState != SleepGuard.State.Asleep },
+            // Bounce screensaver needs the panel awake; the TV may still blank under its own display-sleep settings.
+            update = { view -> view.keepScreenOn = true },
             modifier = Modifier.fillMaxSize(),
         )
 
@@ -112,7 +127,12 @@ fun PlayerScreen(
                 digits = digits,
                 captionsOn = captionsOn,
                 sleepInMinutes = viewModel.sleepInMinutes(),
+                gearFocus = gearFocus,
+                onOpenStreams = viewModel.streams::open,
             )
+        }
+        if (streamPanel) {
+            StreamOptionsPanel(viewModel.streams, onDismiss = viewModel.streams::close)
         }
         TopLayers(notice, sleepState)
         if (digits.isNotEmpty() && !overlayVisible) DigitBadge(digits)
@@ -128,7 +148,13 @@ private fun GapLayer(tune: TuneState, promo: PromoDirector.Promo?, now: kotlinx.
         status is TuneStatus.Filler && promo != null ->
             PromoCard(promo, tune.channel.takeIf { !overlayVisible }, now, showText = !overlayVisible)
         status is TuneStatus.Filler || status is TuneStatus.Unavailable || tune.channel == null ->
-            FillerCard(tune, now, reason = (status as? TuneStatus.Unavailable)?.reason, showHeader = !overlayVisible)
+            FillerCard(
+                tune,
+                now,
+                streamFailed = status is TuneStatus.Unavailable,
+                reason = (status as? TuneStatus.Unavailable)?.reason,
+                showHeader = !overlayVisible,
+            )
     }
 }
 

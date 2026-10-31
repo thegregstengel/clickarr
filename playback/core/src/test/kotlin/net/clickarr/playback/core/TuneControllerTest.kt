@@ -224,19 +224,37 @@ class TuneControllerTest {
     }
 
     @Test
-    fun `a stream that keeps dropping gives up after three reconnects`() = runTest {
+    fun `a stream that keeps dropping gives up after four reconnects`() = runTest {
         val h = Harness(this, provider, lineup, anchor + 10.minutes)
         h.controller.tune(channel)
         advanceTimeBy(301)
         runCurrent()
-        repeat(3) {
+        repeat(4) {
             h.engine.emit(PlayerEvent.Error("ERROR_CODE_IO_BAD_HTTP_STATUS", recoverable = true))
             advanceTimeBy(10.seconds.inWholeMilliseconds)
             runCurrent()
         }
-        h.engine.loads.size shouldBe 4
+        h.engine.loads.size shouldBe 5
         h.engine.emit(PlayerEvent.Error("ERROR_CODE_IO_BAD_HTTP_STATUS", recoverable = true))
         runCurrent()
         h.controller.state.value.status.shouldBeInstanceOf<TuneStatus.Unavailable>()
+    }
+
+    @Test
+    fun `a successful first frame after reconnect resets the reconnect budget`() = runTest {
+        val h = Harness(this, provider, lineup, anchor + 10.minutes)
+        h.controller.tune(channel)
+        advanceTimeBy(301)
+        runCurrent()
+        repeat(4) {
+            h.engine.emit(PlayerEvent.Error("ERROR_CODE_IO_BAD_HTTP_STATUS", recoverable = true))
+            advanceTimeBy(10.seconds.inWholeMilliseconds)
+            runCurrent()
+        }
+        h.engine.emit(PlayerEvent.FirstFrame)
+        runCurrent()
+        h.engine.emit(PlayerEvent.Error("ERROR_CODE_IO_BAD_HTTP_STATUS", recoverable = true))
+        runCurrent()
+        h.controller.state.value.status shouldBe TuneStatus.Loading
     }
 }

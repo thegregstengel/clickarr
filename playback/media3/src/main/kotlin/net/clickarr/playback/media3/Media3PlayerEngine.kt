@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import net.clickarr.core.common.Log
 import net.clickarr.core.common.Redact
+import net.clickarr.playback.core.EngineAudioTrack
 import net.clickarr.playback.core.PlayerEngine
 import net.clickarr.playback.core.PlayerEvent
 import net.clickarr.provider.api.PlaybackSource
@@ -126,6 +127,36 @@ class Media3PlayerEngine(context: Context, okHttp: OkHttpClient, userAgent: Stri
         if (enabled) pickTextTrackIfNeeded(player.currentTracks)
         // Burned-in captions are part of the picture; only a fresh transcode can add or remove them.
         return loaded !is PlaybackSource.Hls
+    }
+
+    override fun audioTracks(): List<EngineAudioTrack> {
+        if (loaded !is PlaybackSource.DirectPlay) return emptyList()
+        return player.currentTracks.groups
+            .filter { it.type == C.TRACK_TYPE_AUDIO && it.isSupported }
+            .mapIndexed { i, g ->
+                val f = g.mediaTrackGroup.getFormat(0)
+                val id = g.mediaTrackGroup.id ?: "a$i"
+                EngineAudioTrack(
+                    id = id,
+                    language = f.language,
+                    label = f.label ?: f.language ?: "Audio ${i + 1}",
+                )
+            }
+    }
+
+    override fun selectAudio(trackId: String?, language: String?): Boolean {
+        if (loaded is PlaybackSource.Hls) return false
+        val builder = player.trackSelectionParameters.buildUpon()
+            .clearOverridesOfType(C.TRACK_TYPE_AUDIO)
+            .setPreferredAudioLanguage(language)
+        if (trackId != null) {
+            val group = player.currentTracks.groups.firstOrNull {
+                it.type == C.TRACK_TYPE_AUDIO && it.isSupported && (it.mediaTrackGroup.id ?: "") == trackId
+            }
+            if (group != null) builder.setOverrideForType(TrackSelectionOverride(group.mediaTrackGroup, 0))
+        }
+        player.trackSelectionParameters = builder.build()
+        return true
     }
 
     /** ExoPlayer leaves text off when no track matches the language; with captions on, any track beats none. */

@@ -59,8 +59,18 @@ internal object JellyfinProfile {
         }
     }
 
-    /** The body of `POST /Items/{id}/PlaybackInfo`. -1 asks for no subtitles, so a server default is not burned in. */
-    fun playbackInfoBody(userId: String, profile: DeviceProfile, startTicks: Long, subtitleIndex: Int?): JsonObject = buildJsonObject {
+    /**
+     * The body of `POST /Items/{id}/PlaybackInfo`. -1 asks for no subtitles, so a server default is not burned in.
+     * [mediaSourceId] and [audioStreamIndex] pin the in-player Audio & video choice when set.
+     */
+    fun playbackInfoBody(
+        userId: String,
+        profile: DeviceProfile,
+        startTicks: Long,
+        subtitleIndex: Int?,
+        mediaSourceId: String? = null,
+        audioStreamIndex: Int? = null,
+    ): JsonObject = buildJsonObject {
         put("UserId", userId)
         put("StartTimeTicks", startTicks)
         put("MaxStreamingBitrate", maxBitrate(profile))
@@ -69,6 +79,8 @@ internal object JellyfinProfile {
         put("EnableTranscoding", true)
         put("AutoOpenLiveStream", false)
         put("SubtitleStreamIndex", subtitleIndex ?: -1)
+        mediaSourceId?.let { put("MediaSourceId", it) }
+        audioStreamIndex?.let { put("AudioStreamIndex", it) }
         putJsonObject("DeviceProfile") { of(profile).forEach { (k, v) -> put(k, v) } }
     }
 

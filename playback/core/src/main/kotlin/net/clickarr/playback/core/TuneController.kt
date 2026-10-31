@@ -26,6 +26,7 @@ import net.clickarr.core.scheduling.ScheduleStrategy
 import net.clickarr.provider.api.CaptionRequest
 import net.clickarr.provider.api.DeviceProfile
 import net.clickarr.provider.api.MediaProvider
+import net.clickarr.provider.api.PlaybackChoice
 import net.clickarr.provider.api.PlaybackSource
 
 /**
@@ -51,12 +52,13 @@ class TuneController(
     private val clock: Clock,
     private val scope: CoroutineScope,
     private val config: TuneConfig = TuneConfig(),
-    /** Captions wanted for the next load, or null (Settings, Playback, and hold OK in the player). */
-    private val captions: () -> CaptionRequest? = { null },
+    private val requests: TuneRequests = TuneRequests(),
 ) {
     private val debounce get() = config.debounce
     private val driftInterval get() = config.driftInterval
     private val driftTolerance get() = config.driftTolerance
+    private val captions get() = requests.captions
+    private val playbackChoice get() = requests.playbackChoice
 
     private val _state = MutableStateFlow(TuneState())
     val state: StateFlow<TuneState> = _state.asStateFlow()
@@ -72,8 +74,16 @@ class TuneController(
         scope.launch {
             engine.events.collect { event ->
                 when (event) {
-                    PlayerEvent.FirstFrame -> _state.update {
-                        if (it.status == TuneStatus.Loading) it.copy(status = TuneStatus.Playing) else it
+                    PlayerEvent.FirstFrame -> {
+                        // A successful recover starts a fresh incident budget so a later drop can retry again.
+                        if (reconnects > 0) {
+                            reconnects = 0
+                            lastDrop = null
+                            Log.i(TAG) { "first frame after reconnect; reset reconnect budget" }
+                        }
+                        _state.update {
+                            if (it.status == TuneStatus.Loading) it.copy(status = TuneStatus.Playing) else it
+                        }
                     }
                     PlayerEvent.Ended -> onEndedEarly()
                     is PlayerEvent.Error -> onPlayerError(event)
@@ -167,7 +177,7 @@ class TuneController(
     private suspend fun loadContent(airing: Airing, offset: Duration): Outcome<Unit> {
         val provider = providers(airing.entry.ref.provider)
             ?: return Outcome.Failure(ClickarrError.Unsupported("No server for ${airing.entry.ref.provider.value}"))
-        return when (val source = provider.playbackSource(airing.entry.ref, profile, offset, captions())) {
+        return when (val source = provider.playbackSource(airing.entry.ref, profile, offset, captions(), playbackChoice())) {
             is Outcome.Success -> {
                 currentSource = source.value
                 currentProvider = provider
@@ -243,7 +253,8 @@ class TuneController(
 
     companion object {
         private const val TAG = "Tune"
-        private const val MAX_RECONNECTS = 3
+        /** Enough for a flaky HLS segment run without sticking on Unavailable for the rest of a long film. */
+        private const val MAX_RECONNECTS = 4
         private val RECONNECT_DELAY = 2.seconds
 
         /** Drops further apart than this are separate incidents, each with its own reconnect attempts. */
@@ -256,6 +267,12 @@ data class TuneConfig(
     val debounce: Duration = 300.milliseconds,
     val driftInterval: Duration = 10.seconds,
     val driftTolerance: Duration = 5.seconds,
+)
+
+/** Per-load requests from the player (captions toggle, in-player Audio & video pick). */
+data class TuneRequests(
+    val captions: () -> CaptionRequest? = { null },
+    val playbackChoice: () -> PlaybackChoice? = { null },
 )
 
 data class TuneState(
