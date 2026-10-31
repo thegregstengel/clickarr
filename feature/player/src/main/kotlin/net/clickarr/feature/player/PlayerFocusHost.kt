@@ -21,6 +21,19 @@ internal enum class PlayerFocusHost {
     MiniGuide,
 }
 
+/** Resolve which surface owns the remote while a channel plays. */
+internal fun resolvePlayerFocusHost(
+    streamPanel: Boolean,
+    miniGuideOpen: Boolean,
+    gearFocused: Boolean,
+    overlayVisible: Boolean,
+): PlayerFocusHost = when {
+    streamPanel -> PlayerFocusHost.StreamPanel
+    miniGuideOpen -> PlayerFocusHost.MiniGuide
+    gearFocused && overlayVisible -> PlayerFocusHost.Gear
+    else -> PlayerFocusHost.Park
+}
+
 /** Keys Compose focus on the stream panel must receive; parent preview must not consume them. */
 internal fun passesToFocusedChild(host: PlayerFocusHost, key: Key): Boolean {
     if (host != PlayerFocusHost.StreamPanel) return false

@@ -50,9 +50,7 @@ fun ChannelOverlay(
     digits: String,
     captionsOn: Boolean = false,
     sleepInMinutes: Long? = null,
-    gearFocus: FocusRequester = rememberUnusedFocus(),
-    onGearFocused: (Boolean) -> Unit = {},
-    onOpenStreams: (() -> Unit)? = null,
+    streamGear: StreamGearBinding? = null,
 ) {
     val channel = state.channel ?: return
     val airing = state.airing
@@ -77,9 +75,7 @@ fun ChannelOverlay(
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 ChannelBadge(if (digits.isNotEmpty()) digits else channel.number.toString(), highlight = digits.isNotEmpty())
-                if (onOpenStreams != null) {
-                    StreamGear(focus = gearFocus, onFocused = onGearFocused)
-                }
+                streamGear?.let { StreamGear(it) }
             }
             Spacer(Modifier.width(20.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -98,20 +94,17 @@ fun ChannelOverlay(
     }
 }
 
-@Composable
-private fun rememberUnusedFocus(): FocusRequester = remember { FocusRequester() }
-
 /**
  * Ghost gear under the channel badge. Focus lands here on Left / overlay show; OK is handled by
  * [PlayerViewModel.gearOk] while this has focus so hold-OK captions still work.
  */
 @Composable
-private fun StreamGear(focus: FocusRequester, onFocused: (Boolean) -> Unit) {
+private fun StreamGear(gear: StreamGearBinding) {
     val interaction = remember { MutableInteractionSource() }
     Box(
         Modifier
-            .focusRequester(focus)
-            .onFocusChanged { onFocused(it.isFocused) }
+            .focusRequester(gear.focus)
+            .onFocusChanged { gear.onFocused(it.isFocused) }
             .focusProperties {
                 // Stay on the gear for Left; Right is handled as mini-guide in player keys.
                 left = FocusRequester.Cancel
