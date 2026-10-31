@@ -11,7 +11,7 @@ import kotlinx.coroutines.launch
 import net.clickarr.core.common.Log
 import net.clickarr.core.common.Outcome
 import net.clickarr.core.model.MediaRef
-import net.clickarr.data.DevicePrefs
+import net.clickarr.data.AudioPrefs
 import net.clickarr.playback.core.PlayerEngine
 import net.clickarr.playback.core.TuneController
 import net.clickarr.playback.core.TuneState
@@ -27,7 +27,7 @@ import net.clickarr.provider.api.VideoOption
  */
 class StreamOptionsController(
     private val scope: CoroutineScope,
-    private val prefs: DevicePrefs,
+    private val audioPrefs: AudioPrefs,
     private val engine: PlayerEngine,
     private val controller: TuneController,
     private val providers: (MediaRef) -> MediaProvider?,
@@ -91,7 +91,7 @@ class StreamOptionsController(
         choiceAudio = id
         _selectedAudio.value = id
         scope.launch {
-            language?.let { prefs.setLastAudioLanguage(it) }
+            language?.let { audioPrefs.setLastLanguage(it) }
             // Direct play can switch in place; HLS / burned paths need a retune with audioStreamID.
             if (!engine.selectAudio(id, language)) controller.retune()
         }

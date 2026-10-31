@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import net.clickarr.core.common.Clock
+import net.clickarr.data.AudioPrefs
 import net.clickarr.data.DevicePrefs
 import net.clickarr.data.SleepPrefs
 import net.clickarr.provider.api.DeviceProfile
@@ -20,6 +21,7 @@ import net.clickarr.provider.api.DeviceProfile
 @HiltViewModel
 class PlaybackSettingsViewModel @Inject constructor(
     private val prefs: DevicePrefs,
+    private val audio: AudioPrefs,
     private val sleep: SleepPrefs,
     private val clock: Clock,
     val profile: DeviceProfile,
@@ -34,11 +36,11 @@ class PlaybackSettingsViewModel @Inject constructor(
     fun setCaptions(on: Boolean) = viewModelScope.launch { prefs.setCaptions(on) }
 
     val preferredAudio: StateFlow<String> =
-        prefs.preferredAudioLanguage
-            .map { it ?: DevicePrefs.AUDIO_DEVICE }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_MS), DevicePrefs.AUDIO_DEVICE)
+        audio.preferredLanguage
+            .map { it ?: AudioPrefs.AUDIO_DEVICE }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_MS), AudioPrefs.AUDIO_DEVICE)
 
-    fun setPreferredAudio(code: String) = viewModelScope.launch { prefs.setPreferredAudioLanguage(code) }
+    fun setPreferredAudio(code: String) = viewModelScope.launch { audio.setPreferredLanguage(code) }
 
     val betweenPrograms: StateFlow<String> =
         prefs.betweenPrograms.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_MS), DevicePrefs.BETWEEN_PROMO)

@@ -14,6 +14,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.tv.material3.ListItem
 import androidx.tv.material3.Text
 import net.clickarr.core.common.AppTime
+import net.clickarr.data.AudioPrefs
 import net.clickarr.data.DevicePrefs
 import net.clickarr.ui.design.ClickarrColors
 import net.clickarr.ui.design.ClickarrTextStyles
@@ -48,11 +49,11 @@ internal fun PlaybackPane(vm: PlaybackSettingsViewModel = hiltViewModel()) {
     val audio by vm.preferredAudio.collectAsState()
     PaneLabel("Preferred audio")
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        PaneChip("Device language", selected = audio == DevicePrefs.AUDIO_DEVICE) {
-            vm.setPreferredAudio(DevicePrefs.AUDIO_DEVICE)
+        PaneChip("Device language", selected = audio == AudioPrefs.AUDIO_DEVICE) {
+            vm.setPreferredAudio(AudioPrefs.AUDIO_DEVICE)
         }
-        PaneChip("Original", selected = audio == DevicePrefs.AUDIO_ORIGINAL) {
-            vm.setPreferredAudio(DevicePrefs.AUDIO_ORIGINAL)
+        PaneChip("Original", selected = audio == AudioPrefs.AUDIO_ORIGINAL) {
+            vm.setPreferredAudio(AudioPrefs.AUDIO_ORIGINAL)
         }
         PaneChip("English", selected = audio == "eng") { vm.setPreferredAudio("eng") }
     }

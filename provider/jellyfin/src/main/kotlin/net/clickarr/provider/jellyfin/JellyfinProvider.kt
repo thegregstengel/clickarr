@@ -4,7 +4,6 @@ import kotlin.time.Duration
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import net.clickarr.core.common.ClickarrError
-import net.clickarr.core.common.Log
 import net.clickarr.core.common.Outcome
 import net.clickarr.core.common.flatMap
 import net.clickarr.core.model.ArtworkRef
@@ -23,7 +22,6 @@ import net.clickarr.core.model.ProviderKind
 import net.clickarr.core.model.ServerInfo
 import net.clickarr.core.model.Show
 import net.clickarr.provider.api.ArtworkSize
-import net.clickarr.provider.api.AudioOption
 import net.clickarr.provider.api.CaptionRequest
 import net.clickarr.provider.api.ClientIdentity
 import net.clickarr.provider.api.DeviceProfile
@@ -34,13 +32,9 @@ import net.clickarr.provider.api.PlaybackChoice
 import net.clickarr.provider.api.PlaybackOptions
 import net.clickarr.provider.api.PlaybackSource
 import net.clickarr.provider.api.PlaybackState
-import net.clickarr.provider.api.Subtitle
-import net.clickarr.provider.api.VideoOption
 import net.clickarr.provider.api.allPages
 import net.clickarr.provider.api.collectAll
 import net.clickarr.provider.api.matches
-import net.clickarr.provider.api.mimeFor
-import net.clickarr.provider.api.pageTotalWhenUnknown
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
@@ -76,28 +70,27 @@ class JellyfinProvider(
     override suspend fun libraries(): Outcome<List<Library>> =
         http.get(url("/UserViews", "userId" to userId), JfItems.serializer()).map { r -> r.items.map(map::library) }
 
-    override suspend fun shows(library: MediaRef, page: Page): Outcome<PageOf<Show>> =
-        pageOf(library, "Series", SHOW_FIELDS, page, map::show)
+    override suspend fun shows(library: MediaRef, page: Page): Outcome<PageOf<Show>> = jellyfinPage(
+        http,
+        items(
+            "parentId" to library.id.value, "includeItemTypes" to "Series", "recursive" to "true",
+            "sortBy" to "SortName", "fields" to SHOW_FIELDS,
+            "startIndex" to page.offset.toString(), "limit" to page.size.toString(),
+        ),
+        page,
+        map::show,
+    )
 
-    override suspend fun movies(library: MediaRef, page: Page): Outcome<PageOf<Movie>> =
-        pageOf(library, "Movie", PLAYABLE_FIELDS, page, map::movie)
-
-    private suspend fun <T> pageOf(library: MediaRef, type: String, fields: String, page: Page, mapper: (JfItem) -> T): Outcome<PageOf<T>> =
-        http.get(
-            items(
-                "parentId" to library.id.value,
-                "includeItemTypes" to type,
-                "recursive" to "true",
-                "sortBy" to "SortName",
-                "fields" to fields,
-                "startIndex" to page.offset.toString(),
-                "limit" to page.size.toString(),
-            ),
-            JfItems.serializer(),
-        ).map { r ->
-            val list = r.items.map(mapper)
-            PageOf(list, page, r.total ?: pageTotalWhenUnknown(page, list.size))
-        }
+    override suspend fun movies(library: MediaRef, page: Page): Outcome<PageOf<Movie>> = jellyfinPage(
+        http,
+        items(
+            "parentId" to library.id.value, "includeItemTypes" to "Movie", "recursive" to "true",
+            "sortBy" to "SortName", "fields" to PLAYABLE_FIELDS,
+            "startIndex" to page.offset.toString(), "limit" to page.size.toString(),
+        ),
+        page,
+        map::movie,
+    )
 
     override suspend fun episodes(show: MediaRef): Outcome<List<Episode>> =
         http.get(url("/Shows/${show.id.value}/Episodes", "userId" to userId, "fields" to PLAYABLE_FIELDS), JfItems.serializer())
@@ -198,7 +191,32 @@ class JellyfinProvider(
                     ?: info.mediaSources.firstOrNull()
                     ?: return@flatMap Outcome.Failure(ClickarrError.NotFound("Jellyfin offered no way to play ${item.id.value}"))
                 val chosen = JellyfinProfile.choose(source.streams, captions)
-                decide(item.id.value, source, info.playSessionId, startAt, chosen, captions != null, profile, choice)
+                val wire = JellyfinPlayWire(
+                    base = base,
+                    token = token,
+                    authHeader = http.authorization(),
+                    streamUrl = { mediaSourceId, session ->
+                        url(
+                            "/Videos/${item.id.value}/stream",
+                            "static" to "true",
+                            "mediaSourceId" to mediaSourceId,
+                            "playSessionId" to session,
+                        ).toString()
+                    },
+                )
+                jellyfinDecide(
+                    JellyfinDecideInput(
+                        item.id.value,
+                        source,
+                        info.playSessionId,
+                        startAt,
+                        chosen,
+                        captions != null,
+                        profile,
+                        choice,
+                    ),
+                    wire,
+                )
             }
     }
 
@@ -206,107 +224,7 @@ class JellyfinProvider(
         http.get(
             url("/Items/${item.id.value}", "userId" to userId, "fields" to "MediaSources"),
             JfItem.serializer(),
-        ).map { v ->
-            val sources = v.mediaSources
-            val videos = sources.map { s ->
-                val video = s.streams.firstOrNull { it.type == "Video" }
-                val res = video?.height?.let { "${it}p" }
-                val rate = s.bitrate?.let { b ->
-                    val kbps = (b / 1_000).toInt()
-                    if (kbps >= 1_000) "${kbps / 1_000}.${(kbps % 1_000) / 100} Mbps" else "$kbps kbps"
-                }
-                VideoOption(
-                    id = s.id,
-                    label = listOfNotNull(res, video?.codec, rate, s.container).joinToString(" · ").ifBlank { s.id },
-                    duration = s.runTimeTicks?.let { JellyfinMapper.ticks(it) },
-                )
-            }
-            val audios = sources.firstOrNull()?.streams.orEmpty().filter { it.type == "Audio" }.map { s ->
-                AudioOption(
-                    id = s.index.toString(),
-                    label = s.displayTitle ?: listOfNotNull(s.language, s.codec).joinToString(" · ").ifBlank { "Audio ${s.index}" },
-                    language = s.language,
-                )
-            }
-            PlaybackOptions(videos, audios)
-        }
-
-    private fun decide(
-        itemId: String,
-        source: JfMediaSource,
-        session: String?,
-        startAt: Duration,
-        chosen: JfStream?,
-        captionsOn: Boolean,
-        profile: DeviceProfile,
-        choice: PlaybackChoice?,
-    ): Outcome<PlaybackSource> {
-        val tracks = source.streams.filter { it.type == "Subtitle" }
-            .joinToString { "${it.codec}/${it.language}${if (it.isExternal) "/file" else ""}" }
-        val audioPick = choice?.audioId ?: choice?.preferredAudioLanguage?.let { lang ->
-            source.streams.firstOrNull { it.type == "Audio" && it.language?.equals(lang, ignoreCase = true) == true }
-                ?.index?.toString()
-        }
-        val transcode = source.transcodingUrl
-        return when {
-            source.supportsDirectPlay || JellyfinProfile.onlyAudioStandsInTheWay(source, profile) -> {
-                Log.i(TAG) { "direct play $itemId: ${source.container}, audio=$audioPick, subtitles [$tracks]" }
-                Outcome.Success(
-                    PlaybackSource.DirectPlay(
-                        url = url(
-                            "/Videos/$itemId/stream",
-                            "static" to "true",
-                            "mediaSourceId" to source.id,
-                            "playSessionId" to session,
-                        ).toString(),
-                        headers = mapOf("Authorization" to http.authorization()),
-                        startAt = startAt,
-                        mimeType = mimeFor(source.container?.substringBefore(',')),
-                        subtitles = sidecars(source),
-                    ),
-                )
-            }
-            transcode != null -> {
-                // The HLS playlist covers the whole programme and the player seeks to the offset, so the server starts
-                // transcoding there. Captions in a transcode are burned in, as with Plex.
-                val burn = chosen?.takeIf { captionsOn }
-                Log.i(TAG) {
-                    "transcode $itemId: ${source.container}, audio=$audioPick, subtitles [$tracks], " +
-                        "captions ${if (!captionsOn) "off" else "on, burning ${burn?.let { "${it.index} ${it.codec}" } ?: "nothing"}"}"
-                }
-                val hls = (base.trimEnd('/') + transcode).toHttpUrl().newBuilder()
-                    .removeAllQueryParameters("SubtitleStreamIndex").removeAllQueryParameters("SubtitleMethod")
-                    .removeAllQueryParameters("AudioStreamIndex")
-                    .apply {
-                        if (burn != null) {
-                            addQueryParameter("SubtitleStreamIndex", burn.index.toString())
-                            addQueryParameter("SubtitleMethod", "Encode")
-                        }
-                        audioPick?.let { addQueryParameter("AudioStreamIndex", it) }
-                    }.build()
-                Outcome.Success(
-                    PlaybackSource.Hls(
-                        url = hls.toString(),
-                        headers = mapOf("Authorization" to http.authorization()),
-                        startAt = startAt,
-                        sessionId = session ?: hls.queryParameter("PlaySessionId").orEmpty(),
-                    ),
-                )
-            }
-            else -> Outcome.Failure(ClickarrError.Unknown("Jellyfin can neither direct play nor transcode $itemId"))
-        }
-    }
-
-    /** Text subtitles the server offers as separate files, fetched with the token since the player sends no headers. */
-    private fun sidecars(source: JfMediaSource): List<Subtitle> = source.streams.mapNotNull { s ->
-        val delivery = s.deliveryUrl?.takeIf { s.type == "Subtitle" && s.deliveryMethod == "External" } ?: return@mapNotNull null
-        val mime = JellyfinProfile.mimeType(s.codec) ?: return@mapNotNull null
-        val withKey = (base.trimEnd('/') + delivery).toHttpUrl().newBuilder()
-            .apply { if (!hasKey(delivery)) addQueryParameter("ApiKey", token) }.build()
-        Subtitle(withKey.toString(), mime, s.language, s.displayTitle)
-    }
-
-    private fun hasKey(path: String): Boolean = Regex("[?&](ApiKey|api_key)=", RegexOption.IGNORE_CASE).containsMatchIn(path)
+        ).map(::jellyfinOptionsFrom)
 
     override suspend fun endPlayback(source: PlaybackSource): Outcome<Unit> = when (source) {
         is PlaybackSource.Hls -> http.touch(
@@ -339,7 +257,6 @@ class JellyfinProvider(
         http.touch(url("/UserPlayedItems/${item.id.value}", "userId" to userId), "POST")
 
     companion object {
-        private const val TAG = "Jellyfin"
         private const val IDS_PER_REQUEST = 100
         private const val ARTWORK_QUALITY = 90
         private const val SHOW_FIELDS = "Genres,Studios,Overview,ChildCount,RecursiveItemCount,ProductionYear"

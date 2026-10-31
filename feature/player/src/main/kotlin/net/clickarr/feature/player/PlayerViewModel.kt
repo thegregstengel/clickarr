@@ -22,11 +22,13 @@ import kotlinx.datetime.Instant
 import net.clickarr.core.common.AppTime
 import net.clickarr.core.model.Channel
 import net.clickarr.core.model.inSeason
+import net.clickarr.data.AudioPrefs
 import net.clickarr.data.DevicePrefs
 import net.clickarr.data.PlayerDeps
 import net.clickarr.playback.core.TuneStatus
 import net.clickarr.data.SleepPrefs
 import net.clickarr.playback.core.TuneController
+import net.clickarr.playback.core.TuneRequests
 import net.clickarr.playback.core.TuneState
 import net.clickarr.playback.core.WatchReporter
 import net.clickarr.playback.media3.Media3PlayerEngine
@@ -41,6 +43,7 @@ import net.clickarr.provider.api.CaptionRequest
 class PlayerViewModel @Inject constructor(
     @ApplicationContext context: Context,
     private val deps: PlayerDeps,
+    audioPrefs: AudioPrefs,
     sleepPrefs: SleepPrefs,
 ) : ViewModel() {
     val engine = Media3PlayerEngine(context, deps.okHttp, "Clickarr")
@@ -50,9 +53,9 @@ class PlayerViewModel @Inject constructor(
     private val captionLanguage: String? = runCatching { java.util.Locale.getDefault().isO3Language }.getOrNull()
 
     private val preferredAudioLang: StateFlow<String?> =
-        deps.prefs.preferredAudioLanguage.stateIn(viewModelScope, SharingStarted.Eagerly, DevicePrefs.AUDIO_DEVICE)
+        audioPrefs.preferredLanguage.stateIn(viewModelScope, SharingStarted.Eagerly, AudioPrefs.AUDIO_DEVICE)
     private val lastAudioLang: StateFlow<String?> =
-        deps.prefs.lastAudioLanguage.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+        audioPrefs.lastLanguage.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     private var choiceProvider: () -> net.clickarr.provider.api.PlaybackChoice? = { null }
 
@@ -64,8 +67,10 @@ class PlayerViewModel @Inject constructor(
         engine = engine,
         clock = deps.clock,
         scope = viewModelScope,
-        captions = { if (captions.value) CaptionRequest(captionLanguage) else null },
-        playbackChoice = { choiceProvider() },
+        requests = TuneRequests(
+            captions = { if (captions.value) CaptionRequest(captionLanguage) else null },
+            playbackChoice = { choiceProvider() },
+        ),
     )
 
     val tune: StateFlow<TuneState> = controller.state
@@ -73,12 +78,18 @@ class PlayerViewModel @Inject constructor(
     /** In-player Audio & video panel (gear on the overlay). */
     val streams = StreamOptionsController(
         scope = viewModelScope,
-        prefs = deps.prefs,
+        audioPrefs = audioPrefs,
         engine = engine,
         controller = controller,
         providers = { ref -> deps.provider(ref.provider) },
         tune = { controller.state.value },
-        preferredAudioLanguage = ::resolvedAudioLanguage,
+        preferredAudioLanguage = {
+            lastAudioLang.value ?: when (val pref = preferredAudioLang.value) {
+                null, AudioPrefs.AUDIO_DEVICE -> captionLanguage
+                AudioPrefs.AUDIO_ORIGINAL -> null
+                else -> pref
+            }
+        },
     )
 
     private val watchMode: StateFlow<WatchReporter.Mode> = deps.prefs.watchReporting
@@ -124,16 +135,6 @@ class PlayerViewModel @Inject constructor(
         promos.start(controller.state, promoOn)
         reporter.start(controller.state)
         viewModelScope.launch { captions.collect { on -> engine.setCaptions(on, captionLanguage) } }
-    }
-
-    /** Last in-player pick, else Settings preferred audio, else the TV locale. */
-    private fun resolvedAudioLanguage(): String? {
-        lastAudioLang.value?.let { return it }
-        return when (val pref = preferredAudioLang.value) {
-            null, DevicePrefs.AUDIO_DEVICE -> captionLanguage
-            DevicePrefs.AUDIO_ORIGINAL -> null
-            else -> pref
-        }
     }
 
     /** "Captions on" for a moment after the viewer switches them. */

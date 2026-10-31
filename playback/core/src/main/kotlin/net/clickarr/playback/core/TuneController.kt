@@ -52,14 +52,13 @@ class TuneController(
     private val clock: Clock,
     private val scope: CoroutineScope,
     private val config: TuneConfig = TuneConfig(),
-    /** Captions wanted for the next load, or null (Settings, Playback, and hold OK in the player). */
-    private val captions: () -> CaptionRequest? = { null },
-    /** In-player video/audio choice for the current programme, or null for Auto / preferred language. */
-    private val playbackChoice: () -> PlaybackChoice? = { null },
+    private val requests: TuneRequests = TuneRequests(),
 ) {
     private val debounce get() = config.debounce
     private val driftInterval get() = config.driftInterval
     private val driftTolerance get() = config.driftTolerance
+    private val captions get() = requests.captions
+    private val playbackChoice get() = requests.playbackChoice
 
     private val _state = MutableStateFlow(TuneState())
     val state: StateFlow<TuneState> = _state.asStateFlow()
@@ -268,6 +267,12 @@ data class TuneConfig(
     val debounce: Duration = 300.milliseconds,
     val driftInterval: Duration = 10.seconds,
     val driftTolerance: Duration = 5.seconds,
+)
+
+/** Per-load requests from the player (captions toggle, in-player Audio & video pick). */
+data class TuneRequests(
+    val captions: () -> CaptionRequest? = { null },
+    val playbackChoice: () -> PlaybackChoice? = { null },
 )
 
 data class TuneState(

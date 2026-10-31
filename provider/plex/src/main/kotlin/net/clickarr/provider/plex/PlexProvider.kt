@@ -162,7 +162,7 @@ class PlexProvider(
                         headers = emptyMap(),
                         startAt = startAt,
                         mimeType = mimeFor(media.container),
-                        subtitles = sidecars(subtitles),
+                        subtitles = plexSidecars(subtitles) { key -> url(key, "X-Plex-Token" to token).toString() },
                     ),
                 )
             } else {
@@ -225,13 +225,6 @@ class PlexProvider(
             }
             PlaybackOptions(videos, audios)
         }
-
-    /** Separate subtitle files the player can parse, each fetched through Plex with the token. */
-    private fun sidecars(streams: List<PlexStream>): List<Subtitle> = streams.mapNotNull { s ->
-        val key = s.key ?: return@mapNotNull null
-        val mime = PlexSubtitles.mimeType(s.codec) ?: return@mapNotNull null
-        Subtitle(url(key, "X-Plex-Token" to token).toString(), mime, s.languageCode, s.displayTitle)
-    }
 
     override suspend fun endPlayback(source: PlaybackSource): Outcome<Unit> = when (source) {
         is PlaybackSource.Hls -> http.touch(url("/video/:/transcode/universal/stop", "session" to source.sessionId))
@@ -304,6 +297,14 @@ internal fun plexVideoLabel(media: PlexMedia): String {
     }
     return listOfNotNull(res, codec, rate, media.container).joinToString(" · ").ifBlank { "Version" }
 }
+
+/** Separate subtitle files the player can parse, each fetched through Plex with the token. */
+internal fun plexSidecars(streams: List<PlexStream>, urlFor: (String) -> String): List<Subtitle> =
+    streams.mapNotNull { s ->
+        val key = s.key ?: return@mapNotNull null
+        val mime = PlexSubtitles.mimeType(s.codec) ?: return@mapNotNull null
+        Subtitle(urlFor(key), mime, s.languageCode, s.displayTitle)
+    }
 
 private const val TAG = "Plex"
 private const val AUDIO_STREAM = 2
