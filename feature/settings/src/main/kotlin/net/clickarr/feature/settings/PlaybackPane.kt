@@ -45,6 +45,21 @@ internal fun PlaybackPane(vm: PlaybackSettingsViewModel = hiltViewModel()) {
         "Shows the program's subtitles in this TV's language when it has them. Hold OK while watching to switch. " +
             "Clickarr draws them in its own clean style; captions burned in by a server transcode keep the server's look.",
     )
+    val audio by vm.preferredAudio.collectAsState()
+    PaneLabel("Preferred audio")
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        PaneChip("Device language", selected = audio == DevicePrefs.AUDIO_DEVICE) {
+            vm.setPreferredAudio(DevicePrefs.AUDIO_DEVICE)
+        }
+        PaneChip("Original", selected = audio == DevicePrefs.AUDIO_ORIGINAL) {
+            vm.setPreferredAudio(DevicePrefs.AUDIO_ORIGINAL)
+        }
+        PaneChip("English", selected = audio == "eng") { vm.setPreferredAudio("eng") }
+    }
+    PaneCaption(
+        "Default audio track when a programme has more than one. The in-player Audio & video panel can pick a " +
+            "track for the current programme; that language is remembered for the next tune on this TV.",
+    )
     SleepBlock(vm)
 }
 
@@ -80,8 +95,9 @@ private fun SleepBlock(vm: PlaybackSettingsViewModel) {
         SLEEP_CHOICES.forEach { (label, minutes) -> PaneChip(label, selected = false) { vm.setSleepIn(minutes) } }
     }
     PaneCaption(
-        sleepAt?.let { "Playback stops at ${AppTime.timeOfDay(it)} and the TV's own screensaver takes over." }
-            ?: "Stop playing after a while, for falling asleep in front of the TV.",
+        sleepAt?.let {
+            "Playback stops at ${AppTime.timeOfDay(it)}. Clickarr shows a bouncing logo screensaver; press any button to tune back in."
+        } ?: "Stop playing after a while, for falling asleep in front of the TV.",
     )
     val hours by vm.stillWatchingHours.collectAsState()
     PaneLabel("Are you still watching?")

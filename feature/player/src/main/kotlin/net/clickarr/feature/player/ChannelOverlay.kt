@@ -1,6 +1,8 @@
 package net.clickarr.feature.player
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.focusable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,11 +16,21 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.tv.material3.Icon
 import androidx.tv.material3.Text
 import kotlin.time.Duration
 import kotlinx.datetime.Instant
@@ -30,10 +42,20 @@ import net.clickarr.ui.design.ClickarrColors
 import net.clickarr.ui.design.ClickarrDimens
 import net.clickarr.ui.design.ClickarrLogoPill
 import net.clickarr.ui.design.ClickarrTextStyles
+import net.clickarr.ui.design.clickarrFocusable
+import net.clickarr.ui.design.R as DesignR
 
 /** Bottom overlay: channel badge, name, program, slot time, progress, Up Next (design language 4). */
 @Composable
-fun ChannelOverlay(state: TuneState, now: Instant, digits: String, captionsOn: Boolean = false, sleepInMinutes: Long? = null) {
+fun ChannelOverlay(
+    state: TuneState,
+    now: Instant,
+    digits: String,
+    captionsOn: Boolean = false,
+    sleepInMinutes: Long? = null,
+    gearFocus: FocusRequester = rememberUnusedFocus(),
+    onOpenStreams: (() -> Unit)? = null,
+) {
     val channel = state.channel ?: return
     val airing = state.airing
     Box(
@@ -55,7 +77,12 @@ fun ChannelOverlay(state: TuneState, now: Instant, digits: String, captionsOn: B
             Modifier.align(Alignment.BottomStart).fillMaxWidth().padding(ClickarrDimens.SafeArea),
             verticalAlignment = Alignment.Bottom,
         ) {
-            ChannelBadge(if (digits.isNotEmpty()) digits else channel.number.toString(), highlight = digits.isNotEmpty())
+            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                ChannelBadge(if (digits.isNotEmpty()) digits else channel.number.toString(), highlight = digits.isNotEmpty())
+                if (onOpenStreams != null) {
+                    StreamGear(onOpen = onOpenStreams, focus = gearFocus)
+                }
+            }
             Spacer(Modifier.width(20.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(channel.name.uppercase(), style = ClickarrTextStyles.LabelAllCaps, color = ClickarrColors.TextSecondary)
@@ -70,6 +97,35 @@ fun ChannelOverlay(state: TuneState, now: Instant, digits: String, captionsOn: B
             }
             state.next?.let { UpNextCard(it) }
         }
+    }
+}
+
+@Composable
+private fun rememberUnusedFocus(): FocusRequester = remember { FocusRequester() }
+
+/** Ghost gear under the channel badge (design language overlay); OK opens Audio & video. */
+@Composable
+private fun StreamGear(onOpen: () -> Unit, focus: FocusRequester) {
+    val interaction = remember { MutableInteractionSource() }
+    Box(
+        Modifier
+            .focusRequester(focus)
+            .clickarrFocusable(interaction, radius = ClickarrDimens.RadiusBadge, idleColor = Color.Transparent)
+            .onKeyEvent { e ->
+                val ok = e.type == KeyEventType.KeyUp && (e.key == Key.DirectionCenter || e.key == Key.Enter)
+                if (ok) onOpen()
+                ok
+            }
+            .focusable(interactionSource = interaction)
+            .padding(8.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            painterResource(DesignR.drawable.ic_ui_settings),
+            contentDescription = "Audio and video",
+            modifier = Modifier.size(28.dp),
+            tint = ClickarrColors.TextSecondary,
+        )
     }
 }
 

@@ -23,15 +23,19 @@ import net.clickarr.core.model.ProviderKind
 import net.clickarr.core.model.ServerInfo
 import net.clickarr.core.model.Show
 import net.clickarr.provider.api.ArtworkSize
+import net.clickarr.provider.api.AudioOption
 import net.clickarr.provider.api.CaptionRequest
 import net.clickarr.provider.api.ClientIdentity
 import net.clickarr.provider.api.DeviceProfile
 import net.clickarr.provider.api.MediaProvider
 import net.clickarr.provider.api.Page
 import net.clickarr.provider.api.PageOf
+import net.clickarr.provider.api.PlaybackChoice
+import net.clickarr.provider.api.PlaybackOptions
 import net.clickarr.provider.api.PlaybackSource
 import net.clickarr.provider.api.PlaybackState
 import net.clickarr.provider.api.Subtitle
+import net.clickarr.provider.api.VideoOption
 import net.clickarr.provider.api.allPages
 import net.clickarr.provider.api.collectAll
 import net.clickarr.provider.api.matches
@@ -174,19 +178,58 @@ class JellyfinProvider(
         item: MediaRef,
         profile: DeviceProfile,
         startAt: Duration,
-        captions: CaptionRequest?,
+        captions: CaptionRequest? = null,
+        choice: PlaybackChoice? = null,
     ): Outcome<PlaybackSource> {
         // One round trip: the decision lists the file's streams, so the caption track is chosen from its answer. The
         // request asks for no subtitles (-1) so a server default is never burned in; a burn is added to the HLS URL.
-        val body = JellyfinProfile.playbackInfoBody(userId, profile, JellyfinMapper.toTicks(startAt), subtitleIndex = null)
+        val audioIndex = choice?.audioId?.toIntOrNull()
+        val body = JellyfinProfile.playbackInfoBody(
+            userId,
+            profile,
+            JellyfinMapper.toTicks(startAt),
+            subtitleIndex = null,
+            mediaSourceId = choice?.mediaId,
+            audioStreamIndex = audioIndex,
+        )
         return http.post(url("/Items/${item.id.value}/PlaybackInfo", "userId" to userId), body, JfPlaybackInfo.serializer())
             .flatMap { info ->
-                val source = info.mediaSources.firstOrNull()
+                val source = info.mediaSources.firstOrNull { choice?.mediaId == null || it.id == choice.mediaId }
+                    ?: info.mediaSources.firstOrNull()
                     ?: return@flatMap Outcome.Failure(ClickarrError.NotFound("Jellyfin offered no way to play ${item.id.value}"))
                 val chosen = JellyfinProfile.choose(source.streams, captions)
-                decide(item.id.value, source, info.playSessionId, startAt, chosen, captions != null, profile)
+                decide(item.id.value, source, info.playSessionId, startAt, chosen, captions != null, profile, choice)
             }
     }
+
+    override suspend fun playbackOptions(item: MediaRef): Outcome<PlaybackOptions> =
+        http.get(
+            url("/Items/${item.id.value}", "userId" to userId, "fields" to "MediaSources"),
+            JfItem.serializer(),
+        ).map { v ->
+            val sources = v.mediaSources
+            val videos = sources.map { s ->
+                val video = s.streams.firstOrNull { it.type == "Video" }
+                val res = video?.height?.let { "${it}p" }
+                val rate = s.bitrate?.let { b ->
+                    val kbps = (b / 1_000).toInt()
+                    if (kbps >= 1_000) "${kbps / 1_000}.${(kbps % 1_000) / 100} Mbps" else "$kbps kbps"
+                }
+                VideoOption(
+                    id = s.id,
+                    label = listOfNotNull(res, video?.codec, rate, s.container).joinToString(" · ").ifBlank { s.id },
+                    duration = s.runTimeTicks?.let { JellyfinMapper.ticks(it) },
+                )
+            }
+            val audios = sources.firstOrNull()?.streams.orEmpty().filter { it.type == "Audio" }.map { s ->
+                AudioOption(
+                    id = s.index.toString(),
+                    label = s.displayTitle ?: listOfNotNull(s.language, s.codec).joinToString(" · ").ifBlank { "Audio ${s.index}" },
+                    language = s.language,
+                )
+            }
+            PlaybackOptions(videos, audios)
+        }
 
     private fun decide(
         itemId: String,
@@ -196,13 +239,18 @@ class JellyfinProvider(
         chosen: JfStream?,
         captionsOn: Boolean,
         profile: DeviceProfile,
+        choice: PlaybackChoice?,
     ): Outcome<PlaybackSource> {
         val tracks = source.streams.filter { it.type == "Subtitle" }
             .joinToString { "${it.codec}/${it.language}${if (it.isExternal) "/file" else ""}" }
+        val audioPick = choice?.audioId ?: choice?.preferredAudioLanguage?.let { lang ->
+            source.streams.firstOrNull { it.type == "Audio" && it.language?.equals(lang, ignoreCase = true) == true }
+                ?.index?.toString()
+        }
         val transcode = source.transcodingUrl
         return when {
             source.supportsDirectPlay || JellyfinProfile.onlyAudioStandsInTheWay(source, profile) -> {
-                Log.i(TAG) { "direct play $itemId: ${source.container}, subtitles [$tracks]" }
+                Log.i(TAG) { "direct play $itemId: ${source.container}, audio=$audioPick, subtitles [$tracks]" }
                 Outcome.Success(
                     PlaybackSource.DirectPlay(
                         url = url(
@@ -223,16 +271,18 @@ class JellyfinProvider(
                 // transcoding there. Captions in a transcode are burned in, as with Plex.
                 val burn = chosen?.takeIf { captionsOn }
                 Log.i(TAG) {
-                    "transcode $itemId: ${source.container}, subtitles [$tracks], " +
+                    "transcode $itemId: ${source.container}, audio=$audioPick, subtitles [$tracks], " +
                         "captions ${if (!captionsOn) "off" else "on, burning ${burn?.let { "${it.index} ${it.codec}" } ?: "nothing"}"}"
                 }
                 val hls = (base.trimEnd('/') + transcode).toHttpUrl().newBuilder()
                     .removeAllQueryParameters("SubtitleStreamIndex").removeAllQueryParameters("SubtitleMethod")
+                    .removeAllQueryParameters("AudioStreamIndex")
                     .apply {
                         if (burn != null) {
                             addQueryParameter("SubtitleStreamIndex", burn.index.toString())
                             addQueryParameter("SubtitleMethod", "Encode")
                         }
+                        audioPick?.let { addQueryParameter("AudioStreamIndex", it) }
                     }.build()
                 Outcome.Success(
                     PlaybackSource.Hls(

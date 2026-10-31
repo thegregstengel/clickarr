@@ -133,7 +133,7 @@ Remote mapping: Channel Up/Down and D-pad Up/Down change channel; D-pad Left/Rig
 
 **Between programs.** On padded slots the gap shows a "Coming up next" promo (`PromoDirector`): the next program's backdrop, time, synopsis, and the next three programs, with the show's theme music on a second small player, started at the matching second when tuning in mid-gap and silent past two minutes. Everything comes from the server's existing metadata: Plex's art, grandparentArt, theme, and grandparentTheme; Jellyfin's backdrops (theme music needs Jellyfin's Theme Songs plugin and is not wired yet, so a Jellyfin promo plays silently). Settings, Playback can switch back to the countdown card.
 
-**Sleep.** `SleepGuard` checks every few seconds for the sleep timer (an app-clock instant in `SleepPrefs`) and for the configured hours without a key press, asks "Are you still watching?" with a one-minute answer window, and on sleep stops the tune controller and releases keep-screen-on so the TV's own screensaver can act. Any key wakes it and re-tunes live.
+**Sleep.** `SleepGuard` checks every few seconds for the sleep timer (an app-clock instant in `SleepPrefs`) and for the configured hours without a key press, asks "Are you still watching?" with a one-minute answer window, and on sleep stops the tune controller (decoding stops; no pause-and-mute) and keeps the screen on so Clickarr can show a bouncing Clickarr-mark screensaver on black. Any key wakes it and re-tunes live. The TV may still blank later under its own display-sleep settings.
 
 ## 8. Guide (EPG)
 

@@ -105,7 +105,8 @@ class FakeMediaProvider(
         item: MediaRef,
         profile: DeviceProfile,
         startAt: Duration,
-        captions: net.clickarr.provider.api.CaptionRequest?,
+        captions: net.clickarr.provider.api.CaptionRequest? = null,
+        choice: net.clickarr.provider.api.PlaybackChoice? = null,
     ): Outcome<PlaybackSource> {
         failWith?.let { return Outcome.Failure(it) }
         val playable = library.playables.firstOrNull { it.ref == item }

@@ -273,6 +273,7 @@ class SettingsViewModel @Inject constructor(
                 add("scheduler version $SCHEDULER_VERSION")
                 add("secret store      ${if (secrets.usingSoftwareKey) "software key (Keystore unavailable)" else "Android Keystore"}")
                 servers.value.forEach { add("server            ${it.name} ${it.baseUrl} v${it.version ?: "?"} id=${it.serverIdentity}") }
+                add("playback note     Mid-stream drops: look for Media3 ERROR_CODE_IO_* HTTP lines and Tune reconnecting (n of 4).")
                 add("")
                 for (ch in channels.all()) {
                     val lineup = channels.lineup(ch.lineup)

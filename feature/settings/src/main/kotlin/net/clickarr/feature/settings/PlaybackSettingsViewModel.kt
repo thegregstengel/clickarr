@@ -33,6 +33,13 @@ class PlaybackSettingsViewModel @Inject constructor(
 
     fun setCaptions(on: Boolean) = viewModelScope.launch { prefs.setCaptions(on) }
 
+    val preferredAudio: StateFlow<String> =
+        prefs.preferredAudioLanguage
+            .map { it ?: DevicePrefs.AUDIO_DEVICE }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_MS), DevicePrefs.AUDIO_DEVICE)
+
+    fun setPreferredAudio(code: String) = viewModelScope.launch { prefs.setPreferredAudioLanguage(code) }
+
     val betweenPrograms: StateFlow<String> =
         prefs.betweenPrograms.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_MS), DevicePrefs.BETWEEN_PROMO)
 

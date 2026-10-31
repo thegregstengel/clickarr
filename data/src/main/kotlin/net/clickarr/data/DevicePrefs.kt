@@ -123,6 +123,23 @@ class DevicePrefs(context: Context) {
         store.edit { it[CAPTIONS] = on }
     }
 
+    /**
+     * Settings, Playback, Preferred audio: [AUDIO_DEVICE] (TV locale), [AUDIO_ORIGINAL] (server default),
+     * or an ISO language code. Last in-player pick is stored separately and wins for the next programme's language hint.
+     */
+    val preferredAudioLanguage: Flow<String?> = store.data.map { it[AUDIO_LANG] }
+
+    suspend fun setPreferredAudioLanguage(code: String?) {
+        store.edit { if (code == null) it.remove(AUDIO_LANG) else it[AUDIO_LANG] = code }
+    }
+
+    /** Last language chosen in the player Audio & video panel; used as a soft default for the next tune. */
+    val lastAudioLanguage: Flow<String?> = store.data.map { it[LAST_AUDIO_LANG] }
+
+    suspend fun setLastAudioLanguage(code: String?) {
+        store.edit { if (code == null) it.remove(LAST_AUDIO_LANG) else it[LAST_AUDIO_LANG] = code }
+    }
+
     /** Settings, General, Settings lock: the salted hash from [SettingsLock.record], or null when there is no code. */
     val settingsLock: Flow<String?> = store.data.map { it[SETTINGS_LOCK] }
 
@@ -173,9 +190,13 @@ class DevicePrefs(context: Context) {
         private val SETTINGS_LOCK = stringPreferencesKey("settings_lock")
         private val FAVORITES_TAB = booleanPreferencesKey("favorites_tab")
         private val CAPTIONS = booleanPreferencesKey("captions")
+        private val AUDIO_LANG = stringPreferencesKey("preferred_audio_language")
+        private val LAST_AUDIO_LANG = stringPreferencesKey("last_audio_language")
         private val BETWEEN = stringPreferencesKey("between_programs")
         const val BETWEEN_PROMO = "promo"
         const val BETWEEN_COUNTDOWN = "countdown"
+        const val AUDIO_DEVICE = "device"
+        const val AUDIO_ORIGINAL = "original"
         const val WATCH_OFF = "off"
         const val WATCH_WATCHED = "watched"
         const val WATCH_PROGRESS = "progress"

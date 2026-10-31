@@ -21,16 +21,21 @@ import net.clickarr.core.model.ProviderId
 import net.clickarr.core.model.ProviderKind
 import net.clickarr.core.model.ServerInfo
 import net.clickarr.core.model.Show
+import kotlin.time.Duration.Companion.milliseconds
 import net.clickarr.provider.api.ArtworkSize
+import net.clickarr.provider.api.AudioOption
+import net.clickarr.provider.api.CaptionRequest
 import net.clickarr.provider.api.ClientIdentity
 import net.clickarr.provider.api.DeviceProfile
 import net.clickarr.provider.api.MediaProvider
 import net.clickarr.provider.api.Page
 import net.clickarr.provider.api.PageOf
+import net.clickarr.provider.api.PlaybackChoice
+import net.clickarr.provider.api.PlaybackOptions
 import net.clickarr.provider.api.PlaybackSource
-import net.clickarr.provider.api.Subtitle
-import net.clickarr.provider.api.CaptionRequest
 import net.clickarr.provider.api.PlaybackState
+import net.clickarr.provider.api.Subtitle
+import net.clickarr.provider.api.VideoOption
 import net.clickarr.provider.api.allPages
 import net.clickarr.provider.api.collectAll
 import net.clickarr.provider.api.matches
@@ -134,16 +139,23 @@ class PlexProvider(
         item: MediaRef,
         profile: DeviceProfile,
         startAt: Duration,
-        captions: CaptionRequest?,
+        captions: CaptionRequest? = null,
+        choice: PlaybackChoice? = null,
     ): Outcome<PlaybackSource> =
         http.get(url("/library/metadata/${item.id.value}"), PlexResponse.serializer()).flatMap { r ->
-            val m = r.container.metadata.firstOrNull() ?: return@flatMap Outcome.Failure(ClickarrError.NotFound("No item ${item.id.value}"))
-            val media = m.media.firstOrNull()
+            val m = r.container.metadata.firstOrNull()
+                ?: return@flatMap Outcome.Failure(ClickarrError.NotFound("No item ${item.id.value}"))
+            val mediaIndex = plexMediaIndex(m.media, choice?.mediaId)
+            val media = m.media.getOrNull(mediaIndex)
             val part = media?.parts?.firstOrNull()
             val subtitles = PlexSubtitles.of(part)
+            val audioId = plexAudioStreamId(part, choice)
             val tracks = subtitles.joinToString { "${it.codec}/${it.languageCode}${if (it.key != null) "/file" else ""}" }
             if (media != null && part?.key != null && profile.canDirectPlay(media)) {
-                Log.i(TAG) { "direct play ${m.title}: ${media.container}/${media.videoCodec}/${media.audioCodec}, subtitles [$tracks]" }
+                Log.i(TAG) {
+                    "direct play ${m.title}: ${media.container}/${media.videoCodec}/${media.audioCodec}, " +
+                        "mediaIndex=$mediaIndex audio=$audioId, subtitles [$tracks]"
+                }
                 Outcome.Success(
                     PlaybackSource.DirectPlay(
                         url = url(part.key, "X-Plex-Token" to token).toString(),
@@ -158,7 +170,8 @@ class PlexProvider(
                 // the chosen track is burned into the picture instead, and "none" keeps a Plex default out of it.
                 val burn = captions?.let { PlexSubtitles.choose(subtitles, it.language) }
                 Log.i(TAG) {
-                    "transcode ${m.title}: ${media?.container}/${media?.videoCodec}/${media?.audioCodec}, subtitles [$tracks], " +
+                    "transcode ${m.title}: ${media?.container}/${media?.videoCodec}/${media?.audioCodec}, " +
+                        "mediaIndex=$mediaIndex audio=$audioId, subtitles [$tracks], " +
                         "captions ${if (captions == null) "off" else "on, burning ${burn?.let { "${it.id} ${it.codec}" } ?: "nothing"}"}"
                 }
                 if (burn != null && part?.id != null) {
@@ -168,7 +181,7 @@ class PlexProvider(
                 val hls = url(
                     "/video/:/transcode/universal/start.m3u8",
                     "path" to "/library/metadata/${m.ratingKey}",
-                    "mediaIndex" to "0",
+                    "mediaIndex" to mediaIndex.toString(),
                     "partIndex" to "0",
                     "protocol" to "hls",
                     "directPlay" to "0",
@@ -178,6 +191,7 @@ class PlexProvider(
                     "session" to session,
                     "videoResolution" to "${profile.maxWidth}x${profile.maxHeight}",
                     "maxVideoBitrate" to profile.maxBitrateKbps?.toString(),
+                    "audioStreamID" to audioId?.toString(),
                     "subtitles" to if (burn != null) "burn" else "none",
                     "subtitleStreamID" to burn?.id?.toString(),
                     "X-Plex-Client-Identifier" to identity.deviceId.value,
@@ -189,6 +203,27 @@ class PlexProvider(
                     PlaybackSource.Hls(url = hls.toString(), headers = emptyMap(), startAt = Duration.ZERO, sessionId = session),
                 )
             }
+        }
+
+    override suspend fun playbackOptions(item: MediaRef): Outcome<PlaybackOptions> =
+        http.get(url("/library/metadata/${item.id.value}"), PlexResponse.serializer()).map { r ->
+            val m = r.container.metadata.firstOrNull() ?: return@map PlaybackOptions()
+            val videos = m.media.mapIndexed { i, media ->
+                VideoOption(
+                    id = media.id?.toString() ?: i.toString(),
+                    label = plexVideoLabel(media),
+                    duration = media.duration?.milliseconds,
+                )
+            }
+            val part = m.media.firstOrNull()?.parts?.firstOrNull()
+            val audios = part?.streams.orEmpty().filter { it.streamType == AUDIO_STREAM }.map { s ->
+                AudioOption(
+                    id = s.id.toString(),
+                    label = s.displayTitle ?: listOfNotNull(s.languageCode, s.codec).joinToString(" · ").ifBlank { "Audio ${s.id}" },
+                    language = s.languageCode,
+                )
+            }
+            PlaybackOptions(videos, audios)
         }
 
     /** Separate subtitle files the player can parse, each fetched through Plex with the token. */
@@ -242,4 +277,33 @@ internal fun DeviceProfile.canDirectPlay(media: PlexMedia): Boolean {
     return container in containers && videoOk && audio in audioCodecs && sizeOk && bitrateOk
 }
 
+/** Index of the chosen Media, or 0 for Auto. */
+internal fun plexMediaIndex(media: List<PlexMedia>, mediaId: String?): Int {
+    if (mediaId == null) return 0
+    val byId = media.indexOfFirst { it.id?.toString() == mediaId }
+    if (byId >= 0) return byId
+    return mediaId.toIntOrNull()?.takeIf { it in media.indices } ?: 0
+}
+
+/** Explicit stream id, else preferred language, else null (server default / player pick). */
+internal fun plexAudioStreamId(part: PlexPart?, choice: PlaybackChoice?): Long? {
+    choice ?: return null
+    choice.audioId?.toLongOrNull()?.let { return it }
+    val lang = choice.preferredAudioLanguage?.lowercase() ?: return null
+    return part?.streams.orEmpty()
+        .filter { it.streamType == AUDIO_STREAM }
+        .firstOrNull { it.languageCode?.lowercase() == lang }
+        ?.id
+}
+
+internal fun plexVideoLabel(media: PlexMedia): String {
+    val res = media.height?.let { "${it}p" }
+    val codec = media.videoCodec
+    val rate = media.bitrate?.let { kbps ->
+        if (kbps >= 1_000) "${kbps / 1_000}.${(kbps % 1_000) / 100} Mbps" else "$kbps kbps"
+    }
+    return listOfNotNull(res, codec, rate, media.container).joinToString(" · ").ifBlank { "Version" }
+}
+
 private const val TAG = "Plex"
+private const val AUDIO_STREAM = 2

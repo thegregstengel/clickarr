@@ -56,13 +56,22 @@ interface MediaProvider {
     /**
      * Decide how this device should play this item right now. Direct play is preferred. With [captions], the
      * source carries the item's subtitles (as tracks the player can switch, or burned into a transcode).
+     * [choice] picks a server version and/or audio track for this programme only.
      */
     suspend fun playbackSource(
         item: MediaRef,
         profile: DeviceProfile,
         startAt: Duration,
         captions: CaptionRequest? = null,
+        choice: PlaybackChoice? = null,
     ): Outcome<PlaybackSource>
+
+    /**
+     * Video versions and audio tracks the in-player Audio & video panel can offer for [item].
+     * Empty lists mean the server only has one implicit choice (or none known yet).
+     */
+    suspend fun playbackOptions(item: MediaRef): Outcome<PlaybackOptions> =
+        Outcome.Success(PlaybackOptions())
 
     /** Tell the server a playback session is over so it can release transcoder resources. */
     suspend fun endPlayback(source: PlaybackSource): Outcome<Unit>
@@ -127,6 +136,27 @@ data class DeviceProfile(
 
 /** Captions are wanted; [language] is the viewer's preferred ISO 639-2 code ("eng"), or null for any. */
 data class CaptionRequest(val language: String?)
+
+/**
+ * In-player stream pick for the current programme. Null [mediaId]/[audioId] mean Auto: the provider's usual
+ * first version, and audio from [preferredAudioLanguage] or the server default.
+ */
+data class PlaybackChoice(
+    val mediaId: String? = null,
+    val audioId: String? = null,
+    val preferredAudioLanguage: String? = null,
+)
+
+/** One server version / media source the viewer can pick. */
+data class VideoOption(val id: String, val label: String, val duration: Duration? = null)
+
+/** One audio track on the chosen (or default) version. */
+data class AudioOption(val id: String, val label: String, val language: String? = null)
+
+data class PlaybackOptions(
+    val videos: List<VideoOption> = emptyList(),
+    val audios: List<AudioOption> = emptyList(),
+)
 
 /** A subtitle file the player can load alongside the video. */
 data class Subtitle(val url: String, val mimeType: String, val language: String?, val label: String?)

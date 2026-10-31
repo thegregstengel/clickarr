@@ -59,48 +59,54 @@ private fun AppContent(onExit: () -> Unit, viewModel: AppViewModel) {
 
 @Composable
 private fun AppNav(nav: NavHostController, start: String, onExit: () -> Unit) {
-    NavHost(navController = nav, startDestination = start) {
-        composable(Routes.SETUP) {
-            SetupScreen(onDone = { nav.navigate(Routes.shell("settings", "channels")) { popUpTo(Routes.SETUP) { inclusive = true } } })
-        }
-        composable(Routes.PLAYER) {
-            PlayerScreen(
-                onOpenGuide = { nav.navigate(Routes.shell("guide")) },
-                onOpenShell = { nav.navigate(Routes.shell()) },
-            )
-        }
-        composable(
-            Routes.SHELL,
-            arguments = listOf(
-                navArgument("tab") { type = NavType.StringType; defaultValue = "guide" },
-                navArgument("section") { type = NavType.StringType; nullable = true; defaultValue = null },
-            ),
-        ) { entry ->
-            ShellScreen(
-                initialTab = entry.arguments?.getString("tab") ?: "guide",
-                initialSection = entry.arguments?.getString("section"),
-                callbacks = ShellCallbacks(
-                    onWatch = { nav.navigate(Routes.PLAYER) { popUpTo(Routes.PLAYER) { inclusive = true } } },
-                    onCreateChannel = { nav.navigate(Routes.editor()) },
-                    onSuggestChannels = { nav.navigate(Routes.SUGGEST) },
-                    onHolidayChannels = { nav.navigate(Routes.HOLIDAYS) },
-                    onEditChannel = { nav.navigate(Routes.editor(it.value)) },
-                    onDisconnected = { nav.navigate(Routes.SETUP) { popUpTo(0) { inclusive = true } } },
-                    onExit = onExit,
+    val exitGate = rememberExitConfirmGate()
+    Box(Modifier.fillMaxSize()) {
+        NavHost(navController = nav, startDestination = start) {
+            composable(Routes.SETUP) {
+                SetupScreen(onDone = { nav.navigate(Routes.shell("settings", "channels")) { popUpTo(Routes.SETUP) { inclusive = true } } })
+            }
+            composable(Routes.PLAYER) {
+                PlayerScreen(
+                    onOpenGuide = { nav.navigate(Routes.shell("guide")) },
+                    onOpenShell = { nav.navigate(Routes.shell()) },
+                    onRootBack = { navigate -> exitGate.onRootBack(wouldFinish = false, navigate = navigate) },
+                )
+            }
+            composable(
+                Routes.SHELL,
+                arguments = listOf(
+                    navArgument("tab") { type = NavType.StringType; defaultValue = "guide" },
+                    navArgument("section") { type = NavType.StringType; nullable = true; defaultValue = null },
                 ),
-            )
+            ) { entry ->
+                ShellScreen(
+                    initialTab = entry.arguments?.getString("tab") ?: "guide",
+                    initialSection = entry.arguments?.getString("section"),
+                    exitGate = exitGate,
+                    callbacks = ShellCallbacks(
+                        onWatch = { nav.navigate(Routes.PLAYER) { popUpTo(Routes.PLAYER) { inclusive = true } } },
+                        onCreateChannel = { nav.navigate(Routes.editor()) },
+                        onSuggestChannels = { nav.navigate(Routes.SUGGEST) },
+                        onHolidayChannels = { nav.navigate(Routes.HOLIDAYS) },
+                        onEditChannel = { nav.navigate(Routes.editor(it.value)) },
+                        onDisconnected = { nav.navigate(Routes.SETUP) { popUpTo(0) { inclusive = true } } },
+                        onExit = exitGate::requestExit,
+                    ),
+                )
+            }
+            composable(Routes.SUGGEST) {
+                SuggestScreen(onDone = { nav.popBackStack() })
+            }
+            composable(Routes.HOLIDAYS) {
+                HolidaysScreen(onDone = { nav.popBackStack() })
+            }
+            composable(
+                Routes.EDITOR,
+                arguments = listOf(navArgument("channel") { type = NavType.StringType; nullable = true; defaultValue = null }),
+            ) { entry ->
+                ChannelEditorScreen(channelId = entry.arguments?.getString("channel"), onDone = { nav.popBackStack() })
+            }
         }
-        composable(Routes.SUGGEST) {
-            SuggestScreen(onDone = { nav.popBackStack() })
-        }
-        composable(Routes.HOLIDAYS) {
-            HolidaysScreen(onDone = { nav.popBackStack() })
-        }
-        composable(
-            Routes.EDITOR,
-            arguments = listOf(navArgument("channel") { type = NavType.StringType; nullable = true; defaultValue = null }),
-        ) { entry ->
-            ChannelEditorScreen(channelId = entry.arguments?.getString("channel"), onDone = { nav.popBackStack() })
-        }
+        ExitConfirmHost(exitGate, onExit)
     }
 }

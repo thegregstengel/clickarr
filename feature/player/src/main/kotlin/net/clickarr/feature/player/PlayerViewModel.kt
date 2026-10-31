@@ -49,6 +49,13 @@ class PlayerViewModel @Inject constructor(
     val captions: StateFlow<Boolean> = deps.prefs.captions.stateIn(viewModelScope, SharingStarted.Eagerly, false)
     private val captionLanguage: String? = runCatching { java.util.Locale.getDefault().isO3Language }.getOrNull()
 
+    private val preferredAudioLang: StateFlow<String?> =
+        deps.prefs.preferredAudioLanguage.stateIn(viewModelScope, SharingStarted.Eagerly, DevicePrefs.AUDIO_DEVICE)
+    private val lastAudioLang: StateFlow<String?> =
+        deps.prefs.lastAudioLanguage.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    private var choiceProvider: () -> net.clickarr.provider.api.PlaybackChoice? = { null }
+
     private val controller = TuneController(
         strategy = deps.strategy,
         lineups = { deps.channels.lineup(it) },
@@ -58,9 +65,21 @@ class PlayerViewModel @Inject constructor(
         clock = deps.clock,
         scope = viewModelScope,
         captions = { if (captions.value) CaptionRequest(captionLanguage) else null },
+        playbackChoice = { choiceProvider() },
     )
 
     val tune: StateFlow<TuneState> = controller.state
+
+    /** In-player Audio & video panel (gear on the overlay). */
+    val streams = StreamOptionsController(
+        scope = viewModelScope,
+        prefs = deps.prefs,
+        engine = engine,
+        controller = controller,
+        providers = { ref -> deps.provider(ref.provider) },
+        tune = { controller.state.value },
+        preferredAudioLanguage = ::resolvedAudioLanguage,
+    )
 
     private val watchMode: StateFlow<WatchReporter.Mode> = deps.prefs.watchReporting
         .map { name -> WatchReporter.Mode.entries.firstOrNull { it.name.equals(name, ignoreCase = true) } ?: WatchReporter.Mode.OFF }
@@ -100,10 +119,21 @@ class PlayerViewModel @Inject constructor(
     fun sleepInMinutes(): Long? = sleepAt.value?.let { (it - deps.clock.now().toEpochMilliseconds()) / MS_PER_MINUTE }?.takeIf { it >= 0 }
 
     init {
+        choiceProvider = { streams.currentChoice() }
         sleep.start()
         promos.start(controller.state, promoOn)
         reporter.start(controller.state)
         viewModelScope.launch { captions.collect { on -> engine.setCaptions(on, captionLanguage) } }
+    }
+
+    /** Last in-player pick, else Settings preferred audio, else the TV locale. */
+    private fun resolvedAudioLanguage(): String? {
+        lastAudioLang.value?.let { return it }
+        return when (val pref = preferredAudioLang.value) {
+            null, DevicePrefs.AUDIO_DEVICE -> captionLanguage
+            DevicePrefs.AUDIO_ORIGINAL -> null
+            else -> pref
+        }
     }
 
     /** "Captions on" for a moment after the viewer switches them. */
@@ -170,9 +200,10 @@ class PlayerViewModel @Inject constructor(
         _miniGuide.value = null
     }
 
-    /** Back closes the mini-guide, then the overlay; false means nothing was open and the caller should leave. */
+    /** Back closes the stream panel, mini-guide, then the overlay; false means the caller should leave. */
     fun handleBack(): Boolean {
         when {
+            streams.handleBack() -> Unit
             _miniGuide.value != null -> closeMiniGuide()
             _overlayVisible.value -> hideOverlay()
             else -> return false
