@@ -5,6 +5,11 @@ second release the same day); the household protocol, scheduler, and database ca
 
 ## [Unreleased]
 
+### Added
+
+- Website: [clickarr.net/releases](https://clickarr.net/releases/) shows the latest stable release notes and the
+  nightly channel by fetching GitHub Releases in the browser.
+
 ## 2026.11.1
 
 ### Added

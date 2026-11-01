@@ -5,3 +5,4 @@ Static site, no build step. `index.html` plus `assets/`. Deployed to GitHub Page
 - `CNAME` holds the custom domain. Do not remove it or Pages drops the domain.
 - Images are copies of `brand/` and `docs/design/mockups/`; refresh them from there when those change.
 - Styling follows `docs/design/design-language.md` (same tokens, Inter from Google Fonts for the web).
+- `releases/` loads the latest stable release and the `nightly` pre-release from the public GitHub Releases API in the browser (CORS-open, no secrets). Nightly also reads `version.json` from that release's assets. GitHub remains the source of truth; Pages does not bake notes into the deploy.

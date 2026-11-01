@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Clickarr release notes</title>
+  <meta name="description" content="Release notes for the latest stable Clickarr build and the nightly channel, synced from GitHub Releases.">
+  <link rel="canonical" href="https://clickarr.net/releases/">
+  <link rel="icon" href="../assets/favicon.ico" sizes="any">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+  <meta name="theme-color" content="#05070F">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-base: #05070F; --bg-panel: #0A1220; --bg-surface: #131A36; --bg-cell: #1A2A47; --bg-border: #1E2B45;
+      --accent: #1479FD; --glow: #00ACFF; --cyan: #00E2FD; --ok: #0CE568;
+      --text: #F2F5FA; --text-2: #A9B4C8; --text-3: #6B7890;
+      --radius: 16px; --radius-sm: 12px; --max: 880px;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg-base); color: var(--text); font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 18px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
+    a { color: var(--glow); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .wrap { max-width: var(--max); margin: 0 auto; padding: 0 24px; }
+    header { position: sticky; top: 0; z-index: 10; background: rgba(5,7,15,.82); backdrop-filter: blur(12px); border-bottom: 1px solid var(--bg-border); }
+    .nav { display: flex; align-items: center; justify-content: space-between; height: 72px; }
+    .nav img { height: 40px; }
+    .nav ul { display: flex; gap: 28px; list-style: none; margin: 0; padding: 0; }
+    .nav a { color: var(--text-2); font-weight: 500; }
+    .nav a:hover, .nav a[aria-current="page"] { color: var(--text); text-decoration: none; }
+    .hero { padding: 56px 0 24px; background: radial-gradient(60% 50% at 50% 0%, #101E42 0%, var(--bg-base) 100%); }
+    .hero h1 { font-size: clamp(32px, 5vw, 48px); line-height: 1.1; letter-spacing: -0.02em; margin: 0 0 12px; font-weight: 800; }
+    .hero p { margin: 0; color: var(--text-2); max-width: 640px; }
+    .channels { display: flex; gap: 12px; flex-wrap: wrap; margin: 28px 0 8px; }
+    .channels a { display: inline-block; padding: 10px 16px; border-radius: var(--radius-sm); background: var(--bg-cell); color: var(--text-2); border: 1px solid var(--bg-border); font-weight: 600; font-size: 15px; }
+    .channels a:hover { color: var(--text); text-decoration: none; border-color: var(--accent); }
+    .channels a.active { background: rgba(20,121,253,.16); color: var(--text); border-color: var(--accent); }
+    section.channel { padding: 24px 0 56px; scroll-margin-top: 88px; }
+    .panel { background: var(--bg-panel); border: 1px solid var(--bg-border); border-radius: var(--radius); padding: 28px; }
+    .meta { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: baseline; margin: 0 0 20px; color: var(--text-3); font-size: 15px; }
+    .meta .name { color: var(--text); font-size: 22px; font-weight: 700; }
+    .pill { display: inline-block; padding: 4px 10px; border-radius: 999px; background: var(--bg-surface); color: var(--text-2); font-size: 13px; font-weight: 600; }
+    .pill.ok { color: var(--ok); }
+    .pill.warn { color: #F5C542; }
+    .actions { display: flex; gap: 12px; flex-wrap: wrap; margin: 0 0 24px; }
+    .btn { display: inline-block; padding: 12px 20px; border-radius: var(--radius-sm); font-weight: 600; color: #fff; background: var(--accent); font-size: 16px; }
+    .btn:hover { background: #2F8BFF; text-decoration: none; }
+    .btn.ghost { background: var(--bg-cell); color: var(--text); border: 1px solid var(--bg-border); }
+    .btn.ghost:hover { background: var(--bg-border); }
+    .notes h2, .notes h3, .notes h4 { color: var(--text); margin: 28px 0 10px; letter-spacing: -0.01em; }
+    .notes h2 { font-size: 22px; } .notes h3 { font-size: 19px; } .notes h4 { font-size: 17px; }
+    .notes h2:first-child, .notes h3:first-child, .notes h4:first-child { margin-top: 0; }
+    .notes p, .notes li { color: var(--text-2); }
+    .notes p { margin: 0 0 12px; }
+    .notes ul, .notes ol { margin: 0 0 16px; padding-left: 22px; }
+    .notes li { margin-bottom: 8px; }
+    .notes li > p { margin: 0; }
+    .notes code { background: var(--bg-cell); padding: 2px 8px; border-radius: 6px; color: var(--text); font-size: .92em; }
+    .notes strong { color: var(--text); }
+    .status { color: var(--text-3); font-size: 16px; }
+    .status.error { color: #FF8A8A; }
+    footer { border-top: 1px solid var(--bg-border); padding: 40px 0 56px; color: var(--text-3); font-size: 15px; }
+    footer .row { display: flex; justify-content: space-between; gap: 24px; flex-wrap: wrap; align-items: center; }
+    footer a { color: var(--text-2); }
+    @media (max-width: 860px) {
+      .nav ul { display: none; }
+      .hero { padding-top: 40px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap nav">
+      <a href="../" aria-label="Clickarr home"><img src="../assets/logo-horizontal.png" alt="Clickarr"></a>
+      <ul>
+        <li><a href="../#why">Why Clickarr</a></li>
+        <li><a href="../#features">Features</a></li>
+        <li><a href="../#get">Get it</a></li>
+        <li><a href="./" aria-current="page">Release notes</a></li>
+        <li><a href="https://github.com/thegregstengel/clickarr">GitHub</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <div class="hero">
+    <div class="wrap">
+      <h1>Release notes</h1>
+      <p>Stable notes come from the latest GitHub release (the matching <code>CHANGELOG.md</code> section). Nightly notes come from the <code>nightly</code> pre-release, plus its <code>version.json</code> when present.</p>
+      <nav class="channels" aria-label="Channels">
+        <a class="active" href="#stable">Stable</a>
+        <a href="#nightly">Nightly</a>
+        <a href="https://github.com/thegregstengel/clickarr/releases">All on GitHub</a>
+      </nav>
+    </div>
+  </div>
+
+  <section class="channel" id="stable">
+    <div class="wrap">
+      <div class="panel" id="stable-panel">
+        <p class="status" id="stable-status">Loading the latest stable release…</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="channel" id="nightly">
+    <div class="wrap">
+      <div class="panel" id="nightly-panel">
+        <p class="status" id="nightly-status">Loading the nightly channel…</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap row">
+      <div>Source of truth: <a href="https://github.com/thegregstengel/clickarr/releases">GitHub Releases</a>. This page fetches them in the browser; nothing is cached on clickarr.net.</div>
+      <div><a href="../">Home</a> · <a href="../privacy/">Privacy</a> · <a href="https://github.com/thegregstengel/clickarr">GitHub</a></div>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      var REPO = "thegregstengel/clickarr";
+      var API = "https://api.github.com/repos/" + REPO;
+
+      function escapeHtml(s) {
+        return String(s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      function inlineMd(text) {
+        var s = escapeHtml(text);
+        s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" rel="noopener noreferrer">$1</a>');
+        s = s.replace(/`([^`]+)`/g, "<code>$1</code>");
+        s = s.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+        return s;
+      }
+
+      // Changelog subset: ATX headings, lists, paragraphs, soft line wraps.
+      function mdToHtml(md) {
+        if (!md || !String(md).trim()) return "<p class=\"status\">No notes on this release.</p>";
+        var lines = String(md).replace(/\r\n/g, "\n").split("\n");
+        var html = [];
+        var i = 0;
+        while (i < lines.length) {
+          var line = lines[i];
+          if (!line.trim()) { i++; continue; }
+          var heading = /^(#{1,4})\s+(.+)$/.exec(line);
+          if (heading) {
+            var level = heading[1].length;
+            html.push("<h" + level + ">" + inlineMd(heading[2].trim()) + "</h" + level + ">");
+            i++;
+            continue;
+          }
+          if (/^\s*([-*+]|\d+\.)\s+/.test(line)) {
+            var ordered = /^\s*\d+\.\s+/.test(line);
+            var tag = ordered ? "ol" : "ul";
+            html.push("<" + tag + ">");
+            while (i < lines.length && /^\s*([-*+]|\d+\.)\s+/.test(lines[i])) {
+              var item = lines[i].replace(/^\s*([-*+]|\d+\.)\s+/, "");
+              i++;
+              while (i < lines.length && /^\s{2,}\S/.test(lines[i]) && !/^\s*([-*+]|\d+\.)\s+/.test(lines[i])) {
+                item += " " + lines[i].trim();
+                i++;
+              }
+              html.push("<li>" + inlineMd(item) + "</li>");
+            }
+            html.push("</" + tag + ">");
+            continue;
+          }
+          var para = [line.trim()];
+          i++;
+          while (i < lines.length && lines[i].trim() && !/^(#{1,4})\s+/.test(lines[i]) && !/^\s*([-*+]|\d+\.)\s+/.test(lines[i])) {
+            para.push(lines[i].trim());
+            i++;
+          }
+          html.push("<p>" + inlineMd(para.join(" ")) + "</p>");
+        }
+        return html.join("\n");
+      }
+
+      function formatDate(iso) {
+        if (!iso) return "";
+        try {
+          return new Date(iso).toLocaleDateString("en-GB", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" }) + " UTC";
+        } catch (e) {
+          return iso;
+        }
+      }
+
+      function assetUrl(release, name) {
+        var assets = release.assets || [];
+        for (var i = 0; i < assets.length; i++) {
+          if (assets[i].name === name) return assets[i].browser_download_url;
+        }
+        return null;
+      }
+
+      function renderChannel(opts) {
+        var panel = document.getElementById(opts.panelId);
+        var release = opts.release;
+        var versionLabel = opts.versionLabel || release.name || release.tag_name;
+        var pillClass = opts.prerelease ? "pill warn" : "pill ok";
+        var pillText = opts.prerelease ? "Pre-release" : "Stable";
+        var bits = [];
+        bits.push('<div class="meta">');
+        bits.push('<span class="name">' + escapeHtml(versionLabel) + "</span>");
+        bits.push('<span class="' + pillClass + '">' + pillText + "</span>");
+        if (release.tag_name) bits.push("<span>Tag <code>" + escapeHtml(release.tag_name) + "</code></span>");
+        if (opts.versionCode != null) bits.push("<span>versionCode " + escapeHtml(String(opts.versionCode)) + "</span>");
+        if (release.published_at || release.updated_at) {
+          bits.push("<span>" + escapeHtml(formatDate(release.updated_at || release.published_at)) + "</span>");
+        }
+        bits.push("</div>");
+        bits.push('<div class="actions">');
+        if (opts.primaryHref) bits.push('<a class="btn" href="' + escapeHtml(opts.primaryHref) + '">' + escapeHtml(opts.primaryLabel) + "</a>");
+        if (release.html_url) bits.push('<a class="btn ghost" href="' + escapeHtml(release.html_url) + '">On GitHub</a>');
+        bits.push("</div>");
+        bits.push('<div class="notes">' + mdToHtml(release.body || "") + "</div>");
+        panel.innerHTML = bits.join("\n");
+      }
+
+      function fail(panelId, statusId, message) {
+        var panel = document.getElementById(panelId);
+        panel.innerHTML = '<p class="status error" id="' + statusId + '">' + escapeHtml(message) + "</p>";
+      }
+
+      function loadStable() {
+        return fetch(API + "/releases/latest", {
+          headers: { Accept: "application/vnd.github+json" }
+        }).then(function (res) {
+          if (!res.ok) throw new Error("GitHub returned " + res.status + " for the latest release.");
+          return res.json();
+        }).then(function (release) {
+          var apk = assetUrl(release, "clickarr.apk") ||
+            "https://github.com/" + REPO + "/releases/latest/download/clickarr.apk";
+          renderChannel({
+            panelId: "stable-panel",
+            release: release,
+            versionLabel: release.name || release.tag_name,
+            prerelease: !!release.prerelease,
+            primaryHref: apk,
+            primaryLabel: "Download APK"
+          });
+        }).catch(function (err) {
+          fail("stable-panel", "stable-status",
+            "Could not load the latest stable release. " + (err && err.message ? err.message : "Try again later.") +
+            " You can still open it on GitHub.");
+        });
+      }
+
+      function loadNightly() {
+        return fetch(API + "/releases/tags/nightly", {
+          headers: { Accept: "application/vnd.github+json" }
+        }).then(function (res) {
+          if (!res.ok) throw new Error("GitHub returned " + res.status + " for the nightly tag.");
+          return res.json();
+        }).then(function (release) {
+          var versionUrl = assetUrl(release, "version.json") ||
+            "https://github.com/" + REPO + "/releases/download/nightly/version.json";
+          var apk = assetUrl(release, "clickarr-nightly-debug.apk") ||
+            "https://github.com/" + REPO + "/releases/download/nightly/clickarr-nightly-debug.apk";
+          return fetch(versionUrl, { cache: "no-store" }).then(function (vres) {
+            if (!vres.ok) return { release: release, apk: apk, version: null };
+            return vres.json().then(function (version) {
+              return { release: release, apk: apk, version: version };
+            }).catch(function () {
+              return { release: release, apk: apk, version: null };
+            });
+          }).catch(function () {
+            return { release: release, apk: apk, version: null };
+          });
+        }).then(function (payload) {
+          var version = payload.version;
+          var label = (version && version.versionName) ? version.versionName : (payload.release.name || "Nightly");
+          renderChannel({
+            panelId: "nightly-panel",
+            release: payload.release,
+            versionLabel: label,
+            versionCode: version && version.versionCode,
+            prerelease: true,
+            primaryHref: payload.apk,
+            primaryLabel: "Download nightly APK"
+          });
+        }).catch(function (err) {
+          fail("nightly-panel", "nightly-status",
+            "Could not load the nightly channel. " + (err && err.message ? err.message : "Try again later.") +
+            " You can still open it on GitHub.");
+        });
+      }
+
+      loadStable();
+      loadNightly();
+    })();
+  </script>
+</body>
+</html>

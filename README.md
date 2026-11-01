@@ -121,7 +121,7 @@ The full reasoning, with the options that were considered and rejected, is in th
 
 ## Website
 
-[clickarr.net](https://clickarr.net) is the project's home on the web: the pitch, the screens, and the short URLs for Downloader (`clickarr.net/nightly`, and `clickarr.net/apk` once there is a release). It is a static page in [`site/`](site/), deployed by GitHub Pages on every push.
+[clickarr.net](https://clickarr.net) is the project's home on the web: the pitch, the screens, [release notes](https://clickarr.net/releases/) synced from GitHub Releases (stable and nightly), and the short URLs for Downloader (`clickarr.net/nightly`, and `clickarr.net/apk` once there is a release). It is a static page in [`site/`](site/), deployed by GitHub Pages on every push.
 
 ## Documentation
 
