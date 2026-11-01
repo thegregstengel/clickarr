@@ -63,6 +63,7 @@ sees a later build as newer whatever its name.
 
 `clickarr.net/apk` redirects to the latest release's `clickarr.apk`, which is the URL to give Downloader.
 `clickarr.net/nightly` keeps pointing at the debug nightly.
+`clickarr.net/releases` shows the latest stable notes and the nightly channel notes by fetching GitHub Releases in the browser (same bodies this workflow and the nightly job publish).
 
 ## Google Drive sync
 
