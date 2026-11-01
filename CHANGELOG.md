@@ -25,6 +25,9 @@ second release the same day); the household protocol, scheduler, and database ca
 
 ### Fixed
 
+- Player: Left moves focus to the Audio & video gear; Right still opens the mini-guide; Left from the first
+  mini-guide card returns to the gear. While the Audio & video panel is open, Up/Down move in the list instead of
+  changing channel. Hold OK still toggles captions from the gear.
 - When the Favorites tab is hidden, Up from the guide reaches the top row again (Guide, then Settings) instead of trapping focus in the grid.
 - A stream that drops in the middle of a programme, for example when the server ends a transcode, now reconnects at the live position, up to four times. A successful first frame resets that budget. When reconnects are exhausted, the card says "Couldn't keep this stream" and "Next programme" instead of reading like an intentional Up next interstitial. The log still records the HTTP status and path. Diagnostics notes which lines to copy for a report.
 - Custom channel, Whole library, decade filter: later decades (1990s and after) wrap onto following rows and stay
