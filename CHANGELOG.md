@@ -5,6 +5,8 @@ second release the same day); the household protocol, scheduler, and database ca
 
 ## [Unreleased]
 
+## 2026.11.1
+
 ### Added
 
 - Player: Audio & video panel from the gear under the channel badge. Pick a server version and an audio track for the
