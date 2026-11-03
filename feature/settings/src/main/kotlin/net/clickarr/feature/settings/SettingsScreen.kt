@@ -46,6 +46,16 @@ import net.clickarr.ui.design.ClickarrPalettes
 import net.clickarr.ui.design.ClickarrDimens
 import net.clickarr.ui.design.ClickarrTextStyles
 
+/** Focus hand-off between the shell cog and the Settings left rail. */
+class SettingsFocus(
+    /** Where Down from the shell's cog lands: the first section, or the lock pad while Settings is locked. */
+    val entry: FocusRequester,
+    /** Up from the first left-rail item; the shell's settings cog. Null keeps spatial search. */
+    val exit: FocusRequester? = null,
+    /** When true and unlocked, claim focus into the selected section (or Channels actions). */
+    val take: Boolean = false,
+)
+
 /** Settings: left nav, right pane (design language 4, "Settings"). */
 @Composable
 fun SettingsScreen(
@@ -53,12 +63,7 @@ fun SettingsScreen(
     appVersionCode: Int,
     initialSection: String?,
     actions: SettingsActions,
-    /** Where Down from the shell's cog lands: the first section, or the lock pad while Settings is locked. */
-    entryFocus: FocusRequester = remember { FocusRequester() },
-    /** Up from the first left-rail item; the shell's settings cog. Null keeps spatial search. */
-    exitFocus: FocusRequester? = null,
-    /** When true and unlocked, claim focus into the selected section (or Channels actions). */
-    takeFocus: Boolean = false,
+    focus: SettingsFocus = SettingsFocus(entry = remember { FocusRequester() }),
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     var section by rememberSaveable {
@@ -68,11 +73,10 @@ fun SettingsScreen(
     val locked by viewModel.lock.locked.collectAsState()
     DisposableEffect(Unit) { onDispose { viewModel.lock.relock() } }
     val park = remember { FocusPark() }
-    val navFirst = entryFocus
-    // First section shares [entryFocus] so Down from the cog and unlock both land on General.
-    val sectionFocus = remember(entryFocus) {
+    // First section shares [focus.entry] so Down from the cog and unlock both land on General.
+    val sectionFocus = remember(focus.entry) {
         SettingsSection.entries.associateWith { s ->
-            if (s == SettingsSection.entries.first()) entryFocus else FocusRequester()
+            if (s == SettingsSection.entries.first()) focus.entry else FocusRequester()
         }
     }
     val channelsEntry = remember { FocusRequester() }
@@ -85,16 +89,14 @@ fun SettingsScreen(
     Box(Modifier.fillMaxSize()) {
         FocusParkAnchor(park)
         if (locked) {
-            LockGate(viewModel.lock, park, firstKey = entryFocus)
+            LockGate(viewModel.lock, park, firstKey = focus.entry)
         } else {
             SettingsBody(
                 section = section,
                 onSection = { section = it },
-                navFirst = navFirst,
                 sectionFocus = sectionFocus,
                 channelsEntry = channelsEntry,
-                exitFocus = exitFocus,
-                takeFocus = takeFocus,
+                focus = focus,
                 park = park,
                 appVersion = appVersion,
                 appVersionCode = appVersionCode,
@@ -110,11 +112,9 @@ fun SettingsScreen(
 private fun SettingsBody(
     section: SettingsSection,
     onSection: (SettingsSection) -> Unit,
-    navFirst: FocusRequester,
     sectionFocus: Map<SettingsSection, FocusRequester>,
     channelsEntry: FocusRequester,
-    exitFocus: FocusRequester?,
-    takeFocus: Boolean,
+    focus: SettingsFocus,
     park: FocusPark,
     appVersion: String,
     appVersionCode: Int,
@@ -128,55 +128,78 @@ private fun SettingsBody(
     val firstEnabled = SettingsSection.entries.first { it.enabledFor(connected) }
     // Open / return from a nested editor: land on the selected section, or Custom channel under Channels,
     // so focus does not fall through to the Guide tab in the shell row.
-    LaunchedEffect(takeFocus, shown) {
-        if (!takeFocus) return@LaunchedEffect
+    LaunchedEffect(focus.take, shown) {
+        if (!focus.take) return@LaunchedEffect
         val target = when (shown) {
             SettingsSection.CHANNELS -> channelsEntry
-            else -> sectionFocus[shown] ?: navFirst
+            else -> sectionFocus[shown] ?: focus.entry
         }
         runCatching { target.requestFocus() }
     }
     Row(Modifier.fillMaxSize()) {
-        // Lazy so the focused entry scrolls into view; eight rows do not fit above the fold at 1080p.
-        LazyColumn(
-            Modifier.width(320.dp).fillMaxHeight().background(ClickarrColors.BgPanel).padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            items(SettingsSection.entries) { s ->
-                val isFirst = s == firstEnabled
-                ListItem(
-                    selected = shown == s,
-                    enabled = s.enabledFor(connected),
-                    onClick = { onSection(s) },
-                    headlineContent = { Text(s.label, style = ClickarrTextStyles.RowTitle) },
-                    modifier = Modifier
-                        .focusRequester(sectionFocus.getValue(s))
-                        .then(
-                            if (isFirst && exitFocus != null) {
-                                Modifier.focusProperties { up = exitFocus }
-                            } else {
-                                Modifier
-                            },
-                        ),
-                )
-            }
-        }
+        SettingsNavRail(shown, firstEnabled, connected, sectionFocus, focus.exit, onSection)
         Column(
             Modifier.fillMaxSize().padding(horizontal = 32.dp, vertical = 24.dp).verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Text(shown.label, style = ClickarrTextStyles.ScreenTitle)
-            when (shown) {
-                SettingsSection.GENERAL -> GeneralPane(viewModel, park)
-                SettingsSection.PLEX -> PlexPane(viewModel, actions.onDisconnected)
-                SettingsSection.JELLYFIN -> JellyfinPane(viewModel, actions.onDisconnected)
-                SettingsSection.CHANNELS -> ChannelsPane(viewModel, actions, park, entryFocus = channelsEntry)
-                SettingsSection.PLAYBACK -> PlaybackPane()
-                SettingsSection.SYNC -> SyncPane()
-                SettingsSection.DIAGNOSTICS -> DiagnosticsPane(viewModel)
-                SettingsSection.ABOUT -> AboutPane(appVersion, appVersionCode, viewModel, actions)
-            }
+            SettingsPane(shown, park, appVersion, appVersionCode, actions, channelsEntry, viewModel)
         }
+    }
+}
+
+@Composable
+@Suppress("LongParameterList")
+private fun SettingsNavRail(
+    shown: SettingsSection,
+    firstEnabled: SettingsSection,
+    connected: net.clickarr.core.model.ProviderKind?,
+    sectionFocus: Map<SettingsSection, FocusRequester>,
+    exitFocus: FocusRequester?,
+    onSection: (SettingsSection) -> Unit,
+) {
+    // Lazy so the focused entry scrolls into view; eight rows do not fit above the fold at 1080p.
+    LazyColumn(
+        Modifier.width(320.dp).fillMaxHeight().background(ClickarrColors.BgPanel).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        items(SettingsSection.entries) { s ->
+            val isFirst = s == firstEnabled
+            ListItem(
+                selected = shown == s,
+                enabled = s.enabledFor(connected),
+                onClick = { onSection(s) },
+                headlineContent = { Text(s.label, style = ClickarrTextStyles.RowTitle) },
+                modifier = Modifier
+                    .focusRequester(sectionFocus.getValue(s))
+                    .then(
+                        if (isFirst && exitFocus != null) Modifier.focusProperties { up = exitFocus } else Modifier,
+                    ),
+            )
+        }
+    }
+}
+
+@Composable
+@Suppress("LongParameterList")
+private fun SettingsPane(
+    shown: SettingsSection,
+    park: FocusPark,
+    appVersion: String,
+    appVersionCode: Int,
+    actions: SettingsActions,
+    channelsEntry: FocusRequester,
+    viewModel: SettingsViewModel,
+) {
+    when (shown) {
+        SettingsSection.GENERAL -> GeneralPane(viewModel, park)
+        SettingsSection.PLEX -> PlexPane(viewModel, actions.onDisconnected)
+        SettingsSection.JELLYFIN -> JellyfinPane(viewModel, actions.onDisconnected)
+        SettingsSection.CHANNELS -> ChannelsPane(viewModel, actions, park, entryFocus = channelsEntry)
+        SettingsSection.PLAYBACK -> PlaybackPane()
+        SettingsSection.SYNC -> SyncPane()
+        SettingsSection.DIAGNOSTICS -> DiagnosticsPane(viewModel)
+        SettingsSection.ABOUT -> AboutPane(appVersion, appVersionCode, viewModel, actions)
     }
 }
 

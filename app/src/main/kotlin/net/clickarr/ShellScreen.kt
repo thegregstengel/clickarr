@@ -144,11 +144,13 @@ fun ShellScreen(
                     appVersion = BuildConfig.VERSION_NAME,
                     appVersionCode = BuildConfig.VERSION_CODE,
                     initialSection = initialSection,
-                    entryFocus = shellFocus.settingsEntry,
-                    exitFocus = shellFocus.settingsTab,
-                    // Claim the left rail (or Custom channel) when Settings is shown, including return from
-                    // a nested editor. Skip while LockGate is up so OK on the cog is not eaten as a digit.
-                    takeFocus = true,
+                    focus = SettingsFocus(
+                        entry = shellFocus.settingsEntry,
+                        exit = shellFocus.settingsTab,
+                        // Claim the left rail (or Custom channel) when Settings is shown, including return from
+                        // a nested editor. Skip while LockGate is up so OK on the cog is not eaten as a digit.
+                        take = true,
+                    ),
                     actions = SettingsActions(
                         onDisconnected = callbacks.onDisconnected,
                         onExit = callbacks.onExit,

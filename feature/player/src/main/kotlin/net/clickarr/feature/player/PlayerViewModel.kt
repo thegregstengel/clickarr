@@ -40,6 +40,7 @@ import net.clickarr.provider.api.CaptionRequest
  * or the lowest-numbered one, as soon as the channel list is available.
  */
 @HiltViewModel
+@Suppress("TooManyFunctions")
 class PlayerViewModel @Inject constructor(
     @ApplicationContext context: Context,
     private val deps: PlayerDeps,

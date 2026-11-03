@@ -354,41 +354,11 @@ class HouseholdService @Inject constructor(
      */
     private suspend fun syncOnce(c: HouseholdClient, force: Boolean = false): Boolean {
         val local = db.household().get()?.revision
-        val remoteRevision = when (val info = c.info()) {
-            is Outcome.Success -> {
-                HouseholdClockOffset.observe(info.value.now.toEpochMilliseconds(), systemClock.now().toEpochMilliseconds())
-                info.value.revision
-            }
-            is Outcome.Failure -> {
-                Log.w(TAG) { "sync: info failed: ${info.error.message}" }
-                return false
-            }
-        }
-        val known = when {
-            force -> null
-            local == null -> null
-            remoteRevision > local -> null
-            else -> local
-        }
+        val remoteRevision = remoteRevision(c) ?: return false
+        val known = etagRevision(local, remoteRevision, force)
         return when (val r = c.state(known)) {
             is Outcome.Success -> {
-                val fetch = r.value
-                if (fetch is HouseholdClient.StateFetch.Fresh) {
-                    applyRemote(fetch.state)
-                } else if (remoteRevision > (local ?: -1L)) {
-                    // Info said we were behind but state returned 304; force an unconditional pull once.
-                    Log.w(TAG) { "sync: info revision $remoteRevision ahead of local $local after 304; forcing pull" }
-                    when (val again = c.state(null)) {
-                        is Outcome.Success -> {
-                            val forced = again.value
-                            if (forced is HouseholdClient.StateFetch.Fresh) applyRemote(forced.state)
-                        }
-                        is Outcome.Failure -> {
-                            Log.w(TAG) { "sync forced pull failed: ${again.error.message}" }
-                            return false
-                        }
-                    }
-                }
+                if (!applyFetch(c, r.value, local, remoteRevision)) return false
                 _role.update { role -> if (role is Role.Member) role.copy(connected = true, lastSync = systemClock.now()) else role }
                 true
             }
@@ -397,6 +367,50 @@ class HouseholdService @Inject constructor(
                 false
             }
         }
+    }
+
+    private suspend fun remoteRevision(c: HouseholdClient): Long? = when (val info = c.info()) {
+        is Outcome.Success -> {
+            HouseholdClockOffset.observe(info.value.now.toEpochMilliseconds(), systemClock.now().toEpochMilliseconds())
+            info.value.revision
+        }
+        is Outcome.Failure -> {
+            Log.w(TAG) { "sync: info failed: ${info.error.message}" }
+            null
+        }
+    }
+
+    /** Null means "do not send If-None-Match"; pull a full document. */
+    private fun etagRevision(local: Long?, remote: Long, force: Boolean): Long? = when {
+        force || local == null || remote > local -> null
+        else -> local
+    }
+
+    private suspend fun applyFetch(
+        c: HouseholdClient,
+        fetch: HouseholdClient.StateFetch,
+        local: Long?,
+        remoteRevision: Long,
+    ): Boolean {
+        when (fetch) {
+            is HouseholdClient.StateFetch.Fresh -> applyRemote(fetch.state)
+            is HouseholdClient.StateFetch.NotModified -> {
+                if (remoteRevision <= (local ?: -1L)) return true
+                // Info said we were behind but state returned 304; force an unconditional pull once.
+                Log.w(TAG) { "sync: info revision $remoteRevision ahead of local $local after 304; forcing pull" }
+                when (val again = c.state(null)) {
+                    is Outcome.Success -> {
+                        val forced = again.value
+                        if (forced is HouseholdClient.StateFetch.Fresh) applyRemote(forced.state)
+                    }
+                    is Outcome.Failure -> {
+                        Log.w(TAG) { "sync forced pull failed: ${again.error.message}" }
+                        return false
+                    }
+                }
+            }
+        }
+        return true
     }
 
     private suspend fun applyRemote(state: HouseholdState) {
