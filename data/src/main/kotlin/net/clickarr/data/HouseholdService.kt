@@ -69,6 +69,7 @@ import okhttp3.OkHttpClient
  * the fallback only when the device cannot start TLS, and it is advertised as such.
  */
 @Singleton
+@Suppress("TooManyFunctions")
 class HouseholdService @Inject constructor(
     @ApplicationContext context: Context,
     private val db: ClickarrDatabase,
@@ -354,11 +355,14 @@ class HouseholdService @Inject constructor(
      */
     private suspend fun syncOnce(c: HouseholdClient, force: Boolean = false): Boolean {
         val local = db.household().get()?.revision
-        val remoteRevision = remoteRevision(c) ?: return false
-        val known = etagRevision(local, remoteRevision, force)
+        val remote = syncRemoteRevision(c) ?: return false
+        val known = when {
+            force || local == null || remote > local -> null
+            else -> local
+        }
         return when (val r = c.state(known)) {
             is Outcome.Success -> {
-                if (!applyFetch(c, r.value, local, remoteRevision)) return false
+                if (!syncApplyFetch(c, r.value, local, remote)) return false
                 _role.update { role -> if (role is Role.Member) role.copy(connected = true, lastSync = systemClock.now()) else role }
                 true
             }
@@ -369,7 +373,7 @@ class HouseholdService @Inject constructor(
         }
     }
 
-    private suspend fun remoteRevision(c: HouseholdClient): Long? = when (val info = c.info()) {
+    private suspend fun syncRemoteRevision(c: HouseholdClient): Long? = when (val info = c.info()) {
         is Outcome.Success -> {
             HouseholdClockOffset.observe(info.value.now.toEpochMilliseconds(), systemClock.now().toEpochMilliseconds())
             info.value.revision
@@ -380,24 +384,18 @@ class HouseholdService @Inject constructor(
         }
     }
 
-    /** Null means "do not send If-None-Match"; pull a full document. */
-    private fun etagRevision(local: Long?, remote: Long, force: Boolean): Long? = when {
-        force || local == null || remote > local -> null
-        else -> local
-    }
-
-    private suspend fun applyFetch(
+    private suspend fun syncApplyFetch(
         c: HouseholdClient,
         fetch: HouseholdClient.StateFetch,
         local: Long?,
-        remoteRevision: Long,
+        remote: Long,
     ): Boolean {
         when (fetch) {
             is HouseholdClient.StateFetch.Fresh -> applyRemote(fetch.state)
             is HouseholdClient.StateFetch.NotModified -> {
-                if (remoteRevision <= (local ?: -1L)) return true
+                if (remote <= (local ?: -1L)) return true
                 // Info said we were behind but state returned 304; force an unconditional pull once.
-                Log.w(TAG) { "sync: info revision $remoteRevision ahead of local $local after 304; forcing pull" }
+                Log.w(TAG) { "sync: info revision $remote ahead of local $local after 304; forcing pull" }
                 when (val again = c.state(null)) {
                     is Outcome.Success -> {
                         val forced = again.value
