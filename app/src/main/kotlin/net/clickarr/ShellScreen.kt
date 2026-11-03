@@ -49,6 +49,7 @@ import kotlinx.coroutines.delay
 import androidx.compose.runtime.LaunchedEffect
 import net.clickarr.core.model.ChannelId
 import net.clickarr.feature.guide.GuideScreen
+import net.clickarr.feature.settings.SettingsFocus
 import net.clickarr.feature.settings.SettingsScreen
 import net.clickarr.ui.design.ClickarrColors
 import net.clickarr.ui.design.ClickarrDimens
