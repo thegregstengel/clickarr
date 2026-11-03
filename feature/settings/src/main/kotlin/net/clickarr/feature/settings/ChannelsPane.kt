@@ -52,14 +52,22 @@ import net.clickarr.ui.design.GlyphIcon
 
 /** Settings, Channels: create, holiday, suggest, refresh, and the channel list with reorder/delete. */
 @Composable
-internal fun ChannelsPane(vm: SettingsViewModel, actions: SettingsActions, park: FocusPark) {
+internal fun ChannelsPane(
+    vm: SettingsViewModel,
+    actions: SettingsActions,
+    park: FocusPark,
+    /** Restored after Back from Custom channel / editor so focus does not fall to the Guide tab. */
+    entryFocus: FocusRequester = remember { FocusRequester() },
+) {
     val list by vm.channelList.collectAsState()
     val favorites by vm.favorites.collectAsState()
     val message by vm.message.collectAsState()
     var movingId by remember { mutableStateOf<ChannelId?>(null) }
     BackHandler(enabled = movingId != null) { movingId = null }
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Button(onClick = actions.onCreateChannel) { Text("Custom channel") }
+        Button(onClick = actions.onCreateChannel, modifier = Modifier.focusRequester(entryFocus)) {
+            Text("Custom channel")
+        }
         Button(onClick = actions.onHolidayChannels) { Text("Holiday channels") }
         Button(onClick = actions.onSuggestChannels) { Text("Suggest channels") }
         Button(onClick = vm::refreshAllLineups) { Text("Refresh all lineups") }

@@ -335,7 +335,10 @@ class HouseholdService @Inject constructor(
                 _role.update { r -> if (r is Role.Member) r.copy(connected = true, lastSync = systemClock.now()) else r }
                 // Follow events until the socket drops, with a safety poll every five minutes.
                 val watcher = scope.launch { while (true) { delay(5.minutes); syncOnce(c) } }
-                c.events().catch { }.onEach { ev -> if (ev is Event.RevisionChanged) syncOnce(c) }.collect()
+                c.events()
+                    .catch { e -> Log.w(TAG, e) { "events socket closed; will reconnect" } }
+                    .onEach { ev -> if (ev is Event.RevisionChanged) syncOnce(c) }
+                    .collect()
                 watcher.cancel()
             }
             _role.update { r -> if (r is Role.Member) r.copy(connected = false) else r }
@@ -344,21 +347,48 @@ class HouseholdService @Inject constructor(
         }
     }
 
-    private suspend fun syncOnce(c: HouseholdClient): Boolean {
-        val known = db.household().get()?.revision
-        when (val info = c.info()) {
+    /**
+     * Pull the coordinator's state. When [force] is true (Settings, Sync now), skip If-None-Match so a
+     * member always downloads a fresh document. Otherwise compare /v1/info's revision with the local copy
+     * and only send If-None-Match when they already match, so a stale 304 cannot hide new channels.
+     */
+    private suspend fun syncOnce(c: HouseholdClient, force: Boolean = false): Boolean {
+        val local = db.household().get()?.revision
+        val remoteRevision = when (val info = c.info()) {
             is Outcome.Success -> {
                 HouseholdClockOffset.observe(info.value.now.toEpochMilliseconds(), systemClock.now().toEpochMilliseconds())
+                info.value.revision
             }
             is Outcome.Failure -> {
                 Log.w(TAG) { "sync: info failed: ${info.error.message}" }
                 return false
             }
         }
+        val known = when {
+            force -> null
+            local == null -> null
+            remoteRevision > local -> null
+            else -> local
+        }
         return when (val r = c.state(known)) {
             is Outcome.Success -> {
                 val fetch = r.value
-                if (fetch is HouseholdClient.StateFetch.Fresh) applyRemote(fetch.state)
+                if (fetch is HouseholdClient.StateFetch.Fresh) {
+                    applyRemote(fetch.state)
+                } else if (remoteRevision > (local ?: -1L)) {
+                    // Info said we were behind but state returned 304; force an unconditional pull once.
+                    Log.w(TAG) { "sync: info revision $remoteRevision ahead of local $local after 304; forcing pull" }
+                    when (val again = c.state(null)) {
+                        is Outcome.Success -> {
+                            val forced = again.value
+                            if (forced is HouseholdClient.StateFetch.Fresh) applyRemote(forced.state)
+                        }
+                        is Outcome.Failure -> {
+                            Log.w(TAG) { "sync forced pull failed: ${again.error.message}" }
+                            return false
+                        }
+                    }
+                }
                 _role.update { role -> if (role is Role.Member) role.copy(connected = true, lastSync = systemClock.now()) else role }
                 true
             }
@@ -381,8 +411,9 @@ class HouseholdService @Inject constructor(
         store.saveState(state)
     }
 
+    /** Settings, Sync now: always download the coordinator document, even when the ETag matches. */
     suspend fun syncNow() {
-        client?.let { syncOnce(it) }
+        client?.let { syncOnce(it, force = true) }
     }
 
     /**
@@ -414,7 +445,8 @@ class HouseholdService @Inject constructor(
     suspend fun apply(command: Command): Outcome<Boolean> = when (val r = _role.value) {
         is Role.None -> Outcome.Success(false)
         is Role.Drive -> drive.apply(command).map { true }
-        is Role.Coordinator -> coordinator?.apply(command, selfId)?.map { true } ?: Outcome.Success(false)
+        is Role.Coordinator -> coordinator?.apply(command, selfId)?.map { true }
+            ?: Outcome.Failure(ClickarrError.Unreachable("Household coordinator is not running"))
         is Role.Member -> {
             val c = client ?: return Outcome.Failure(ClickarrError.Unreachable("Not connected to the household"))
             when (val sent = c.send(command)) {

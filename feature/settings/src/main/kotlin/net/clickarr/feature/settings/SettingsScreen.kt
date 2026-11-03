@@ -22,6 +22,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -54,6 +55,10 @@ fun SettingsScreen(
     actions: SettingsActions,
     /** Where Down from the shell's cog lands: the first section, or the lock pad while Settings is locked. */
     entryFocus: FocusRequester = remember { FocusRequester() },
+    /** Up from the first left-rail item; the shell's settings cog. Null keeps spatial search. */
+    exitFocus: FocusRequester? = null,
+    /** When true and unlocked, claim focus into the selected section (or Channels actions). */
+    takeFocus: Boolean = false,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     var section by rememberSaveable {
@@ -64,10 +69,17 @@ fun SettingsScreen(
     DisposableEffect(Unit) { onDispose { viewModel.lock.relock() } }
     val park = remember { FocusPark() }
     val navFirst = entryFocus
+    // First section shares [entryFocus] so Down from the cog and unlock both land on General.
+    val sectionFocus = remember(entryFocus) {
+        SettingsSection.entries.associateWith { s ->
+            if (s == SettingsSection.entries.first()) entryFocus else FocusRequester()
+        }
+    }
+    val channelsEntry = remember { FocusRequester() }
     // When the gate goes away on a correct code, focus is parked; hand it to the section list.
     var wasLocked by remember { mutableStateOf(locked) }
     LaunchedEffect(locked) {
-        if (wasLocked && !locked) runCatching { navFirst.requestFocus() }
+        if (wasLocked && !locked) runCatching { sectionFocus.getValue(section).requestFocus() }
         wasLocked = locked
     }
     Box(Modifier.fillMaxSize()) {
@@ -75,7 +87,20 @@ fun SettingsScreen(
         if (locked) {
             LockGate(viewModel.lock, park, firstKey = entryFocus)
         } else {
-            SettingsBody(section, { section = it }, navFirst, park, appVersion, appVersionCode, actions, viewModel)
+            SettingsBody(
+                section = section,
+                onSection = { section = it },
+                navFirst = navFirst,
+                sectionFocus = sectionFocus,
+                channelsEntry = channelsEntry,
+                exitFocus = exitFocus,
+                takeFocus = takeFocus,
+                park = park,
+                appVersion = appVersion,
+                appVersionCode = appVersionCode,
+                actions = actions,
+                viewModel = viewModel,
+            )
         }
     }
 }
@@ -86,6 +111,10 @@ private fun SettingsBody(
     section: SettingsSection,
     onSection: (SettingsSection) -> Unit,
     navFirst: FocusRequester,
+    sectionFocus: Map<SettingsSection, FocusRequester>,
+    channelsEntry: FocusRequester,
+    exitFocus: FocusRequester?,
+    takeFocus: Boolean,
     park: FocusPark,
     appVersion: String,
     appVersionCode: Int,
@@ -96,6 +125,17 @@ private fun SettingsBody(
     val connected = servers.firstOrNull()?.kind
     // A deep link or a remembered section may name the server this TV does not use; show General instead.
     val shown = if (section.enabledFor(connected)) section else SettingsSection.GENERAL
+    val firstEnabled = SettingsSection.entries.first { it.enabledFor(connected) }
+    // Open / return from a nested editor: land on the selected section, or Custom channel under Channels,
+    // so focus does not fall through to the Guide tab in the shell row.
+    LaunchedEffect(takeFocus, shown) {
+        if (!takeFocus) return@LaunchedEffect
+        val target = when (shown) {
+            SettingsSection.CHANNELS -> channelsEntry
+            else -> sectionFocus[shown] ?: navFirst
+        }
+        runCatching { target.requestFocus() }
+    }
     Row(Modifier.fillMaxSize()) {
         // Lazy so the focused entry scrolls into view; eight rows do not fit above the fold at 1080p.
         LazyColumn(
@@ -103,12 +143,21 @@ private fun SettingsBody(
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             items(SettingsSection.entries) { s ->
+                val isFirst = s == firstEnabled
                 ListItem(
                     selected = shown == s,
                     enabled = s.enabledFor(connected),
                     onClick = { onSection(s) },
                     headlineContent = { Text(s.label, style = ClickarrTextStyles.RowTitle) },
-                    modifier = if (s == SettingsSection.entries.first()) Modifier.focusRequester(navFirst) else Modifier,
+                    modifier = Modifier
+                        .focusRequester(sectionFocus.getValue(s))
+                        .then(
+                            if (isFirst && exitFocus != null) {
+                                Modifier.focusProperties { up = exitFocus }
+                            } else {
+                                Modifier
+                            },
+                        ),
                 )
             }
         }
@@ -121,7 +170,7 @@ private fun SettingsBody(
                 SettingsSection.GENERAL -> GeneralPane(viewModel, park)
                 SettingsSection.PLEX -> PlexPane(viewModel, actions.onDisconnected)
                 SettingsSection.JELLYFIN -> JellyfinPane(viewModel, actions.onDisconnected)
-                SettingsSection.CHANNELS -> ChannelsPane(viewModel, actions, park)
+                SettingsSection.CHANNELS -> ChannelsPane(viewModel, actions, park, entryFocus = channelsEntry)
                 SettingsSection.PLAYBACK -> PlaybackPane()
                 SettingsSection.SYNC -> SyncPane()
                 SettingsSection.DIAGNOSTICS -> DiagnosticsPane(viewModel)

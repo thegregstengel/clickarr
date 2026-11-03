@@ -99,7 +99,9 @@ fun ShellScreen(
     // Down from the settings cog lands on the first section (or the lock pad), not on whatever pane content is nearest.
     // Up from the first guide row lands on the active tab: spatial search alone often misses the top row when
     // Favorites is hidden (Guide far left, Settings far right), which traps focus in the grid.
-    val shellFocus = remember { ShellFocus(FocusRequester(), FocusRequester(), FocusRequester()) }
+    val shellFocus = remember {
+        ShellFocus(FocusRequester(), FocusRequester(), FocusRequester(), FocusRequester())
+    }
     // The tab opened from the player gets focus inside it; after that, moving across the row keeps focus on the
     // row until Down is pressed, so Guide and Favorites do not pull focus into the grid as they go by.
     var switched by rememberSaveable { mutableStateOf(false) }
@@ -143,6 +145,10 @@ fun ShellScreen(
                     appVersionCode = BuildConfig.VERSION_CODE,
                     initialSection = initialSection,
                     entryFocus = shellFocus.settingsEntry,
+                    exitFocus = shellFocus.settingsTab,
+                    // Claim the left rail (or Custom channel) when Settings is shown, including return from
+                    // a nested editor. Skip while LockGate is up so OK on the cog is not eaten as a digit.
+                    takeFocus = true,
                     actions = SettingsActions(
                         onDisconnected = callbacks.onDisconnected,
                         onExit = callbacks.onExit,
@@ -161,6 +167,8 @@ fun ShellScreen(
 private class ShellFocus(
     val guideTab: FocusRequester,
     val favoritesTab: FocusRequester,
+    /** The settings cog itself; Up from the first left-rail item lands here. */
+    val settingsTab: FocusRequester,
     val settingsEntry: FocusRequester,
 )
 
@@ -201,6 +209,7 @@ private fun ShellTopRow(
             onSelect = { onSelectTab(ShellTab.SETTINGS) },
             modifier = Modifier
                 .testTag("shell.settings")
+                .focusRequester(focus.settingsTab)
                 .then(if (tab == ShellTab.SETTINGS) Modifier.focusProperties { down = focus.settingsEntry } else Modifier),
         )
     }

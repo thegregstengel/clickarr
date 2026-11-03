@@ -10,6 +10,17 @@ second release the same day); the household protocol, scheduler, and database ca
 - Website: [clickarr.net/releases](https://clickarr.net/releases/) shows the latest stable release notes and the
   nightly channel by fetching GitHub Releases in the browser.
 
+### Fixed
+
+- LAN household: member TVs pick up new channels after join again. The TLS front door no longer applies a 30s read
+  timeout that closed idle WebSocket bridges (application pings only write server to member). Sync now forces a full
+  state pull, and the regular sync path trusts `/v1/info` revision before sending If-None-Match.
+- Home (and other backgrounding) stops the tune session and promo theme so channel audio cannot resume under another
+  app. ExoPlayer now handles audio focus. Leave Clickarr clears the task (`finishAndRemoveTask`).
+- Player Back always consumes the key: when sleep UI is up it wakes or dismisses instead of finishing to Google TV Home.
+- Settings: opening focuses the selected left-rail item (Custom channel under Channels). Up from the top item returns
+  to the settings cog instead of jumping to Guide. Back from Custom channel restores Channels focus instead of Guide.
+
 ## 2026.11.1
 
 ### Added
