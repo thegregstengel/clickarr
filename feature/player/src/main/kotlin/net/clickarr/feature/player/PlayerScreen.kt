@@ -64,9 +64,14 @@ fun PlayerScreen(
     val streamPanel by viewModel.streams.open.collectAsState()
     // Back arrives as a key on Fire OS but through the back dispatcher on newer Android (predictive back),
     // so it is handled here rather than in the key map: close the stream panel, mini-guide, then overlay, then leave.
-    // Sleep Ask/Asleep consumes keys in playerKey; do not show exit confirm over them.
-    BackHandler(enabled = sleepState == SleepGuard.State.Awake) {
-        if (!viewModel.handleBack()) onRootBack(onOpenShell)
+    // Always consume Back: when sleep UI is up, wake/dismiss it. Leaving Back unhandled finishes the Activity
+    // straight to Google TV Home (especially after Leave + relaunch on API 30).
+    BackHandler {
+        if (sleepState != SleepGuard.State.Awake) {
+            viewModel.sleep.onInput()
+        } else if (!viewModel.handleBack()) {
+            onRootBack(onOpenShell)
+        }
     }
     val parkFocus = remember { FocusRequester() }
     val gearFocus = remember { FocusRequester() }
@@ -108,8 +113,12 @@ private fun PlayerLifecycle(viewModel: PlayerViewModel) {
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner, viewModel) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) viewModel.onResume()
-            if (event == Lifecycle.Event.ON_PAUSE) viewModel.onPause()
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> viewModel.onResume()
+                Lifecycle.Event.ON_PAUSE -> viewModel.onPause()
+                Lifecycle.Event.ON_STOP -> viewModel.onStop()
+                else -> Unit
+            }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }

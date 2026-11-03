@@ -2,6 +2,7 @@ package net.clickarr.playback.media3
 
 import android.content.Context
 import androidx.annotation.OptIn
+import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.TrackSelectionOverride
@@ -36,6 +37,13 @@ class Media3PlayerEngine(context: Context, okHttp: OkHttpClient, userAgent: Stri
     private val dataSourceFactory = OkHttpDataSource.Factory(okHttp).setUserAgent(userAgent)
     private val exo: ExoPlayer = ExoPlayer.Builder(context)
         .setMediaSourceFactory(DefaultMediaSourceFactory(context).setDataSourceFactory(dataSourceFactory))
+        .setAudioAttributes(
+            AudioAttributes.Builder()
+                .setUsage(C.USAGE_MEDIA)
+                .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
+                .build(),
+            /* handleAudioFocus= */ true,
+        )
         .build()
 
     /** For PlayerView. Exposed as the common Player type so UI modules need no ExoPlayer dependency. */

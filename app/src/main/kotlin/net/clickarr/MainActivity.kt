@@ -10,6 +10,8 @@ import dagger.hilt.android.AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { ClickarrApp(onExit = { finish() }) }
+        // finishAndRemoveTask clears the singleTask entry so Leave + relaunch does not leave a zombie
+        // root that finishes on the first Back to Google TV Home.
+        setContent { ClickarrApp(onExit = { finishAndRemoveTask() }) }
     }
 }

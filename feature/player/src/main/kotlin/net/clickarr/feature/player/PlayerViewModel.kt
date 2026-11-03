@@ -40,6 +40,7 @@ import net.clickarr.provider.api.CaptionRequest
  * or the lowest-numbered one, as soon as the channel list is available.
  */
 @HiltViewModel
+@Suppress("TooManyFunctions")
 class PlayerViewModel @Inject constructor(
     @ApplicationContext context: Context,
     private val deps: PlayerDeps,
@@ -290,7 +291,17 @@ class PlayerViewModel @Inject constructor(
 
     fun onResume() = controller.retune()
 
+    /** Brief pause (another Compose destination on top); the session stays armed. */
     fun onPause() = engine.pause()
+
+    /**
+     * Home / background / leaving the player entry. Stop the tune session and promo theme so a later
+     * airing boundary or reconnect cannot resume audio under another app. [onResume] retunes live.
+     */
+    fun onStop() {
+        promos.release()
+        controller.stop()
+    }
 
     override fun onCleared() {
         reporter.stop()

@@ -57,7 +57,11 @@ class TlsFrontDoor(private val ssl: SSLContext, private val backendPort: Int) {
     private fun acceptLoop(socket: SSLServerSocket) {
         while (!closed) {
             val client = runCatching { socket.accept() }.getOrNull() ?: continue
-            runCatching { client.soTimeout = CLIENT_TIMEOUT_MS }
+            // No SO_TIMEOUT: WebSocket members are idle on the client→server half between revisions, and
+            // application Event.Ping frames only write server→client. A read timeout here closes the bridge
+            // under members (~30s) and they stop seeing RevisionChanged until the next reconnect/poll.
+            // Floods are bounded by [MAX_THREADS] on the pool, not by socket idle time.
+            runCatching { client.soTimeout = 0 }
             runCatching { pool.execute { bridge(client) } }.onFailure { runCatching { client.close() } }
         }
     }
@@ -91,7 +95,6 @@ class TlsFrontDoor(private val ssl: SSLContext, private val backendPort: Int) {
     companion object {
         private const val MAX_THREADS = 64
         private const val KEEP_ALIVE_S = 60L
-        private const val CLIENT_TIMEOUT_MS = 30_000
 
         private const val BACKLOG = 50
         private const val BUFFER = 16 * 1024

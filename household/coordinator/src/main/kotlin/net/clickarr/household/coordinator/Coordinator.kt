@@ -49,7 +49,8 @@ class Coordinator(
     private val _state = MutableStateFlow(initial)
     val state: StateFlow<HouseholdState> = _state.asStateFlow()
 
-    private val _events = MutableSharedFlow<Event>(extraBufferCapacity = 64)
+    // replay=1 so a member that subscribes just after commit still sees the latest RevisionChanged.
+    private val _events = MutableSharedFlow<Event>(replay = 1, extraBufferCapacity = 64)
     val events: SharedFlow<Event> = _events.asSharedFlow()
 
     private var tokens: MutableMap<String, PairedDevice> = HashMap()
