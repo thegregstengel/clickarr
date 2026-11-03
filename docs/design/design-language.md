@@ -189,7 +189,7 @@ Key map (also in proposal section 10.6):
 | Up / Down | Channel up / down | Row up / down | Item up / down |
 | Left / Right | Focus Audio & video gear / open mini-guide (upcoming); Left from the first mini-guide card returns to the gear | Cell left / right (scrolls window at edges) | Pane left / right, toggle values |
 | OK | Toggle overlay; open Audio & video when the gear is focused | Tune (if now) or details | Activate |
-| Back | Hide overlay or panel, then "Leave Clickarr?" | Return to player | Previous pane, then previous screen |
+| Back | Hide overlay or panel, wake/dismiss sleep UI, then "Leave Clickarr?" | Return to player | Previous pane (restore rail focus), then previous screen |
 | Play/Pause | Pause; resume re-syncs to live | Tune focused | ignored |
 | Menu | Guide | Favorites filter | ignored |
 | 0 to 9 | Channel entry, 2 s commit | Channel entry | ignored |

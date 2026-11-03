@@ -5,6 +5,8 @@ second release the same day); the household protocol, scheduler, and database ca
 
 ## [Unreleased]
 
+## 2026.11.3
+
 ### Added
 
 - Website: [clickarr.net/releases](https://clickarr.net/releases/) shows the latest stable release notes and the
