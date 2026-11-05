@@ -5,6 +5,11 @@ second release the same day); the household protocol, scheduler, and database ca
 
 ## [Unreleased]
 
+### Fixed
+
+- Guide on some Google TV devices (TCL, Android 11): opening or focusing Guide no longer closes the app.
+  Focus waits until the target guide row is composed, and Up/Down only link to attached cells in the LazyColumn.
+
 ## 2026.11.3
 
 ### Added
