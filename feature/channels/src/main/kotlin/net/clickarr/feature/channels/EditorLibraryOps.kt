@@ -37,7 +37,7 @@ internal object EditorLibraryOps {
     fun closePane(s: EditorStep.PickLibrary): EditorStep.PickLibrary =
         s.copy(pane = LibraryPane.MAIN, draftFilter = null)
 
-    /** True when Create may run: any genre/decade filter, and/or at least one visible title selected. */
+    /** True when Confirm may run: any genre/decade filter, and/or at least one visible title selected. */
     fun canCreate(s: EditorStep.PickLibrary): Boolean {
         if (s.pane != LibraryPane.MAIN) return false
         if (hasFilter(s.filter)) return true
@@ -45,7 +45,7 @@ internal object EditorLibraryOps {
     }
 
     /**
-     * Null when Create should stay gray (no filter and no titles), wrong pane, or selection
+     * Null when Confirm should stay gray (no filter and no titles), wrong pane, or selection
      * refs vanished. Visible selected titles win; otherwise a filter alone makes a library source.
      */
     fun confirm(s: EditorStep.PickLibrary): Pair<ProgrammingSource, String>? {

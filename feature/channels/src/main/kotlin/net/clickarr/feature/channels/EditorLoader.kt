@@ -1,11 +1,14 @@
 package net.clickarr.feature.channels
 
+import net.clickarr.core.common.ClickarrError
 import net.clickarr.core.common.Outcome
 import net.clickarr.core.common.titleSortKey
 import net.clickarr.core.model.Library
 import net.clickarr.core.model.LibraryKind
 import net.clickarr.core.model.MediaFilter
+import net.clickarr.core.model.MediaRef
 import net.clickarr.core.model.Movie
+import net.clickarr.core.model.ProgrammingSource
 import net.clickarr.core.model.Show
 import net.clickarr.provider.api.MediaProvider
 import net.clickarr.provider.api.allPages
@@ -22,27 +25,37 @@ internal class EditorLoader(private val provider: () -> MediaProvider?) {
         }
     }
 
-    suspend fun collections(lib: Library): Outcome<EditorStep.PickCollection> {
+    suspend fun collections(
+        lib: Library,
+        selected: MediaRef? = null,
+    ): Outcome<EditorStep.PickCollection> {
         val p = provider() ?: return noServer()
         return when (val r = p.collections(lib.ref)) {
             is Outcome.Success -> Outcome.Success(
-                EditorStep.PickCollection(lib, r.value.sortedBy { titleSortKey(it.name) }),
+                EditorStep.PickCollection(lib, r.value.sortedBy { titleSortKey(it.name) }, selected),
             )
             is Outcome.Failure -> Outcome.Failure(r.error)
         }
     }
 
-    suspend fun playlists(lib: Library): Outcome<EditorStep.PickPlaylist> {
+    suspend fun playlists(
+        lib: Library,
+        selected: MediaRef? = null,
+    ): Outcome<EditorStep.PickPlaylist> {
         val p = provider() ?: return noServer()
         return when (val r = p.playlists()) {
             is Outcome.Success -> Outcome.Success(
-                EditorStep.PickPlaylist(lib, r.value.sortedBy { titleSortKey(it.name) }),
+                EditorStep.PickPlaylist(lib, r.value.sortedBy { titleSortKey(it.name) }, selected),
             )
             is Outcome.Failure -> Outcome.Failure(r.error)
         }
     }
 
-    suspend fun library(lib: Library): Outcome<EditorStep.PickLibrary> {
+    suspend fun library(
+        lib: Library,
+        filter: MediaFilter = MediaFilter(),
+        selected: Set<MediaRef> = emptySet(),
+    ): Outcome<EditorStep.PickLibrary> {
         val p = provider() ?: return noServer()
         val rows = when (val loaded = loadTitles(p, lib)) {
             is Outcome.Success -> loaded.value
@@ -50,7 +63,28 @@ internal class EditorLoader(private val provider: () -> MediaProvider?) {
         }
         val genres = rows.flatMap { it.genres }.distinct().sortedBy(::titleSortKey)
         val decades = rows.mapNotNull { it.year }.map { it - it % 10 }.distinct().sorted()
-        return Outcome.Success(EditorStep.PickLibrary(lib, genres, decades, MediaFilter(), rows))
+        return Outcome.Success(EditorStep.PickLibrary(lib, genres, decades, filter, rows, selected))
+    }
+
+    /**
+     * Opens the create-time picker for [source], with filters/titles/collection/playlist prefilled.
+     * Resolves the parent library when the source does not store one.
+     */
+    suspend fun pickerForEdit(source: ProgrammingSource): Outcome<EditorStep> {
+        val mode = modeFor(source)
+            ?: return Outcome.Failure(ClickarrError.Invalid("This channel's content cannot be edited here"))
+        val lib = when (val r = resolveLibrary(source)) {
+            is Outcome.Success -> r.value
+            is Outcome.Failure -> return r
+        }
+        return when (mode) {
+            ChannelMode.LIBRARY -> {
+                val (filter, selected) = libraryPrefill(source)
+                library(lib, filter, selected)
+            }
+            ChannelMode.COLLECTION -> collections(lib, (source as ProgrammingSource.Collection).ref)
+            ChannelMode.PLAYLIST -> playlists(lib, (source as ProgrammingSource.Playlist).ref)
+        }
     }
 
     /** Every page of movies or shows, so Library is not stuck on the first container page. */
@@ -65,6 +99,58 @@ internal class EditorLoader(private val provider: () -> MediaProvider?) {
         }
     }
 
+    private suspend fun resolveLibrary(source: ProgrammingSource): Outcome<Library> {
+        val libs = when (val r = libraries()) {
+            is Outcome.Success -> r.value
+            is Outcome.Failure -> return r
+        }
+        if (libs.isEmpty()) return Outcome.Failure(ClickarrError.Invalid("No libraries on this server"))
+        return when (source) {
+            is ProgrammingSource.Library -> libs.firstOrNull { it.ref == source.library }?.let { Outcome.Success(it) }
+                ?: Outcome.Failure(ClickarrError.NotFound("That library is no longer on this server"))
+            is ProgrammingSource.Shows -> findLibraryWithRefs(libs.filter { it.kind == LibraryKind.SHOWS }, source.shows)
+            is ProgrammingSource.Explicit -> findLibraryWithRefs(libs.filter { it.kind == LibraryKind.MOVIES }, source.items)
+            is ProgrammingSource.Collection -> findLibraryForCollection(libs, source.ref)
+            is ProgrammingSource.Playlist -> Outcome.Success(libs.first())
+            is ProgrammingSource.Union -> Outcome.Failure(
+                ClickarrError.Invalid("This channel's content cannot be edited here"),
+            )
+        }
+    }
+
+    private suspend fun findLibraryWithRefs(libs: List<Library>, refs: List<MediaRef>): Outcome<Library> {
+        if (libs.isEmpty()) return Outcome.Failure(ClickarrError.NotFound("No matching library on this server"))
+        if (refs.isEmpty()) return Outcome.Success(libs.first())
+        val p = provider() ?: return noServer()
+        val want = refs.toSet()
+        for (lib in libs) {
+            when (val loaded = loadTitles(p, lib)) {
+                is Outcome.Success -> if (loaded.value.any { it.ref in want }) return Outcome.Success(lib)
+                is Outcome.Failure -> return Outcome.Failure(loaded.error)
+            }
+        }
+        // Titles may have been removed; still open a picker so the user can reselect.
+        return Outcome.Success(libs.first())
+    }
+
+    private suspend fun findLibraryForCollection(libs: List<Library>, ref: MediaRef): Outcome<Library> {
+        val p = provider() ?: return noServer()
+        for (lib in libs) {
+            when (val r = p.collections(lib.ref)) {
+                is Outcome.Success -> if (r.value.any { it.ref == ref }) return Outcome.Success(lib)
+                is Outcome.Failure -> return Outcome.Failure(r.error)
+            }
+        }
+        return Outcome.Success(libs.first())
+    }
+
+    private fun libraryPrefill(source: ProgrammingSource): Pair<MediaFilter, Set<MediaRef>> = when (source) {
+        is ProgrammingSource.Library -> source.filter to emptySet()
+        is ProgrammingSource.Shows -> MediaFilter() to source.shows.toSet()
+        is ProgrammingSource.Explicit -> MediaFilter() to source.items.toSet()
+        else -> MediaFilter() to emptySet()
+    }
+
     private fun fromMovie(m: Movie) = LibraryTitle(m.ref, m.title, m.year, m.genres)
 
     private fun fromShow(s: Show) = LibraryTitle(
@@ -76,5 +162,5 @@ internal class EditorLoader(private val provider: () -> MediaProvider?) {
     )
 
     private fun <T> noServer(): Outcome<T> =
-        Outcome.Failure(net.clickarr.core.common.ClickarrError.Invalid("No server connected"))
+        Outcome.Failure(ClickarrError.Invalid("No server connected"))
 }

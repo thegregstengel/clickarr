@@ -215,7 +215,7 @@ class FirstRunFlowTest : TvFlow() {
 
         // Edit it: focus the row for the preview card, open the editor, rename and renumber.
         click("The Office (US)") // a row in Settings, Channels opens the editor
-        waitForText("Save changes")
+        waitForText("Save Changes")
         compose.onNodeWithTag("editor.name").performTextClearance()
         compose.onNodeWithTag("editor.name").performTextInput("Office Reruns")
         click("+")
@@ -223,8 +223,8 @@ class FirstRunFlowTest : TvFlow() {
         compose.onAllNodes(hasText("+", substring = false)).onFirst().requestFocus() // leave the field so the keyboard closes
         compose.waitForIdle()
         shot("19-edit-channel")
-        reach("Save changes")
-        click("Save changes")
+        reach("Save Changes")
+        click("Save Changes")
         waitForText("Custom channel") // back on the Channels tab
         waitForText("Office Reruns")
         shot("20-channels-edited")

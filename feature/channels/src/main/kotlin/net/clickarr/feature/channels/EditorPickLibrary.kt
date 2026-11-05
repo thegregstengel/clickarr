@@ -34,10 +34,9 @@ import net.clickarr.ui.design.ClickarrTextStyles
 
 /**
  * Library picker: Genres / Decades / Clear filters on top; title list with multi-select, 0-9 / A-Z
- * jump, and Create / Cancel on the far right. Genres and Decades open a multi-select pane with
- * Apply on the right so the D-pad never needs a scroll back to the top.
- *
- * Reusable for edit-existing (#22): drive [EditorStep.PickLibrary] with a prefilled [selected] set.
+ * jump, and Create (or Apply when editing selections) / Cancel on the far right. Genres and
+ * Decades open a multi-select pane with Apply on the right so the D-pad never needs a scroll
+ * back to the top.
  */
 @Composable
 internal fun PickLibrary(s: EditorStep.PickLibrary, vm: EditorViewModel) {
@@ -104,22 +103,24 @@ private fun LibraryMain(s: EditorStep.PickLibrary, vm: EditorViewModel) {
                 )
                 val canCreate = EditorLibraryOps.canCreate(s)
                 val pickedVisible = EditorLibraryOps.visibleSelected(s)
+                val editingSelections = vm.isEditingSelections()
+                val confirmLabel = if (editingSelections) "Apply" else "Create"
                 Button(
                     onClick = { vm.onLibrary(LibraryUiAction.Confirm) },
                     enabled = canCreate,
                     modifier = Modifier.focusRequester(createFocus),
                 ) {
-                    Text("Create")
+                    Text(confirmLabel)
                 }
                 Button(onClick = vm::back) { Text("Cancel") }
                 Text(
                     when {
                         pickedVisible.isNotEmpty() ->
-                            "Press Right from any title to reach Create."
+                            "Press Right from any title to reach $confirmLabel."
                         canCreate ->
-                            "Create uses every title matching the filters."
+                            "$confirmLabel uses every title matching the filters."
                         else ->
-                            "Apply a filter or select titles to Create."
+                            "Apply a filter or select titles to $confirmLabel."
                     },
                     style = ClickarrTextStyles.Caption,
                     color = ClickarrColors.TextMuted,

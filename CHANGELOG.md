@@ -5,6 +5,13 @@ second release the same day); the household protocol, scheduler, and database ca
 
 ## [Unreleased]
 
+### Added
+
+- Edit channel: **Edit Selections** reopens the create-time Library / Collections / Playlists picker
+  with current filters and titles (or the chosen collection/playlist) pre-checked. Apply updates the
+  editor draft only; **Save Changes** commits the new source and queues a lineup refresh. Holiday
+  channels keep their own setup flow and have no Edit Selections (#22).
+
 ### Changed
 
 - Custom channel: removed the separate Shows mode. Whole library is now Library: Genres and Decades
@@ -12,6 +19,7 @@ second release the same day); the household protocol, scheduler, and database ca
   multi-select with a 0-9 / A-Z jump, and Create stays gray only when there are no filters and no
   titles selected. A filter alone creates the whole filtered library; picked titles create a shows
   or explicit channel (#20).
+- Edit channel bottom actions are now Refresh Lineup | Edit Selections | Save Changes | Delete Channel.
 
 ### Fixed
 
