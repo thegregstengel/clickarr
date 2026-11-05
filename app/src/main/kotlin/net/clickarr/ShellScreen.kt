@@ -118,7 +118,17 @@ fun ShellScreen(
         Modifier
             .fillMaxSize()
             .background(ClickarrColors.BgBase)
-            .onPreviewKeyEvent { lastKeyAt[0] = SystemClock.uptimeMillis(); false },
+            .onPreviewKeyEvent { e ->
+                lastKeyAt[0] = SystemClock.uptimeMillis()
+                // Player Menu opens the Guide; Guide / Favorites Menu opens Settings so the viewer does not
+                // have to walk from the bottom of the grid up to the cog (#25). Ignored on Settings itself.
+                if (e.type == KeyEventType.KeyDown && e.key == Key.Menu && tab != ShellTab.SETTINGS) {
+                    tab = ShellTab.SETTINGS
+                    true
+                } else {
+                    false
+                }
+            },
     ) {
         ShellTopRow(
             tab,

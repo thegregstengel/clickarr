@@ -20,6 +20,8 @@ second release the same day); the household protocol, scheduler, and database ca
   titles selected. A filter alone creates the whole filtered library; picked titles create a shows
   or explicit channel (#20).
 - Edit channel bottom actions are now Refresh Lineup | Edit Selections | Save Changes | Delete Channel.
+- Remote Menu on Guide or Favorites opens Settings (same key already opens the Guide from the
+  player), so reaching Settings no longer requires walking up the channel grid to the cog (#25).
 
 ### Fixed
 
