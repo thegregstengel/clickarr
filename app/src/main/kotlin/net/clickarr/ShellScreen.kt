@@ -128,7 +128,9 @@ fun ShellScreen(
             onSelectTab = { t -> switched = switched || t != tab; tab = t },
             now = viewModel::now,
         )
-        Box(Modifier.fillMaxSize()) {
+        // weight(1f), not fillMaxSize: a Column child with fillMaxSize can leave the body with an
+        // unbounded height on some TV OEMs, and Guide's LazyColumn then crashes when measured.
+        Box(Modifier.weight(1f).fillMaxWidth()) {
             when (tab) {
                 ShellTab.GUIDE -> GuideScreen(
                     onWatch = callbacks.onWatch,

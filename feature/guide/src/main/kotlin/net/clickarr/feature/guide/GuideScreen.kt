@@ -22,15 +22,19 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.yield
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -130,7 +134,8 @@ fun GuideScreen(
     BoxWithConstraints {
         val halfHour = (maxWidth - ClickarrDimens.SafeArea - CHANNEL_COLUMN) / VISIBLE_HALF_HOURS
         val minutePx = with(density) { (halfHour / 30).toPx() }
-        val grid = GuideGrid(w, minutePx, halfHour, scroll, focus, exitFocus)
+        val listState = rememberLazyListState()
+        val grid = GuideGrid(w, minutePx, halfHour, scroll, focus, exitFocus, listState)
         CompositionLocalProvider(LocalBringIntoViewSpec provides PlainBringIntoViewSpec) {
             GuideBody(grid, onlyFavorites, takeFocus, focused, preview, details, actions)
         }
@@ -159,14 +164,27 @@ private fun GuideBody(
     val scroll = grid.scroll
     val minutePx = grid.minutePx
     val focus = grid.focus
+    val listState = grid.listState
+    val scope = rememberCoroutineScope()
     // Entering the grid from the tab row lands wherever Compose's search puts it; the first cell to gain focus
     // on entry hands it to the current program instead, so Down from a tab always opens on what is on now.
     val entered = remember { booleanArrayOf(false) }
     fun currentRow() = w.rows.indexOfFirst { it.channel.id.value == w.currentChannelId }.takeIf { it >= 0 } ?: 0
+    suspend fun focusRow(row: Int, at: Instant) {
+        if (w.rows.isEmpty()) return
+        val target = row.coerceIn(0, w.rows.lastIndex)
+        listState.scrollToItem(target)
+        // LazyColumn must compose the row and attach FocusRequesters before requestFocus is safe.
+        var attempts = 0
+        while (attempts < FOCUS_ATTACH_ATTEMPTS && !focus.requestAt(target, at)) {
+            attempts++
+            yield()
+        }
+    }
     val onEnter: () -> Unit = {
         if (!entered[0]) {
             entered[0] = true
-            focus.requestAt(currentRow(), w.now)
+            scope.launch { focusRow(currentRow(), w.now) }
         }
     }
     Column(
@@ -186,7 +204,7 @@ private fun GuideBody(
                     modifier = Modifier.padding(24.dp),
                 )
             }
-            LazyColumn(Modifier.fillMaxSize()) {
+            LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
                 itemsIndexed(w.rows, key = { _, r -> r.channel.id.value }) { rowIndex, row ->
                     GuideRow(
                         row = row,
@@ -199,11 +217,12 @@ private fun GuideBody(
                     )
                 }
             }
-            // Initial focus: the program airing now on the current channel, else the first row's current program.
+            // Initial focus: scroll the current channel into view, then focus its program on now.
+            // Requesting focus on a LazyColumn cell before it is placed crashes on some Google TV OEMs (API 30).
             LaunchedEffect(w.rows.size, w.currentChannelId, takeFocus) {
                 if (takeFocus) {
                     entered[0] = true
-                    focus.requestAt(currentRow(), w.now)
+                    focusRow(currentRow(), w.now)
                 }
             }
             NowLine(w, minutePx, scroll.value)
@@ -216,7 +235,9 @@ private fun GuideBody(
                         onClose = {
                             actions.onDetails(null)
                             val rowIndex = w.rows.indexOfFirst { it.channel.id == ch.id }
-                            if (rowIndex >= 0) focus.requestAt(rowIndex, maxOf(a.start, w.from))
+                            if (rowIndex >= 0) {
+                                scope.launch { focusRow(rowIndex, maxOf(a.start, w.from)) }
+                            }
                         },
                     )
                 }
@@ -247,12 +268,29 @@ private fun TimeHeader(from: Instant, to: Instant, halfHourWidth: Dp, scroll: Gu
 /**
  * Per-cell focus requesters so Up/Down land on the program overlapping the focused time
  * (design language 2.8), instead of wherever Compose's default spatial search lands.
+ *
+ * LazyColumn only attaches requesters for composed rows. Pointing focusProperties or requestFocus
+ * at a recycled/unplaced FocusRequester throws IllegalStateException on some TV devices (TCL API 30).
  */
 private class GuideFocus(rowCount: Int) {
     val rows = List(rowCount) { HashMap<Int, FocusRequester>() }
     val airings = List(rowCount) { ArrayList<Airing>() }
+    private val composed = HashSet<Int>()
 
     fun requester(row: Int, cell: Int): FocusRequester = rows[row].getOrPut(cell) { FocusRequester() }
+
+    fun markComposed(row: Int, attached: Boolean) {
+        if (attached) {
+            composed.add(row)
+        } else {
+            composed.remove(row)
+            rows.getOrNull(row)?.clear()
+        }
+    }
+
+    /** FocusRequester only when that row is composed and the cell map already has an entry. */
+    fun attachedRequester(row: Int, cell: Int): FocusRequester? =
+        if (row in composed) rows.getOrNull(row)?.get(cell) else null
 
     /** The cell in [row] that contains [at], or the first cell that starts after it. */
     fun cellAt(row: Int, at: Instant): Int? {
@@ -261,9 +299,11 @@ private class GuideFocus(rowCount: Int) {
         return if (i >= 0) i else list.indexOfFirst { it.start >= at }.takeIf { it >= 0 }
     }
 
-    fun requestAt(row: Int, at: Instant) {
-        val cell = cellAt(row, at) ?: return
-        runCatching { requester(row, cell).requestFocus() }
+    /** Returns true when focus moved to an attached cell. */
+    fun requestAt(row: Int, at: Instant): Boolean {
+        val cell = cellAt(row, at) ?: return false
+        val fr = attachedRequester(row, cell) ?: return false
+        return runCatching { fr.requestFocus() }.getOrDefault(false)
     }
 }
 
@@ -308,6 +348,7 @@ private class GuideGrid(
     val scroll: GuideScroll,
     val focus: GuideFocus,
     val exitFocus: FocusRequester?,
+    val listState: LazyListState,
 )
 
 @Composable
@@ -325,9 +366,22 @@ private fun GuideRow(
     val scroll = grid.scroll
     val focus = grid.focus
     focus.airings[rowIndex].let { it.clear(); it.addAll(row.airings) }
+    DisposableEffect(rowIndex) {
+        focus.markComposed(rowIndex, attached = true)
+        onDispose { focus.markComposed(rowIndex, attached = false) }
+    }
     val scope = rememberCoroutineScope()
     val density = LocalDensity.current
     val leaveUp = grid.exitFocus.takeIf { rowIndex == 0 }
+    suspend fun focusRow(row: Int, at: Instant) {
+        val target = row.coerceIn(0, maxOf(0, focus.rows.lastIndex))
+        grid.listState.scrollToItem(target)
+        var attempts = 0
+        while (attempts < FOCUS_ATTACH_ATTEMPTS && !focus.requestAt(target, at)) {
+            attempts++
+            yield()
+        }
+    }
     Row(Modifier.fillMaxWidth().height(ROW_HEIGHT).padding(vertical = ClickarrDimens.GuideCellGutter / 2)) {
         ChannelCell(row.channel, isCurrent, isFavorite, leaveUp, onEnter) { actions.onToggleFavorite(row.channel) }
         Box(Modifier.fillMaxSize().clipToBounds().onSizeChanged { scroll.viewportSize = it.width }) {
@@ -342,13 +396,17 @@ private fun GuideRow(
                             modifier = Modifier
                                 .focusRequester(focus.requester(rowIndex, i))
                                 .focusProperties {
+                                    // Only link to attached LazyColumn neighbors. Default lets beyond-bounds
+                                    // search bring the next row into composition instead of crashing.
                                     when {
                                         leaveUp != null -> up = leaveUp
                                         else -> focus.cellAt(rowIndex - 1, focusTime)?.let { c ->
-                                            up = focus.requester(rowIndex - 1, c)
+                                            focus.attachedRequester(rowIndex - 1, c)?.let { up = it }
                                         }
                                     }
-                                    focus.cellAt(rowIndex + 1, focusTime)?.let { c -> down = focus.requester(rowIndex + 1, c) }
+                                    focus.cellAt(rowIndex + 1, focusTime)?.let { c ->
+                                        focus.attachedRequester(rowIndex + 1, c)?.let { down = it }
+                                    }
                                 },
                             onFocus = {
                                 onEnter()
@@ -364,8 +422,16 @@ private fun GuideRow(
                             actions = CellActions(
                                 tune = { actions.onTune(row.channel) },
                                 details = { actions.onDetails(row.channel to airing) },
-                                jumpRows = { d -> focus.requestAt((rowIndex + d).coerceIn(0, maxOf(0, focus.rows.lastIndex)), focusTime) },
-                                jumpTime = { d -> focus.requestAt(rowIndex, (focusTime + d).coerceIn(window.from, window.to - 1.minutes)) },
+                                jumpRows = { d ->
+                                    val dest = (rowIndex + d).coerceIn(0, maxOf(0, focus.rows.lastIndex))
+                                    scope.launch { focusRow(dest, focusTime) }
+                                },
+                                jumpTime = { d ->
+                                    focus.requestAt(
+                                        rowIndex,
+                                        (focusTime + d).coerceIn(window.from, window.to - 1.minutes),
+                                    )
+                                },
                             ),
                         )
                     }
@@ -612,3 +678,6 @@ private fun headerLabel(instant: Instant): String {
 }
 
 private fun timeOfDay(instant: Instant): String = AppTime.timeOfDay(instant)
+
+/** Frames to wait for a LazyColumn row's FocusRequester to attach after scrollToItem. */
+private const val FOCUS_ATTACH_ATTEMPTS = 16
