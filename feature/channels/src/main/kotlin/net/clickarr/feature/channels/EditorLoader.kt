@@ -119,29 +119,62 @@ internal class EditorLoader(private val provider: () -> MediaProvider?) {
     }
 
     private suspend fun findLibraryWithRefs(libs: List<Library>, refs: List<MediaRef>): Outcome<Library> {
-        if (libs.isEmpty()) return Outcome.Failure(ClickarrError.NotFound("No matching library on this server"))
-        if (refs.isEmpty()) return Outcome.Success(libs.first())
-        val p = provider() ?: return noServer()
+        if (libs.isEmpty()) {
+            return Outcome.Failure(ClickarrError.NotFound("No matching library on this server"))
+        }
+        val p = provider()
         val want = refs.toSet()
+        val match = when {
+            refs.isEmpty() || p == null -> null
+            else -> scanLibsForTitles(p, libs, want)
+        }
+        return when {
+            p == null && refs.isNotEmpty() -> noServer()
+            match is Outcome.Failure -> match
+            match is Outcome.Success -> match
+            // Titles may have been removed; still open a picker so the user can reselect.
+            else -> Outcome.Success(libs.first())
+        }
+    }
+
+    private suspend fun scanLibsForTitles(
+        p: MediaProvider,
+        libs: List<Library>,
+        want: Set<MediaRef>,
+    ): Outcome<Library>? {
         for (lib in libs) {
             when (val loaded = loadTitles(p, lib)) {
-                is Outcome.Success -> if (loaded.value.any { it.ref in want }) return Outcome.Success(lib)
+                is Outcome.Success -> if (loaded.value.any { it.ref in want }) {
+                    return Outcome.Success(lib)
+                }
                 is Outcome.Failure -> return Outcome.Failure(loaded.error)
             }
         }
-        // Titles may have been removed; still open a picker so the user can reselect.
-        return Outcome.Success(libs.first())
+        return null
     }
 
     private suspend fun findLibraryForCollection(libs: List<Library>, ref: MediaRef): Outcome<Library> {
         val p = provider() ?: return noServer()
+        val match = scanLibsForCollection(p, libs, ref)
+        return when (match) {
+            is Outcome.Failure -> match
+            is Outcome.Success -> match
+            null -> Outcome.Success(libs.first())
+        }
+    }
+
+    private suspend fun scanLibsForCollection(
+        p: MediaProvider,
+        libs: List<Library>,
+        ref: MediaRef,
+    ): Outcome<Library>? {
         for (lib in libs) {
             when (val r = p.collections(lib.ref)) {
                 is Outcome.Success -> if (r.value.any { it.ref == ref }) return Outcome.Success(lib)
                 is Outcome.Failure -> return Outcome.Failure(r.error)
             }
         }
-        return Outcome.Success(libs.first())
+        return null
     }
 
     private fun libraryPrefill(source: ProgrammingSource): Pair<MediaFilter, Set<MediaRef>> = when (source) {

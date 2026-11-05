@@ -78,29 +78,39 @@ class EditorViewModel @Inject constructor(
     fun back() {
         when (val s = _step.value) {
             is EditorStep.ChooseMode -> goLibraries()
-            is EditorStep.PickLibrary -> if (s.pane != LibraryPane.MAIN) {
-                _step.value = EditorLibraryOps.closePane(s)
-            } else if (selectionsDraft != null) {
-                cancelSelections()
-            } else {
-                val lib = library ?: s.library
-                _step.value = EditorStep.ChooseMode(lib, modesFor())
-            }
-            is EditorStep.PickCollection, is EditorStep.PickPlaylist -> {
-                if (selectionsDraft != null) {
-                    cancelSelections()
-                } else {
-                    val lib = library ?: s.libraryOrNull() ?: return
-                    _step.value = EditorStep.ChooseMode(lib, modesFor())
-                }
-            }
-            is EditorStep.Details -> if (s.draft.editing == null) {
-                val lib = library ?: return goLibraries()
-                openMode(lib, mode)
-            }
+            is EditorStep.PickLibrary -> backFromLibrary(s)
+            is EditorStep.PickCollection, is EditorStep.PickPlaylist -> backFromSourcePick(s)
+            is EditorStep.Details -> backFromDetails(s)
             is EditorStep.Failed -> startCreate()
             else -> Unit
         }
+    }
+
+    private fun backFromLibrary(s: EditorStep.PickLibrary) {
+        if (s.pane != LibraryPane.MAIN) {
+            _step.value = EditorLibraryOps.closePane(s)
+            return
+        }
+        if (selectionsDraft != null) {
+            cancelSelections()
+            return
+        }
+        _step.value = EditorStep.ChooseMode(library ?: s.library, modesFor())
+    }
+
+    private fun backFromSourcePick(s: EditorStep) {
+        if (selectionsDraft != null) {
+            cancelSelections()
+            return
+        }
+        val lib = library ?: s.libraryOrNull() ?: return
+        _step.value = EditorStep.ChooseMode(lib, modesFor())
+    }
+
+    private fun backFromDetails(s: EditorStep.Details) {
+        if (s.draft.editing != null) return
+        val lib = library ?: return goLibraries()
+        openMode(lib, mode)
     }
 
     /** Library picker actions (filters, multi-select, confirm). See [LibraryUiAction]. */
