@@ -164,7 +164,6 @@ private fun GuideBody(
     val w = grid.window
     val scroll = grid.scroll
     val minutePx = grid.minutePx
-    val focus = grid.focus
     val scope = rememberCoroutineScope()
     // Entering the grid from the tab row lands wherever Compose's search puts it; the first cell to gain focus
     // on entry hands it to the current program instead, so Down from a tab always opens on what is on now.
@@ -193,7 +192,7 @@ private fun GuideBody(
                     modifier = Modifier.padding(24.dp),
                 )
             }
-            LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
+            LazyColumn(state = grid.listState, modifier = Modifier.fillMaxSize()) {
                 itemsIndexed(w.rows, key = { _, r -> r.channel.id.value }) { rowIndex, row ->
                     GuideRow(
                         row = row,
