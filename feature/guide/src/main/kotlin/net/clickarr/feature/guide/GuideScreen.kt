@@ -165,27 +165,15 @@ private fun GuideBody(
     val scroll = grid.scroll
     val minutePx = grid.minutePx
     val focus = grid.focus
-    val listState = grid.listState
     val scope = rememberCoroutineScope()
     // Entering the grid from the tab row lands wherever Compose's search puts it; the first cell to gain focus
     // on entry hands it to the current program instead, so Down from a tab always opens on what is on now.
     val entered = remember { booleanArrayOf(false) }
     fun currentRow() = w.rows.indexOfFirst { it.channel.id.value == w.currentChannelId }.takeIf { it >= 0 } ?: 0
-    suspend fun focusRow(row: Int, at: Instant) {
-        if (w.rows.isEmpty()) return
-        val target = row.coerceIn(0, w.rows.lastIndex)
-        listState.scrollToItem(target)
-        // LazyColumn must compose the row and attach FocusRequesters before requestFocus is safe.
-        var attempts = 0
-        while (attempts < FOCUS_ATTACH_ATTEMPTS && !focus.requestAt(target, at)) {
-            attempts++
-            yield()
-        }
-    }
     val onEnter: () -> Unit = {
         if (!entered[0]) {
             entered[0] = true
-            scope.launch { focusRow(currentRow(), w.now) }
+            scope.launch { grid.focusRow(currentRow(), w.now) }
         }
     }
     Column(
@@ -223,7 +211,7 @@ private fun GuideBody(
             LaunchedEffect(w.rows.size, w.currentChannelId, takeFocus) {
                 if (takeFocus) {
                     entered[0] = true
-                    focusRow(currentRow(), w.now)
+                    grid.focusRow(currentRow(), w.now)
                 }
             }
             NowLine(w, minutePx, scroll.value)
@@ -237,7 +225,7 @@ private fun GuideBody(
                             actions.onDetails(null)
                             val rowIndex = w.rows.indexOfFirst { it.channel.id == ch.id }
                             if (rowIndex >= 0) {
-                                scope.launch { focusRow(rowIndex, maxOf(a.start, w.from)) }
+                                scope.launch { grid.focusRow(rowIndex, maxOf(a.start, w.from)) }
                             }
                         },
                     )
@@ -306,6 +294,16 @@ private class GuideFocus(rowCount: Int) {
         val fr = attachedRequester(row, cell) ?: return false
         return runCatching { fr.requestFocus() }.getOrDefault(false)
     }
+
+    /**
+     * Neighbor for Up/Down only when that row is fully on screen. Prefetch attaches requesters for
+     * off-screen rows; linking those skips LazyColumn scroll on some Google TV builds (#19).
+     */
+    fun visibleNeighbor(listState: LazyListState, neighborRow: Int, at: Instant): FocusRequester? {
+        if (!listState.isRowFullyVisible(neighborRow)) return null
+        val cell = cellAt(neighborRow, at) ?: return null
+        return attachedRequester(neighborRow, cell)
+    }
 }
 
 /**
@@ -340,6 +338,16 @@ private class GuideScroll {
     suspend fun animateScrollTo(target: Int) {
         position.animateTo(target.toFloat())
     }
+
+    /** Keep the focused program's start time inside the horizontal window (one half-hour margin). */
+    suspend fun keepTimeInView(focusTime: Instant, windowFrom: Instant, minutePx: Float, halfHourPx: Float) {
+        val leftPx = ((focusTime - windowFrom).inWholeMinutes * minutePx).toInt()
+        val margin = halfHourPx.toInt()
+        val target = (leftPx - margin).coerceAtLeast(0)
+        if (leftPx < value || leftPx > value + viewportSize - margin) {
+            animateScrollTo(target)
+        }
+    }
 }
 
 private class GuideGrid(
@@ -350,7 +358,18 @@ private class GuideGrid(
     val focus: GuideFocus,
     val exitFocus: FocusRequester?,
     val listState: LazyListState,
-)
+) {
+    suspend fun focusRow(row: Int, at: Instant) {
+        if (window.rows.isEmpty()) return
+        val target = row.coerceIn(0, window.rows.lastIndex)
+        listState.scrollToItem(target)
+        var attempts = 0
+        while (attempts < FOCUS_ATTACH_ATTEMPTS && !focus.requestAt(target, at)) {
+            attempts++
+            yield()
+        }
+    }
+}
 
 @Composable
 private fun GuideRow(
@@ -374,23 +393,7 @@ private fun GuideRow(
     val scope = rememberCoroutineScope()
     val density = LocalDensity.current
     val leaveUp = grid.exitFocus.takeIf { rowIndex == 0 }
-    suspend fun focusRow(row: Int, at: Instant) {
-        val target = row.coerceIn(0, maxOf(0, focus.rows.lastIndex))
-        grid.listState.scrollToItem(target)
-        var attempts = 0
-        while (attempts < FOCUS_ATTACH_ATTEMPTS && !focus.requestAt(target, at)) {
-            attempts++
-            yield()
-        }
-    }
-    // Prefetch may compose the next row while it is still off-screen. Linking focusProperties there
-    // moves the highlight without scrolling on some Google TV / Shield builds (#19). Only wire
-    // fully visible neighbors; otherwise leave Default so beyond-bounds search can scroll.
-    fun neighborRequester(neighborRow: Int, at: Instant): FocusRequester? {
-        if (!grid.listState.isRowFullyVisible(neighborRow)) return null
-        val cell = focus.cellAt(neighborRow, at) ?: return null
-        return focus.attachedRequester(neighborRow, cell)
-    }
+    val halfHourPx = with(density) { grid.halfHourWidth.toPx() }
     Row(Modifier.fillMaxWidth().height(ROW_HEIGHT).padding(vertical = ClickarrDimens.GuideCellGutter / 2)) {
         ChannelCell(
             channel = row.channel,
@@ -413,25 +416,18 @@ private fun GuideRow(
                             modifier = Modifier
                                 .focusRequester(focus.requester(rowIndex, i))
                                 .focusProperties {
-                                    when {
-                                        leaveUp != null -> up = leaveUp
-                                        else -> neighborRequester(rowIndex - 1, focusTime)?.let { up = it }
-                                    }
-                                    neighborRequester(rowIndex + 1, focusTime)?.let { down = it }
+                                    leaveUp?.let { up = it }
+                                        ?: focus.visibleNeighbor(grid.listState, rowIndex - 1, focusTime)
+                                            ?.let { up = it }
+                                    focus.visibleNeighbor(grid.listState, rowIndex + 1, focusTime)
+                                        ?.let { down = it }
                                 },
                             onFocus = {
                                 onEnter()
                                 actions.onFocusAiring(airing)
                                 scope.launch {
-                                    // Vertical: LazyColumn must follow focus even when the target was prefetched.
                                     grid.listState.ensureRowVisible(rowIndex)
-                                    // Horizontal: keep the focused cell inside the visible window.
-                                    val leftPx = ((focusTime - window.from).inWholeMinutes * minutePx).toInt()
-                                    val margin = with(density) { grid.halfHourWidth.toPx() }.toInt()
-                                    val target = (leftPx - margin).coerceAtLeast(0)
-                                    if (leftPx < scroll.value || leftPx > scroll.value + scroll.viewportSize - margin) {
-                                        scroll.animateScrollTo(target)
-                                    }
+                                    scroll.keepTimeInView(focusTime, window.from, minutePx, halfHourPx)
                                 }
                             },
                             actions = CellActions(
@@ -439,7 +435,7 @@ private fun GuideRow(
                                 details = { actions.onDetails(row.channel to airing) },
                                 jumpRows = { d ->
                                     val dest = (rowIndex + d).coerceIn(0, maxOf(0, focus.rows.lastIndex))
-                                    scope.launch { focusRow(dest, focusTime) }
+                                    scope.launch { grid.focusRow(dest, focusTime) }
                                 },
                                 jumpTime = { d ->
                                     focus.requestAt(
