@@ -80,7 +80,7 @@ data class EditorDraft(
 
 enum class EditAction { REFRESH_LINEUP, DELETE }
 
-fun modesFor(library: Library): List<ChannelMode> = listOf(
+fun modesFor(): List<ChannelMode> = listOf(
     ChannelMode.LIBRARY,
     ChannelMode.COLLECTION,
     ChannelMode.PLAYLIST,

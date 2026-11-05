@@ -54,7 +54,7 @@ class EditorViewModel @Inject constructor(
 
     fun chooseLibrary(picked: Library) {
         library = picked
-        _step.value = EditorStep.ChooseMode(picked, modesFor(picked))
+        _step.value = EditorStep.ChooseMode(picked, modesFor())
     }
 
     fun chooseMode(picked: ChannelMode) {
@@ -70,11 +70,11 @@ class EditorViewModel @Inject constructor(
                 _step.value = EditorLibraryOps.closePane(s)
             } else {
                 val lib = library ?: s.library
-                _step.value = EditorStep.ChooseMode(lib, modesFor(lib))
+                _step.value = EditorStep.ChooseMode(lib, modesFor())
             }
             is EditorStep.PickCollection, is EditorStep.PickPlaylist -> {
                 val lib = library ?: s.libraryOrNull() ?: return
-                _step.value = EditorStep.ChooseMode(lib, modesFor(lib))
+                _step.value = EditorStep.ChooseMode(lib, modesFor())
             }
             is EditorStep.Details -> if (s.draft.editing == null) {
                 val lib = library ?: return goLibraries()
