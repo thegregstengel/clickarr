@@ -59,10 +59,20 @@ private fun StepContent(step: EditorStep, viewModel: EditorViewModel) {
         is EditorStep.ChooseLibrary -> Picker("Which library?", s.libraries, { it.name }) { viewModel.chooseLibrary(it) }
         is EditorStep.ChooseMode -> ChooseMode(s, viewModel)
         is EditorStep.PickLibrary -> PickLibrary(s, viewModel)
-        is EditorStep.PickCollection -> Picker("Which collection?", s.collections, { it.name }) {
+        is EditorStep.PickCollection -> Picker(
+            "Which collection?",
+            s.collections,
+            { it.name },
+            selected = { it.ref == s.selected },
+        ) {
             viewModel.confirmSource(ProgrammingSource.Collection(it.ref), it.name)
         }
-        is EditorStep.PickPlaylist -> Picker("Which playlist?", s.playlists, { it.name }) {
+        is EditorStep.PickPlaylist -> Picker(
+            "Which playlist?",
+            s.playlists,
+            { it.name },
+            selected = { it.ref == s.selected },
+        ) {
             viewModel.confirmSource(ProgrammingSource.Playlist(it.ref), it.name)
         }
         is EditorStep.Details -> EditorDetails(s.draft, viewModel)
@@ -97,15 +107,23 @@ private fun ChooseMode(s: EditorStep.ChooseMode, vm: EditorViewModel) {
 }
 
 @Composable
-private fun <T> Picker(title: String, items: List<T>, label: (T) -> String, onPick: (T) -> Unit) {
+private fun <T> Picker(
+    title: String,
+    items: List<T>,
+    label: (T) -> String,
+    selected: (T) -> Boolean = { false },
+    onPick: (T) -> Unit,
+) {
     Text(title, style = ClickarrTextStyles.Body, color = ClickarrColors.TextSecondary)
     if (items.isEmpty()) Text("Nothing here.", style = ClickarrTextStyles.Secondary, color = ClickarrColors.TextMuted)
     LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         items(items) { item ->
+            val on = selected(item)
             ListItem(
-                selected = false,
+                selected = on,
                 onClick = { onPick(item) },
                 headlineContent = { Text(label(item), style = ClickarrTextStyles.RowTitle) },
+                trailingContent = { if (on) Text("✓", style = ClickarrTextStyles.RowTitle) },
             )
         }
     }

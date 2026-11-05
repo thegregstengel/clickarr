@@ -129,9 +129,12 @@ private fun DetailsActions(d: EditorDraft, vm: EditorViewModel) {
         Button(onClick = vm::save, modifier = Modifier.padding(top = 8.dp)) { Text("Create channel") }
     } else {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(top = 8.dp)) {
-            Button(onClick = vm::save) { Text("Save changes") }
-            Button(onClick = { vm.act(EditAction.REFRESH_LINEUP) }) { Text("Refresh lineup from the server") }
-            Button(onClick = { vm.act(EditAction.DELETE) }) { Text("Delete channel") }
+            Button(onClick = { vm.act(EditAction.REFRESH_LINEUP) }) { Text("Refresh Lineup") }
+            if (editing.holiday == null) {
+                Button(onClick = vm::editSelections) { Text("Edit Selections") }
+            }
+            Button(onClick = vm::save) { Text("Save Changes") }
+            Button(onClick = { vm.act(EditAction.DELETE) }) { Text("Delete Channel") }
         }
         Text(
             "A refreshed lineup starts when the current program ends, so every TV switches together.",

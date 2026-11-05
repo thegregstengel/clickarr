@@ -53,8 +53,18 @@ sealed interface EditorStep {
         val pane: LibraryPane = LibraryPane.MAIN,
         val draftFilter: MediaFilter? = null,
     ) : EditorStep
-    data class PickCollection(val library: Library, val collections: List<Collection>) : EditorStep
-    data class PickPlaylist(val library: Library, val playlists: List<Playlist>) : EditorStep
+    data class PickCollection(
+        val library: Library,
+        val collections: List<Collection>,
+        /** Current channel's collection when editing selections (#22). */
+        val selected: MediaRef? = null,
+    ) : EditorStep
+    data class PickPlaylist(
+        val library: Library,
+        val playlists: List<Playlist>,
+        /** Current channel's playlist when editing selections (#22). */
+        val selected: MediaRef? = null,
+    ) : EditorStep
     data class Details(val draft: EditorDraft) : EditorStep
     data class Saving(val name: String, val building: Boolean = true) : EditorStep
     data class Saved(val name: String, val number: Int) : EditorStep
@@ -85,6 +95,14 @@ fun modesFor(): List<ChannelMode> = listOf(
     ChannelMode.COLLECTION,
     ChannelMode.PLAYLIST,
 )
+
+/** Picker mode for an existing channel's source, or null when Edit Selections cannot open it (e.g. Union). */
+fun modeFor(source: ProgrammingSource): ChannelMode? = when (source) {
+    is ProgrammingSource.Library, is ProgrammingSource.Shows, is ProgrammingSource.Explicit -> ChannelMode.LIBRARY
+    is ProgrammingSource.Collection -> ChannelMode.COLLECTION
+    is ProgrammingSource.Playlist -> ChannelMode.PLAYLIST
+    is ProgrammingSource.Union -> null
+}
 
 fun EditorStep.libraryOrNull(): Library? = when (this) {
     is EditorStep.PickLibrary -> library

@@ -22,7 +22,9 @@ import net.clickarr.data.ProviderRegistry
 
 /**
  * Custom channel wizard: pick a library, then a mode, then the content, then name/number/order.
- * With [load] it edits an existing channel instead: same details form, plus refresh and delete.
+ * With [load] it edits an existing channel instead: same details form, plus refresh, edit
+ * selections, and delete. Edit Selections reuses the create-time picker and only updates the
+ * in-editor draft until Save Changes.
  */
 @HiltViewModel
 class EditorViewModel @Inject constructor(
@@ -41,12 +43,22 @@ class EditorViewModel @Inject constructor(
     private var mode: ChannelMode = ChannelMode.LIBRARY
     private var library: Library? = null
 
+    /**
+     * When non-null, the Library / Collections / Playlists picker was opened from Edit Selections.
+     * Apply writes into this draft and returns to Details; Cancel / Back restores it unchanged.
+     */
+    private var selectionsDraft: EditorDraft? = null
+
+    /** True while the create-time picker is open from Edit Selections (Apply, not Create). */
+    fun isEditingSelections(): Boolean = selectionsDraft != null
+
     /** The channel already holding [number] that [editing] could not share it with, or null when it is free. */
     fun numberOwner(number: Int, editing: Channel?): Channel? = numbers.value[number].orEmpty().firstOrNull { other ->
         other.id != editing?.id && !(editing?.holiday != null && other.holiday != null && editing.holiday != other.holiday)
     }
 
     fun startCreate() {
+        selectionsDraft = null
         library = null
         mode = ChannelMode.LIBRARY
         goLibraries()
@@ -66,20 +78,11 @@ class EditorViewModel @Inject constructor(
     fun back() {
         when (val s = _step.value) {
             is EditorStep.ChooseMode -> goLibraries()
-            is EditorStep.PickLibrary -> if (s.pane != LibraryPane.MAIN) {
-                _step.value = EditorLibraryOps.closePane(s)
-            } else {
-                val lib = library ?: s.library
-                _step.value = EditorStep.ChooseMode(lib, modesFor())
-            }
-            is EditorStep.PickCollection, is EditorStep.PickPlaylist -> {
-                val lib = library ?: s.libraryOrNull() ?: return
-                _step.value = EditorStep.ChooseMode(lib, modesFor())
-            }
-            is EditorStep.Details -> if (s.draft.editing == null) {
-                val lib = library ?: return goLibraries()
-                openMode(lib, mode)
-            }
+            is EditorStep.PickLibrary,
+            is EditorStep.PickCollection,
+            is EditorStep.PickPlaylist,
+            is EditorStep.Details,
+            -> navigateBack(s)
             is EditorStep.Failed -> startCreate()
             else -> Unit
         }
@@ -91,7 +94,7 @@ class EditorViewModel @Inject constructor(
             val s = _step.value as? EditorStep.PickLibrary ?: return
             // Enabled when a filter is applied and/or at least one title is selected.
             val result = EditorLibraryOps.confirm(s) ?: return
-            toDetails(result.first, result.second)
+            applySource(result.first, result.second)
             return
         }
         _step.update { s ->
@@ -99,10 +102,11 @@ class EditorViewModel @Inject constructor(
         }
     }
 
-    fun confirmSource(source: ProgrammingSource, name: String) = toDetails(source, name)
+    fun confirmSource(source: ProgrammingSource, name: String) = applySource(source, name)
 
     /** Open the details form for an existing channel. */
     fun load(id: ChannelId) {
+        selectionsDraft = null
         _step.value = EditorStep.Loading
         viewModelScope.launch {
             val c = repository.byId(id) ?: run {
@@ -112,6 +116,35 @@ class EditorViewModel @Inject constructor(
             _step.value = EditorStep.Details(
                 EditorDraft(c.source, c.name, c.name, c.number, c.order, c.slotRounding, c.icon, c.runs, editing = c),
             )
+        }
+    }
+
+    /**
+     * Reopens the create-time picker for this channel's source mode, with current filters and
+     * titles (or collection/playlist) pre-checked. Holiday channels have no Edit Selections.
+     */
+    fun editSelections() {
+        val details = _step.value as? EditorStep.Details ?: return
+        val draft = details.draft
+        if (draft.editing?.holiday != null) return
+        selectionsDraft = draft
+        mode = modeFor(draft.source) ?: run {
+            selectionsDraft = null
+            updateDraft { it.copy(problem = "This channel's content cannot be edited here") }
+            return
+        }
+        _step.value = EditorStep.Loading
+        viewModelScope.launch {
+            when (val r = loader.pickerForEdit(draft.source)) {
+                is Outcome.Success -> {
+                    library = r.value.libraryOrNull()
+                    _step.value = r.value
+                }
+                is Outcome.Failure -> {
+                    selectionsDraft = null
+                    _step.value = EditorStep.Details(draft.copy(problem = r.error.message))
+                }
+            }
         }
     }
 
@@ -141,20 +174,40 @@ class EditorViewModel @Inject constructor(
             updateDraft { it.copy(problem = "Channel ${d.number} is already ${owner.name}. Pick a free number.") }
             return
         }
-        _step.value = EditorStep.Saving(d.name, building = d.editing == null)
+        val sourceChanged = d.editing != null && d.source != d.editing.source
+        _step.value = EditorStep.Saving(d.name, building = d.editing == null || sourceChanged)
         val name = d.name.ifBlank { d.suggestedName }
         viewModelScope.launch {
             val r = d.editing?.let { c ->
-                repository.update(
-                    c.copy(
-                        name = name, number = d.number, order = d.order, slotRounding = d.rounding, icon = d.icon, runs = d.runs,
-                    ),
-                )
+                EditorSelectionsOps.persistEdit(repository, c, d, name, sourceChanged)
             } ?: repository.create(d.number, name, d.source, d.order, d.rounding, d.icon, d.runs)
             _step.value = when (r) {
                 is Outcome.Success -> EditorStep.Saved(r.value.name, r.value.number)
                 is Outcome.Failure -> EditorStep.Failed(r.error.message)
             }
+        }
+    }
+
+    private fun navigateBack(s: EditorStep) {
+        when (s) {
+            is EditorStep.PickLibrary -> when {
+                s.pane != LibraryPane.MAIN -> _step.value = EditorLibraryOps.closePane(s)
+                selectionsDraft != null -> cancelSelections()
+                else -> _step.value = EditorStep.ChooseMode(library ?: s.library, modesFor())
+            }
+            is EditorStep.PickCollection, is EditorStep.PickPlaylist -> {
+                if (selectionsDraft != null) {
+                    cancelSelections()
+                } else {
+                    val lib = library ?: s.libraryOrNull() ?: return
+                    _step.value = EditorStep.ChooseMode(lib, modesFor())
+                }
+            }
+            is EditorStep.Details -> if (s.draft.editing == null) {
+                val lib = library ?: return goLibraries()
+                openMode(lib, mode)
+            }
+            else -> Unit
         }
     }
 
@@ -187,10 +240,23 @@ class EditorViewModel @Inject constructor(
         }
     }
 
-    private fun toDetails(source: ProgrammingSource, suggestedName: String) {
+    /** Create flow builds a new Details draft; Edit Selections only patches source on the open draft. */
+    private fun applySource(source: ProgrammingSource, suggestedName: String) {
+        val editing = selectionsDraft
+        if (editing != null) {
+            selectionsDraft = null
+            _step.value = EditorSelectionsOps.applyToDraft(editing, source)
+            return
+        }
         viewModelScope.launch {
             val number = repository.nextFreeNumber()
             _step.value = EditorStep.Details(EditorDraft(source, suggestedName, suggestedName, number))
         }
+    }
+
+    private fun cancelSelections() {
+        val draft = selectionsDraft ?: return
+        selectionsDraft = null
+        _step.value = EditorStep.Details(draft)
     }
 }
