@@ -16,9 +16,7 @@ import net.clickarr.core.common.Outcome
 import net.clickarr.core.model.Channel
 import net.clickarr.core.model.ChannelId
 import net.clickarr.core.model.Library
-import net.clickarr.core.model.MediaRef
 import net.clickarr.core.model.ProgrammingSource
-import net.clickarr.core.model.decadeSet
 import net.clickarr.data.ChannelRepository
 import net.clickarr.data.ProviderRegistry
 
@@ -68,7 +66,13 @@ class EditorViewModel @Inject constructor(
     fun back() {
         when (val s = _step.value) {
             is EditorStep.ChooseMode -> goLibraries()
-            is EditorStep.PickShows, is EditorStep.PickFilters, is EditorStep.PickCollection, is EditorStep.PickPlaylist -> {
+            is EditorStep.PickLibrary -> if (s.pane != LibraryPane.MAIN) {
+                _step.value = EditorLibraryOps.closePane(s)
+            } else {
+                val lib = library ?: s.library
+                _step.value = EditorStep.ChooseMode(lib, modesFor(lib))
+            }
+            is EditorStep.PickCollection, is EditorStep.PickPlaylist -> {
                 val lib = library ?: s.libraryOrNull() ?: return
                 _step.value = EditorStep.ChooseMode(lib, modesFor(lib))
             }
@@ -81,50 +85,18 @@ class EditorViewModel @Inject constructor(
         }
     }
 
-    fun toggleShow(ref: MediaRef) {
+    /** Library picker actions (filters, multi-select, confirm). See [LibraryUiAction]. */
+    fun onLibrary(action: LibraryUiAction) {
+        if (action is LibraryUiAction.Confirm) {
+            val s = _step.value as? EditorStep.PickLibrary ?: return
+            // Enabled when a filter is applied and/or at least one title is selected.
+            val result = EditorLibraryOps.confirm(s) ?: return
+            toDetails(result.first, result.second)
+            return
+        }
         _step.update { s ->
-            if (s !is EditorStep.PickShows) return@update s
-            s.copy(selected = if (ref in s.selected) s.selected - ref else s.selected + ref)
+            if (s is EditorStep.PickLibrary) EditorLibraryOps.apply(s, action) else s
         }
-    }
-
-    fun toggleGenre(genre: String?) {
-        _step.update { s ->
-            if (s !is EditorStep.PickFilters) return@update s
-            if (genre == null) return@update s.copy(filter = s.filter.copy(genres = emptySet()))
-            val g = s.filter.genres
-            s.copy(filter = s.filter.copy(genres = if (genre in g) g - genre else g + genre))
-        }
-    }
-
-    fun toggleDecade(decade: Int?) {
-        _step.update { s ->
-            if (s !is EditorStep.PickFilters) return@update s
-            if (decade == null) {
-                return@update s.copy(filter = s.filter.copy(decadeStart = null, decades = emptySet()))
-            }
-            val current = s.filter.decadeSet()
-            val next = if (decade in current) current - decade else current + decade
-            s.copy(filter = s.filter.copy(decadeStart = null, decades = next))
-        }
-    }
-
-    fun confirmShows() {
-        val s = _step.value as? EditorStep.PickShows ?: return
-        if (s.selected.isEmpty()) return
-        val picked = s.shows.filter { it.ref in s.selected }
-        val name = if (picked.size == 1) picked.single().title else "${picked.first().title} and ${picked.size - 1} more"
-        toDetails(ProgrammingSource.Shows(picked.map { it.ref }), name)
-    }
-
-    fun confirmFilters() {
-        val s = _step.value as? EditorStep.PickFilters ?: return
-        val parts = buildList {
-            addAll(s.filter.decadeSet().sorted().map { "${it}s" })
-            addAll(s.filter.genres)
-            if (isEmpty()) add(s.library.name)
-        }
-        toDetails(ProgrammingSource.Library(s.library.ref, s.filter), parts.joinToString(" "))
     }
 
     fun confirmSource(source: ProgrammingSource, name: String) = toDetails(source, name)
@@ -204,9 +176,8 @@ class EditorViewModel @Inject constructor(
         _step.value = EditorStep.Loading
         viewModelScope.launch {
             val result = when (picked) {
-                ChannelMode.SHOWS -> loader.shows(lib)
                 ChannelMode.COLLECTION -> loader.collections(lib)
-                ChannelMode.LIBRARY -> loader.filters(lib)
+                ChannelMode.LIBRARY -> loader.library(lib)
                 ChannelMode.PLAYLIST -> loader.playlists(lib)
             }
             _step.value = when (result) {

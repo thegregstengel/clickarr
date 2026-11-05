@@ -6,36 +6,52 @@ import net.clickarr.core.model.ChannelIcon
 import net.clickarr.core.model.Collection
 import net.clickarr.core.model.EpisodeRuns
 import net.clickarr.core.model.Library
-import net.clickarr.core.model.LibraryKind
 import net.clickarr.core.model.MediaFilter
 import net.clickarr.core.model.MediaRef
 import net.clickarr.core.model.OrderingMode
 import net.clickarr.core.model.Playlist
 import net.clickarr.core.model.ProgrammingSource
-import net.clickarr.core.model.Show
 
 /** How content is picked under a library on the Custom channel screen. */
 enum class ChannelMode(val label: String, val hint: String) {
-    LIBRARY("Whole library", "Everything in this library, with optional genre and decade filters."),
-    SHOWS("Shows", "Pick one or more shows. Episodes play in aired order."),
+    LIBRARY(
+        "Library",
+        "Filter and/or pick titles from this library. 0-9 / A-Z jump.",
+    ),
     COLLECTION("Collections", "A collection from this library, in its order."),
     PLAYLIST("Playlists", "A playlist from your server, in its order."),
 }
 
-/** One title shown in the Whole library preview list. */
-data class PreviewTitle(val title: String, val year: Int?, val genres: List<String>)
+/** One title in the Library picker list. */
+data class LibraryTitle(
+    val ref: MediaRef,
+    val title: String,
+    val year: Int?,
+    val genres: List<String>,
+    /** Extra line under the title, e.g. episode count for a show. */
+    val detail: String? = null,
+)
+
+/** Sub-screen on the Library picker: main list, or a filter multi-select. */
+enum class LibraryPane { MAIN, GENRES, DECADES }
 
 sealed interface EditorStep {
     data object Loading : EditorStep
     data class ChooseLibrary(val libraries: List<Library>) : EditorStep
     data class ChooseMode(val library: Library, val modes: List<ChannelMode>) : EditorStep
-    data class PickShows(val library: Library, val shows: List<Show>, val selected: Set<MediaRef>) : EditorStep
-    data class PickFilters(
+    /**
+     * Library content step. [pane] is MAIN for the title list, or GENRES / DECADES for filter
+     * multi-select with Apply. [draftFilter] holds in-progress edits on those panes until Apply.
+     */
+    data class PickLibrary(
         val library: Library,
         val genres: List<String>,
         val decades: List<Int>,
         val filter: MediaFilter,
-        val titles: List<PreviewTitle>,
+        val titles: List<LibraryTitle>,
+        val selected: Set<MediaRef> = emptySet(),
+        val pane: LibraryPane = LibraryPane.MAIN,
+        val draftFilter: MediaFilter? = null,
     ) : EditorStep
     data class PickCollection(val library: Library, val collections: List<Collection>) : EditorStep
     data class PickPlaylist(val library: Library, val playlists: List<Playlist>) : EditorStep
@@ -64,16 +80,14 @@ data class EditorDraft(
 
 enum class EditAction { REFRESH_LINEUP, DELETE }
 
-fun modesFor(library: Library): List<ChannelMode> = buildList {
-    add(ChannelMode.LIBRARY)
-    if (library.kind == LibraryKind.SHOWS) add(ChannelMode.SHOWS)
-    add(ChannelMode.COLLECTION)
-    add(ChannelMode.PLAYLIST)
-}
+fun modesFor(library: Library): List<ChannelMode> = listOf(
+    ChannelMode.LIBRARY,
+    ChannelMode.COLLECTION,
+    ChannelMode.PLAYLIST,
+)
 
 fun EditorStep.libraryOrNull(): Library? = when (this) {
-    is EditorStep.PickShows -> library
-    is EditorStep.PickFilters -> library
+    is EditorStep.PickLibrary -> library
     is EditorStep.PickCollection -> library
     is EditorStep.PickPlaylist -> library
     is EditorStep.ChooseMode -> library

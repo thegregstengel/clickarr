@@ -22,16 +22,6 @@ internal class EditorLoader(private val provider: () -> MediaProvider?) {
         }
     }
 
-    suspend fun shows(lib: Library): Outcome<EditorStep.PickShows> {
-        val p = provider() ?: return noServer()
-        return when (val r = allPages { p.shows(lib.ref, it) }) {
-            is Outcome.Success -> Outcome.Success(
-                EditorStep.PickShows(lib, r.value.sortedBy { titleSortKey(it.title) }, emptySet()),
-            )
-            is Outcome.Failure -> Outcome.Failure(r.error)
-        }
-    }
-
     suspend fun collections(lib: Library): Outcome<EditorStep.PickCollection> {
         val p = provider() ?: return noServer()
         return when (val r = p.collections(lib.ref)) {
@@ -52,7 +42,7 @@ internal class EditorLoader(private val provider: () -> MediaProvider?) {
         }
     }
 
-    suspend fun filters(lib: Library): Outcome<EditorStep.PickFilters> {
+    suspend fun library(lib: Library): Outcome<EditorStep.PickLibrary> {
         val p = provider() ?: return noServer()
         val rows = when (val loaded = loadTitles(p, lib)) {
             is Outcome.Success -> loaded.value
@@ -60,14 +50,14 @@ internal class EditorLoader(private val provider: () -> MediaProvider?) {
         }
         val genres = rows.flatMap { it.genres }.distinct().sortedBy(::titleSortKey)
         val decades = rows.mapNotNull { it.year }.map { it - it % 10 }.distinct().sorted()
-        return Outcome.Success(EditorStep.PickFilters(lib, genres, decades, MediaFilter(), rows))
+        return Outcome.Success(EditorStep.PickLibrary(lib, genres, decades, MediaFilter(), rows))
     }
 
-    /** Every page of movies or shows, so Whole library is not stuck on the first container page. */
-    private suspend fun loadTitles(p: MediaProvider, lib: Library): Outcome<List<PreviewTitle>> {
-        val outcome: Outcome<List<PreviewTitle>> = when (lib.kind) {
-            LibraryKind.MOVIES -> allPages { p.movies(lib.ref, it) }.map { movies -> movies.map(::previewMovie) }
-            else -> allPages { p.shows(lib.ref, it) }.map { shows -> shows.map(::previewShow) }
+    /** Every page of movies or shows, so Library is not stuck on the first container page. */
+    private suspend fun loadTitles(p: MediaProvider, lib: Library): Outcome<List<LibraryTitle>> {
+        val outcome: Outcome<List<LibraryTitle>> = when (lib.kind) {
+            LibraryKind.MOVIES -> allPages { p.movies(lib.ref, it) }.map { movies -> movies.map(::fromMovie) }
+            else -> allPages { p.shows(lib.ref, it) }.map { shows -> shows.map(::fromShow) }
         }
         return when (outcome) {
             is Outcome.Success -> Outcome.Success(outcome.value.sortedBy { titleSortKey(it.title) })
@@ -75,9 +65,15 @@ internal class EditorLoader(private val provider: () -> MediaProvider?) {
         }
     }
 
-    private fun previewMovie(m: Movie) = PreviewTitle(m.title, m.year, m.genres)
+    private fun fromMovie(m: Movie) = LibraryTitle(m.ref, m.title, m.year, m.genres)
 
-    private fun previewShow(s: Show) = PreviewTitle(s.title, s.year, s.genres)
+    private fun fromShow(s: Show) = LibraryTitle(
+        s.ref,
+        s.title,
+        s.year,
+        s.genres,
+        detail = "${s.episodeCount} episodes",
+    )
 
     private fun <T> noServer(): Outcome<T> =
         Outcome.Failure(net.clickarr.core.common.ClickarrError.Invalid("No server connected"))

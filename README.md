@@ -39,7 +39,7 @@ Screens from the app as it stands, taken on the Android TV emulator by the test 
 <table>
   <tr>
     <td width="50%"><img src="site/assets/screens/guide.png" alt="Program guide"><br><sub><b>Guide.</b> Two hours across, a now-line, a preview card with artwork and synopsis for the focused program, stars on the channel column for favorites.</sub></td>
-    <td width="50%"><img src="site/assets/screens/editor.png" alt="Channel editor"><br><sub><b>Channel editor.</b> Shows, a library with genre and decade filters, a collection, or a playlist; in order or shuffled; episodes in a row; back to back or on the half hour.</sub></td>
+    <td width="50%"><img src="site/assets/screens/editor.png" alt="Channel editor"><br><sub><b>Channel editor.</b> A library with genre and decade filters and title multi-select, a collection, or a playlist; in order or shuffled; episodes in a row; back to back or on the half hour.</sub></td>
   </tr>
   <tr>
     <td width="50%"><img src="site/assets/screens/suggest.png" alt="Suggested channels"><br><sub><b>Suggest channels.</b> A practical starting lineup from what you own: rerun channels, collections, genre themes, decades, a movie channel.</sub></td>
@@ -69,7 +69,7 @@ Nightlies are signed with one long-lived key, so each one installs over the last
 Everything below is in the nightly and has been exercised on real Fire TV Sticks as well as the emulator.
 
 - **Plex or Jellyfin.** One server per TV, chosen at first run ([ADR 0022](docs/adr/0022-jellyfin-alongside-plex.md)). Plex signs in with a code at plex.tv/link; Jellyfin with Quick Connect or a password. Settings has a section for each; the one you do not use is disabled.
-- **Channels** from shows, whole libraries with genre and decade filters, collections, playlists, and hand-picked lists. **Custom channel** picks a library first, then the source; Whole library shows a live title list with an A–Z jump. In order or shuffled. Back to back, or padded to 15, 30, or 60-minute slots with a "Coming up next" promo between programs: the next show's backdrop, time, and synopsis over its theme music.
+- **Channels** from a library (genre and decade filters, multi-select titles, 0-9 / A-Z jump), collections, playlists, and hand-picked lists. **Custom channel** picks a library first, then Library, Collections, or Playlists. In order or shuffled. Back to back, or padded to 15, 30, or 60-minute slots with a "Coming up next" promo between programs: the next show's backdrop, time, and synopsis over its theme music.
 - **Reorder and delete** on Settings, Channels: a handle on each regular channel row enters move mode (Up/Down or drag); Delete asks first. Holiday channels keep their numbers. Changes sync through the household or Drive.
 - **Episodes in a row.** A shuffled channel can still play two, three, or a range of one show's episodes back to back in aired order before moving on; a channel of several shows alternates between them.
 - **Suggest channels.** Reads your library once and proposes a starting lineup the way you would make it by hand: a rerun channel for each show you have the most of, collections and playlists with enough in them, genre themes such as Sitcoms, Cartoons, and Horror Movies, strong decades, and one shuffled movie channel.

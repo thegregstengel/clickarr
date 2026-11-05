@@ -5,6 +5,14 @@ second release the same day); the household protocol, scheduler, and database ca
 
 ## [Unreleased]
 
+### Changed
+
+- Custom channel: removed the separate Shows mode. Whole library is now Library: Genres and Decades
+  open multi-select panes with Apply on the right, Clear filters resets, the title list supports
+  multi-select with a 0-9 / A-Z jump, and Create stays gray only when there are no filters and no
+  titles selected. A filter alone creates the whole filtered library; picked titles create a shows
+  or explicit channel (#20).
+
 ### Fixed
 
 - Guide on some Google TV devices (TCL, Android 11): opening or focusing Guide no longer closes the app.
