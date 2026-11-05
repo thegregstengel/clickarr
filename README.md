@@ -113,11 +113,29 @@ The full reasoning, with the options that were considered and rejected, is in th
 
 ## Platforms
 
+Clickarr targets **Android TV**, **Google TV**, and **Fire TV** (Fire OS 6+ via sideload). That is the supported product.
+
+Phones and tablets may sideload the APK and open it (the app declares a normal `LAUNCHER` entry alongside `LEANBACK_LAUNCHER`, and does not require Leanback to install). Mobile and tablet are **unsupported**: the UI is built for a D-pad remote and a TV, not touch. Web, Apple TV, and other platforms are not planned.
+
 | Target | Status |
 |---|---|
-| Amazon Fire TV (Fire OS 6+) via sideload | Nightly runs on Fire TV Stick 4K Max (Fire OS 8), including a two-Stick household. The home-row tile is square by Fire OS design for sideloaded apps; the full-width tile comes with an Appstore listing. |
-| Android TV / Google TV (Android 7.1+) | Runs end to end on the Android TV emulator in CI on every push. Reports from real sets and boxes are welcome. |
-| Phones, tablets, web, Apple TV | Not planned. Clickarr is a television interface. |
+| Amazon Fire TV (Fire OS 6+) via sideload | Maintainer-tested on Fire TV Sticks (including a two-Stick household). The home-row tile is square by Fire OS design for sideloaded apps; the full-width tile comes with an Appstore listing. |
+| Android TV / Google TV (Android 7.1+) | Runs end to end on the Android TV emulator in CI on every push. Community and maintainer reports from real sets and boxes below. |
+| Phones and tablets | Install and Open can work after sideload; not supported and not a product goal. |
+| Web, Apple TV, and other platforms | Not planned. Clickarr is a television interface. |
+
+### Devices exercised in the wild
+
+Community and maintainer reports, not a certification list or a guarantee that every SKU of a brand works:
+
+- Fire TV Sticks (maintainer)
+- TCL Smart TV Pro with built-in Google TV
+- Xiaomi TV Box
+- Roku TV with a Google TV dongle
+- LG TV with an Nvidia Shield Pro
+- Sceptre TV with a Xiaomi box
+
+If your set or box works (or does not), an issue with the device name and Settings, Diagnostics lines helps everyone.
 
 ## Website
 
