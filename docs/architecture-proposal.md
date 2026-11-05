@@ -634,7 +634,7 @@ Built once at startup from `MediaCodecList` and display capabilities, with a Fir
 | OK/Select | Toggle overlay |
 | Back | Close overlay or guide; at player root, prompt to exit |
 | Play/Pause | Pause (pausing a live channel is allowed; resuming re-tunes to the live position, matching the illusion) |
-| Menu | Guide (from player); Settings (from Guide or Favorites) |
+| Menu | Guide |
 | 0–9 (where present) | Direct channel entry with 2-second commit |
 
 ---
