@@ -7,6 +7,7 @@ import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.gestures.BringIntoViewSpec
 import androidx.compose.foundation.gestures.LocalBringIntoViewSpec
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
@@ -382,8 +383,24 @@ private fun GuideRow(
             yield()
         }
     }
+    // Prefetch may compose the next row while it is still off-screen. Linking focusProperties there
+    // moves the highlight without scrolling on some Google TV / Shield builds (#19). Only wire
+    // fully visible neighbors; otherwise leave Default so beyond-bounds search can scroll.
+    fun neighborRequester(neighborRow: Int, at: Instant): FocusRequester? {
+        if (!grid.listState.isRowFullyVisible(neighborRow)) return null
+        val cell = focus.cellAt(neighborRow, at) ?: return null
+        return focus.attachedRequester(neighborRow, cell)
+    }
     Row(Modifier.fillMaxWidth().height(ROW_HEIGHT).padding(vertical = ClickarrDimens.GuideCellGutter / 2)) {
-        ChannelCell(row.channel, isCurrent, isFavorite, leaveUp, onEnter) { actions.onToggleFavorite(row.channel) }
+        ChannelCell(
+            channel = row.channel,
+            isCurrent = isCurrent,
+            isFavorite = isFavorite,
+            exitFocus = leaveUp,
+            onEnter = onEnter,
+            onRowFocused = { scope.launch { grid.listState.ensureRowVisible(rowIndex) } },
+            onToggleFavorite = { actions.onToggleFavorite(row.channel) },
+        )
         Box(Modifier.fillMaxSize().clipToBounds().onSizeChanged { scroll.viewportSize = it.width }) {
             Layout(
                 modifier = Modifier.offset { IntOffset(-scroll.value, 0) },
@@ -396,27 +413,25 @@ private fun GuideRow(
                             modifier = Modifier
                                 .focusRequester(focus.requester(rowIndex, i))
                                 .focusProperties {
-                                    // Only link to attached LazyColumn neighbors. Default lets beyond-bounds
-                                    // search bring the next row into composition instead of crashing.
                                     when {
                                         leaveUp != null -> up = leaveUp
-                                        else -> focus.cellAt(rowIndex - 1, focusTime)?.let { c ->
-                                            focus.attachedRequester(rowIndex - 1, c)?.let { up = it }
-                                        }
+                                        else -> neighborRequester(rowIndex - 1, focusTime)?.let { up = it }
                                     }
-                                    focus.cellAt(rowIndex + 1, focusTime)?.let { c ->
-                                        focus.attachedRequester(rowIndex + 1, c)?.let { down = it }
-                                    }
+                                    neighborRequester(rowIndex + 1, focusTime)?.let { down = it }
                                 },
                             onFocus = {
                                 onEnter()
                                 actions.onFocusAiring(airing)
-                                // Keep the focused cell inside the visible window.
-                                val leftPx = ((focusTime - window.from).inWholeMinutes * minutePx).toInt()
-                                val margin = with(density) { grid.halfHourWidth.toPx() }.toInt()
-                                val target = (leftPx - margin).coerceAtLeast(0)
-                                if (leftPx < scroll.value || leftPx > scroll.value + scroll.viewportSize - margin) {
-                                    scope.launch { scroll.animateScrollTo(target) }
+                                scope.launch {
+                                    // Vertical: LazyColumn must follow focus even when the target was prefetched.
+                                    grid.listState.ensureRowVisible(rowIndex)
+                                    // Horizontal: keep the focused cell inside the visible window.
+                                    val leftPx = ((focusTime - window.from).inWholeMinutes * minutePx).toInt()
+                                    val margin = with(density) { grid.halfHourWidth.toPx() }.toInt()
+                                    val target = (leftPx - margin).coerceAtLeast(0)
+                                    if (leftPx < scroll.value || leftPx > scroll.value + scroll.viewportSize - margin) {
+                                        scroll.animateScrollTo(target)
+                                    }
                                 }
                             },
                             actions = CellActions(
@@ -462,6 +477,7 @@ private fun ChannelCell(
     isFavorite: Boolean,
     exitFocus: FocusRequester?,
     onEnter: () -> Unit,
+    onRowFocused: () -> Unit,
     onToggleFavorite: () -> Unit,
 ) {
     val interaction = remember { MutableInteractionSource() }
@@ -476,7 +492,12 @@ private fun ChannelCell(
                 idleColor = if (isCurrent) ClickarrColors.AccentPrimaryDeep else ClickarrColors.BgPanel,
                 selected = isCurrent,
             )
-            .onFocusChanged { if (it.isFocused) onEnter() }
+            .onFocusChanged {
+                if (it.isFocused) {
+                    onEnter()
+                    onRowFocused()
+                }
+            }
             .onKeyEvent { e ->
                 val select = e.type == KeyEventType.KeyDown && (e.key == Key.DirectionCenter || e.key == Key.Enter)
                 if (select) onToggleFavorite()
@@ -681,3 +702,29 @@ private fun timeOfDay(instant: Instant): String = AppTime.timeOfDay(instant)
 
 /** Frames to wait for a LazyColumn row's FocusRequester to attach after scrollToItem. */
 private const val FOCUS_ATTACH_ATTEMPTS = 16
+
+/** True when [index] is composed and fully inside the LazyColumn viewport (not merely prefetched). */
+private fun LazyListState.isRowFullyVisible(index: Int): Boolean {
+    val info = layoutInfo
+    val item = info.visibleItemsInfo.find { it.index == index } ?: return false
+    return item.offset >= info.viewportStartOffset && item.offset + item.size <= info.viewportEndOffset
+}
+
+/**
+ * Scroll the guide list just enough that [index] sits fully in the viewport.
+ *
+ * Focus can land on a prefetched LazyColumn row via FocusRequester before bring-into-view runs
+ * (or when OEM bring-into-view is unreliable). Without this, Down parks the highlight under the
+ * preview card and the list never advances (#19).
+ */
+private suspend fun LazyListState.ensureRowVisible(index: Int) {
+    val info = layoutInfo
+    val viewportStart = info.viewportStartOffset
+    val viewportEnd = info.viewportEndOffset
+    val item = info.visibleItemsInfo.find { it.index == index }
+    when {
+        item == null -> scrollToItem(index.coerceAtLeast(0))
+        item.offset < viewportStart -> animateScrollBy((item.offset - viewportStart).toFloat())
+        item.offset + item.size > viewportEnd -> animateScrollBy((item.offset + item.size - viewportEnd).toFloat())
+    }
+}

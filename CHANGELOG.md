@@ -9,6 +9,9 @@ second release the same day); the household protocol, scheduler, and database ca
 
 - Guide on some Google TV devices (TCL, Android 11): opening or focusing Guide no longer closes the app.
   Focus waits until the target guide row is composed, and Up/Down only link to attached cells in the LazyColumn.
+- Guide scrolls past the on-screen channel rows again on Google TV / Shield (and similar). Down no longer
+  parks focus under the preview without moving the list; Up/Down only jump to fully visible neighbors so
+  beyond-bounds search can bring the next row into view.
 
 ## 2026.11.3
 
