@@ -78,39 +78,14 @@ class EditorViewModel @Inject constructor(
     fun back() {
         when (val s = _step.value) {
             is EditorStep.ChooseMode -> goLibraries()
-            is EditorStep.PickLibrary -> backFromLibrary(s)
-            is EditorStep.PickCollection, is EditorStep.PickPlaylist -> backFromSourcePick(s)
-            is EditorStep.Details -> backFromDetails(s)
+            is EditorStep.PickLibrary,
+            is EditorStep.PickCollection,
+            is EditorStep.PickPlaylist,
+            is EditorStep.Details,
+            -> navigateBack(s)
             is EditorStep.Failed -> startCreate()
             else -> Unit
         }
-    }
-
-    private fun backFromLibrary(s: EditorStep.PickLibrary) {
-        if (s.pane != LibraryPane.MAIN) {
-            _step.value = EditorLibraryOps.closePane(s)
-            return
-        }
-        if (selectionsDraft != null) {
-            cancelSelections()
-            return
-        }
-        _step.value = EditorStep.ChooseMode(library ?: s.library, modesFor())
-    }
-
-    private fun backFromSourcePick(s: EditorStep) {
-        if (selectionsDraft != null) {
-            cancelSelections()
-            return
-        }
-        val lib = library ?: s.libraryOrNull() ?: return
-        _step.value = EditorStep.ChooseMode(lib, modesFor())
-    }
-
-    private fun backFromDetails(s: EditorStep.Details) {
-        if (s.draft.editing != null) return
-        val lib = library ?: return goLibraries()
-        openMode(lib, mode)
     }
 
     /** Library picker actions (filters, multi-select, confirm). See [LibraryUiAction]. */
@@ -203,8 +178,9 @@ class EditorViewModel @Inject constructor(
         _step.value = EditorStep.Saving(d.name, building = d.editing == null || sourceChanged)
         val name = d.name.ifBlank { d.suggestedName }
         viewModelScope.launch {
-            val r = d.editing?.let { c -> saveEdit(c, d, name, sourceChanged) }
-                ?: repository.create(d.number, name, d.source, d.order, d.rounding, d.icon, d.runs)
+            val r = d.editing?.let { c ->
+                EditorSelectionsOps.persistEdit(repository, c, d, name, sourceChanged)
+            } ?: repository.create(d.number, name, d.source, d.order, d.rounding, d.icon, d.runs)
             _step.value = when (r) {
                 is Outcome.Success -> EditorStep.Saved(r.value.name, r.value.number)
                 is Outcome.Failure -> EditorStep.Failed(r.error.message)
@@ -212,28 +188,26 @@ class EditorViewModel @Inject constructor(
         }
     }
 
-    private suspend fun saveEdit(
-        c: Channel,
-        d: EditorDraft,
-        name: String,
-        sourceChanged: Boolean,
-    ): Outcome<Channel> {
-        val updated = c.copy(
-            name = name,
-            number = d.number,
-            order = d.order,
-            slotRounding = d.rounding,
-            icon = d.icon,
-            runs = d.runs,
-            source = d.source,
-        )
-        return when (val u = repository.update(updated)) {
-            is Outcome.Failure -> u
-            is Outcome.Success -> if (sourceChanged) {
-                repository.refreshLineup(c.id, applyNow = false)
-            } else {
-                u
+    private fun navigateBack(s: EditorStep) {
+        when (s) {
+            is EditorStep.PickLibrary -> when {
+                s.pane != LibraryPane.MAIN -> _step.value = EditorLibraryOps.closePane(s)
+                selectionsDraft != null -> cancelSelections()
+                else -> _step.value = EditorStep.ChooseMode(library ?: s.library, modesFor())
             }
+            is EditorStep.PickCollection, is EditorStep.PickPlaylist -> {
+                if (selectionsDraft != null) {
+                    cancelSelections()
+                } else {
+                    val lib = library ?: s.libraryOrNull() ?: return
+                    _step.value = EditorStep.ChooseMode(lib, modesFor())
+                }
+            }
+            is EditorStep.Details -> if (s.draft.editing == null) {
+                val lib = library ?: return goLibraries()
+                openMode(lib, mode)
+            }
+            else -> Unit
         }
     }
 
@@ -271,7 +245,7 @@ class EditorViewModel @Inject constructor(
         val editing = selectionsDraft
         if (editing != null) {
             selectionsDraft = null
-            _step.value = EditorStep.Details(editing.copy(source = source, problem = null))
+            _step.value = EditorSelectionsOps.applyToDraft(editing, source)
             return
         }
         viewModelScope.launch {
