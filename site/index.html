@@ -125,6 +125,7 @@
         <li><a href="#features">Features</a></li>
         <li><a href="#security">Security</a></li>
         <li><a href="#get">Get it</a></li>
+        <li><a href="#platforms">Platforms</a></li>
         <li><a href="releases/">Release notes</a></li>
         <li><a href="https://github.com/thegregstengel/clickarr">GitHub</a></li>
       </ul>
@@ -300,13 +301,49 @@ Parks and Rec is 22 minutes in.</pre>
   <section id="get" style="background: var(--bg-panel)">
     <div class="wrap">
       <h2>Get it</h2>
-      <p class="lead">One APK. Sideload it once and it keeps itself up to date.</p>
+      <p class="lead">One APK for Android TV, Google TV, and Fire TV. Sideload it once and it keeps itself up to date.</p>
       <div class="steps">
         <div><h3>Fire TV</h3><p>Install Downloader from the Amazon Appstore, then enter <code>clickarr.net/apk</code>.</p></div>
         <div><h3>Android TV &amp; Google TV</h3><p>Download the APK from <a href="https://github.com/thegregstengel/clickarr/releases/latest">GitHub Releases</a> and install it with your favorite file manager or ADB.</p></div>
         <div><h3>Living on the edge</h3><p>The daily build is at <code>clickarr.net/nightly</code>. Switch between release and nightly in Settings, About.</p></div>
       </div>
       <p style="margin:28px 0 0;color:var(--text-2)">Questions, lineups, and bug reports: <a href="https://www.reddit.com/r/Clickarr/">r/Clickarr</a> and <a href="https://github.com/thegregstengel/clickarr/issues">GitHub issues</a>. Built for Plex and Jellyfin, with a lot of help from Claude.</p>
+    </div>
+  </section>
+
+  <section id="platforms">
+    <div class="wrap">
+      <h2>Platforms</h2>
+      <p class="lead">Clickarr is built for television: Android TV, Google TV, and Fire TV. That is the supported product.</p>
+      <div class="groups">
+        <div class="group">
+          <h3>Supported targets</h3>
+          <ul>
+            <li><b>Amazon Fire TV</b> (Fire OS 6+) via sideload. Maintainer-tested on Fire TV Sticks.</li>
+            <li><b>Android TV / Google TV</b> (Android 7.1+). CI exercises the Android TV emulator on every push.</li>
+          </ul>
+        </div>
+        <div class="group">
+          <h3>Phones and tablets</h3>
+          <ul>
+            <li>You may sideload the APK and use <b>Open</b> (the app declares a normal launcher entry alongside the TV Leanback one, and does not require Leanback to install).</li>
+            <li>Mobile and tablet are <b>unsupported</b>. The UI expects a D-pad remote and a TV, not touch. Web, Apple TV, and other platforms are not planned.</li>
+          </ul>
+        </div>
+        <div class="group wide">
+          <h3>Devices exercised in the wild</h3>
+          <p style="margin:0 0 14px;color:var(--text-2);font-size:17px">Community and maintainer reports, not a certification list or a guarantee that every SKU of a brand works:</p>
+          <ul>
+            <li>Fire TV Sticks (maintainer)</li>
+            <li>TCL Smart TV Pro with built-in Google TV</li>
+            <li>Xiaomi TV Box</li>
+            <li>Roku TV with a Google TV dongle</li>
+            <li>LG TV with an Nvidia Shield Pro</li>
+            <li>Sceptre TV with a Xiaomi box</li>
+          </ul>
+          <p style="margin:14px 0 0;color:var(--text-2);font-size:17px">If your set or box works (or does not), an <a href="https://github.com/thegregstengel/clickarr/issues">issue</a> with the device name and Settings, Diagnostics lines helps everyone.</p>
+        </div>
+      </div>
     </div>
   </section>
 

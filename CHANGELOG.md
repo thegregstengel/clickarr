@@ -11,6 +11,10 @@ second release the same day); the household protocol, scheduler, and database ca
   with current filters and titles (or the chosen collection/playlist) pre-checked. Apply updates the
   editor draft only; **Save Changes** commits the new source and queues a lineup refresh. Holiday
   channels keep their own setup flow and have no Edit Selections (#22).
+- Sideload on phones and tablets: the main activity also declares `LAUNCHER` (alongside
+  `LEANBACK_LAUNCHER`), and `android.software.leanback` is no longer required to install, so the
+  installer Open button and a touch launcher icon can appear. Mobile and tablet remain unsupported;
+  Clickarr targets Android TV, Fire TV, and Google TV (#26).
 
 ### Changed
 
@@ -20,6 +24,8 @@ second release the same day); the household protocol, scheduler, and database ca
   titles selected. A filter alone creates the whole filtered library; picked titles create a shows
   or explicit channel (#20).
 - Edit channel bottom actions are now Refresh Lineup | Edit Selections | Save Changes | Delete Channel.
+- README and clickarr.net: platforms section lists community and maintainer-tested devices and states
+  that phones/tablets may sideload and open but are unsupported (#26).
 
 ### Fixed
 
