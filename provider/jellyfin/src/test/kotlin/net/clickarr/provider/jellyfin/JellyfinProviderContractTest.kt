@@ -88,6 +88,10 @@ class JellyfinProviderContractTest : MediaProviderContractTest() {
         ids(MediaFilter(genres = setOf("science fiction"))) shouldBe listOf("movie-bttf")
         ids(MediaFilter(yearFrom = 2001, yearTo = 2002)) shouldBe listOf("movie-fellowship", "movie-towers")
         ids(MediaFilter(studios = setOf("Warner Bros."))) shouldBe listOf("movie-goonies")
+        ids(MediaFilter(contentRatings = setOf("pg-13"))) shouldBe listOf("movie-fellowship")
+        ids(MediaFilter(contentRatings = setOf("PG"))) shouldBe listOf("movie-bttf", "movie-goonies")
+        val ratedShows = p.resolve(ProgrammingSource.Library(ref("lib-shows"), MediaFilter(contentRatings = setOf("TV-14")))).value()
+        ratedShows.map { it.ref.id.value } shouldBe listOf("ep-office-101", "ep-office-102", "ep-office-201", "ep-office-202")
     }
 
     @Test

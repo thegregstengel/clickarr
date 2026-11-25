@@ -30,23 +30,27 @@ data class LibraryTitle(
     val genres: List<String>,
     /** Extra line under the title, e.g. episode count for a show. */
     val detail: String? = null,
+    val contentRating: String? = null,
+    val studio: String? = null,
+    val network: String? = null,
 )
 
 /** Sub-screen on the Library picker: main list, or a filter multi-select. */
-enum class LibraryPane { MAIN, GENRES, DECADES }
+enum class LibraryPane { MAIN, GENRES, DECADES, RATINGS }
 
 sealed interface EditorStep {
     data object Loading : EditorStep
     data class ChooseLibrary(val libraries: List<Library>) : EditorStep
     data class ChooseMode(val library: Library, val modes: List<ChannelMode>) : EditorStep
     /**
-     * Library content step. [pane] is MAIN for the title list, or GENRES / DECADES for filter
-     * multi-select with Apply. [draftFilter] holds in-progress edits on those panes until Apply.
+     * Library content step. [pane] is MAIN for the title list, or GENRES / DECADES / RATINGS for
+     * filter multi-select with Apply. [draftFilter] holds in-progress edits on those panes until Apply.
      */
     data class PickLibrary(
         val library: Library,
         val genres: List<String>,
         val decades: List<Int>,
+        val contentRatings: List<String>,
         val filter: MediaFilter,
         val titles: List<LibraryTitle>,
         val selected: Set<MediaRef> = emptySet(),

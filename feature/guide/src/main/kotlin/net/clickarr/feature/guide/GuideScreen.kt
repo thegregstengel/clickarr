@@ -398,7 +398,10 @@ private fun GuideRow(
             channel = row.channel,
             isCurrent = isCurrent,
             isFavorite = isFavorite,
-            exitFocus = leaveUp,
+            modifier = Modifier.focusProperties {
+                leaveUp?.let { up = it }
+                grid.exitFocus?.let { left = it }
+            },
             onEnter = onEnter,
             onRowFocused = { scope.launch { grid.listState.ensureRowVisible(rowIndex) } },
             onToggleFavorite = { actions.onToggleFavorite(row.channel) },
@@ -470,18 +473,17 @@ private fun ChannelCell(
     channel: Channel,
     isCurrent: Boolean,
     isFavorite: Boolean,
-    exitFocus: FocusRequester?,
+    modifier: Modifier,
     onEnter: () -> Unit,
     onRowFocused: () -> Unit,
     onToggleFavorite: () -> Unit,
 ) {
     val interaction = remember { MutableInteractionSource() }
     Row(
-        Modifier
+        modifier
             .width(CHANNEL_COLUMN)
             .fillMaxHeight()
             .padding(end = 16.dp)
-            .then(if (exitFocus != null) Modifier.focusProperties { up = exitFocus } else Modifier)
             .clickarrFocusable(
                 interaction,
                 idleColor = if (isCurrent) ClickarrColors.AccentPrimaryDeep else ClickarrColors.BgPanel,

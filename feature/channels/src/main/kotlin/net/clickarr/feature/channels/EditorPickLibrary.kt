@@ -33,10 +33,9 @@ import net.clickarr.ui.design.ClickarrColors
 import net.clickarr.ui.design.ClickarrTextStyles
 
 /**
- * Library picker: Genres / Decades / Clear filters on top; title list with multi-select, 0-9 / A-Z
- * jump, and Create (or Apply when editing selections) / Cancel on the far right. Genres and
- * Decades open a multi-select pane with Apply on the right so the D-pad never needs a scroll
- * back to the top.
+ * Library picker: Genres / Decades / Ratings / Clear filters on top; title list with multi-select,
+ * 0-9 / A-Z jump, and Create (or Apply when editing selections) / Cancel on the far right. Filter
+ * panes open a multi-select with Apply on the right so the D-pad never needs a scroll back up.
  */
 @Composable
 internal fun PickLibrary(s: EditorStep.PickLibrary, vm: EditorViewModel) {
@@ -63,6 +62,18 @@ internal fun PickLibrary(s: EditorStep.PickLibrary, vm: EditorViewModel) {
                 onCancel = vm::back,
             )
         }
+        LibraryPane.RATINGS -> {
+            val ratingsOn = (s.draftFilter ?: s.filter).contentRatings
+            FilterMultiSelect(
+                title = "Content ratings",
+                items = s.contentRatings,
+                selected = { rating -> ratingsOn.any { it.equals(rating, ignoreCase = true) } },
+                label = { it },
+                onToggle = { vm.onLibrary(LibraryUiAction.ToggleRating(it)) },
+                onApply = { vm.onLibrary(LibraryUiAction.ApplyFilters) },
+                onCancel = vm::back,
+            )
+        }
     }
 }
 
@@ -80,7 +91,7 @@ private fun LibraryMain(s: EditorStep.PickLibrary, vm: EditorViewModel) {
     val actionFocus = if (canCreate) createFocus else cancelFocus
     val toAction = Modifier.focusProperties { right = actionFocus }
     Column(Modifier.fillMaxWidth().fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        FilterActions(vm)
+        FilterActions(s, vm)
         Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
             TitleList(
                 titles = filtered,
@@ -132,13 +143,25 @@ private fun LibraryMain(s: EditorStep.PickLibrary, vm: EditorViewModel) {
 }
 
 @Composable
-private fun FilterActions(vm: EditorViewModel) {
+private fun FilterActions(s: EditorStep.PickLibrary, vm: EditorViewModel) {
+    val genreCount = s.filter.genres.size
+    val decadeCount = s.filter.decadeSet().size
+    val ratingCount = s.filter.contentRatings.size
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Button(onClick = { vm.onLibrary(LibraryUiAction.OpenGenres) }) { Text("Genres") }
-        Button(onClick = { vm.onLibrary(LibraryUiAction.OpenDecades) }) { Text("Decades") }
+        Button(onClick = { vm.onLibrary(LibraryUiAction.OpenGenres) }) {
+            Text(filterLabel("Genres", genreCount))
+        }
+        Button(onClick = { vm.onLibrary(LibraryUiAction.OpenDecades) }) {
+            Text(filterLabel("Decades", decadeCount))
+        }
+        Button(onClick = { vm.onLibrary(LibraryUiAction.OpenRatings) }) {
+            Text(filterLabel("Ratings", ratingCount))
+        }
         Button(onClick = { vm.onLibrary(LibraryUiAction.ClearFilters) }) { Text("Clear filters") }
     }
 }
+
+private fun filterLabel(name: String, count: Int): String = if (count > 0) "$name ($count)" else name
 
 @Composable
 private fun <T> FilterMultiSelect(
@@ -206,6 +229,7 @@ private fun TitleList(
                         val line = buildList {
                             title.detail?.let(::add)
                             title.year?.let { add(it.toString()) }
+                            title.contentRating?.let(::add)
                         }.joinToString(" · ")
                         if (line.isNotEmpty()) {
                             Text(line, style = ClickarrTextStyles.Caption, color = ClickarrColors.TextSecondary)

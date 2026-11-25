@@ -66,7 +66,10 @@ internal class EditorLoader(private val provider: () -> MediaProvider?) {
         }
         val genres = rows.flatMap { it.genres }.distinct().sortedBy(::titleSortKey)
         val decades = rows.mapNotNull { it.year }.map { it - it % 10 }.distinct().sorted()
-        return Outcome.Success(EditorStep.PickLibrary(lib, genres, decades, filter, rows, selected))
+        val contentRatings = rows.mapNotNull { it.contentRating }
+            .distinct()
+            .sortedWith(compareBy<String>({ ratingRank(it) }, { it.lowercase() }))
+        return Outcome.Success(EditorStep.PickLibrary(lib, genres, decades, contentRatings, filter, rows, selected))
     }
 
     /**
@@ -191,7 +194,14 @@ internal class EditorLoader(private val provider: () -> MediaProvider?) {
         else -> MediaFilter() to emptySet()
     }
 
-    private fun fromMovie(m: Movie) = LibraryTitle(m.ref, m.title, m.year, m.genres)
+    private fun fromMovie(m: Movie) = LibraryTitle(
+        m.ref,
+        m.title,
+        m.year,
+        m.genres,
+        contentRating = m.contentRating,
+        studio = m.studio,
+    )
 
     private fun fromShow(s: Show) = LibraryTitle(
         s.ref,
@@ -199,8 +209,20 @@ internal class EditorLoader(private val provider: () -> MediaProvider?) {
         s.year,
         s.genres,
         detail = "${s.episodeCount} episodes",
+        contentRating = s.contentRating,
+        studio = s.studio,
+        network = s.network,
     )
 
     private fun <T> noServer(): Outcome<T> =
         Outcome.Failure(ClickarrError.Invalid("No server connected"))
+
+    private fun ratingRank(rating: String): Int =
+        KNOWN_RATINGS.indexOfFirst { it.equals(rating, ignoreCase = true) }.takeIf { it >= 0 } ?: Int.MAX_VALUE
+
+    companion object {
+        private val KNOWN_RATINGS = listOf(
+            "TV-Y", "TV-Y7", "TV-Y7-FV", "G", "TV-G", "PG", "TV-PG", "PG-13", "TV-14", "R", "TV-MA", "NC-17",
+        )
+    }
 }

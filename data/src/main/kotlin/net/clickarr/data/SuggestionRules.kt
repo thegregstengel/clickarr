@@ -27,9 +27,10 @@ data class LibraryScan(
 /**
  * The rules behind "Suggest channels": what a person with an afternoon would make from this library.
  * Rerun channels for the shows with the most episodes, the collections someone bothered to curate,
- * the genres and decades with enough to fill a day, one shuffled movie channel, and a playlist. Every
- * suggestion plays back to back; padded slots are a choice, not a default. Thresholds scale down for a
- * small library, which gets what it has rather than nothing. Pure, so it is unit tested directly.
+ * the genres, networks, studios, and decades with enough to fill a day, one shuffled movie channel,
+ * and playlists. Every suggestion plays back to back; padded slots are a choice, not a default.
+ * Thresholds scale down for a small library, which gets what it has rather than nothing. Pure, so it
+ * is unit tested directly.
  */
 object SuggestionRules {
     /** Minimum sizes before a grouping is worth a channel. */
@@ -39,6 +40,8 @@ object SuggestionRules {
         val collectionItems: Int,
         val genreShows: Int,
         val genreMovies: Int,
+        val networkShows: Int,
+        val studioMovies: Int,
         val decadeShows: Int,
         val decadeMovies: Int,
         val allMovies: Int,
@@ -47,10 +50,12 @@ object SuggestionRules {
 
     val NORMAL = Thresholds(
         rerunEpisodes = 12, collectionItems = 2, genreShows = 5, genreMovies = 12,
+        networkShows = 4, studioMovies = 6,
         decadeShows = 6, decadeMovies = 15, allMovies = 20, playlistItems = 3,
     )
     val SMALL = Thresholds(
         rerunEpisodes = 2, collectionItems = 2, genreShows = 2, genreMovies = 2,
+        networkShows = 2, studioMovies = 2,
         decadeShows = 2, decadeMovies = 2, allMovies = 3, playlistItems = 2,
     )
 
@@ -63,6 +68,8 @@ object SuggestionRules {
         out += reruns(scan, t).take(MAX_RERUNS)
         out += collections(scan, t).take(MAX_COLLECTIONS)
         out += themes(scan, t).take(MAX_THEMES)
+        out += networks(scan, t).take(MAX_NETWORKS)
+        out += studios(scan, t).take(MAX_STUDIOS)
         out += decades(scan, t).take(MAX_DECADES)
         out += movieChannels(scan, t).take(1)
         out += playlists(scan, t).take(MAX_PLAYLISTS)
@@ -110,6 +117,59 @@ object SuggestionRules {
             }
         }
         return scored.sortedByDescending { it.first }.map { it.second }
+    }
+
+    /** TV networks with enough shows to sustain a channel, strongest first across show libraries. */
+    fun networks(scan: LibraryScan, t: Thresholds): List<Suggestion> {
+        val scored = ArrayList<Pair<Int, Suggestion>>()
+        for ((lib, shows) in scan.shows) {
+            val grouped = shows
+                .mapNotNull { show -> show.network?.trim()?.takeIf(String::isNotEmpty)?.let { it to show } }
+                .groupBy { (network, _) -> network.lowercase() }
+            for ((_, entries) in grouped) {
+                if (entries.size < t.networkShows) continue
+                val spellings = entries.map { it.first }
+                val label = spellings.groupingBy { it }.eachCount().maxBy { it.value }.key
+                val suggestion = Suggestion(
+                    label,
+                    ProgrammingSource.Library(lib.ref, MediaFilter(networks = spellings.toSet())),
+                    glyph("tv"),
+                    OrderingMode.SHUFFLE,
+                    null,
+                    "${entries.size} shows, shuffled",
+                    runs = runsFor("shows"),
+                )
+                scored += entries.size to suggestion
+            }
+        }
+        return scored.sortedWith(compareByDescending<Pair<Int, Suggestion>> { it.first }.thenBy { it.second.name.lowercase() })
+            .map { it.second }
+    }
+
+    /** Movie studios with enough films to sustain a channel, strongest first across movie libraries. */
+    fun studios(scan: LibraryScan, t: Thresholds): List<Suggestion> {
+        val scored = ArrayList<Pair<Int, Suggestion>>()
+        for ((lib, movies) in scan.movies) {
+            val grouped = movies
+                .mapNotNull { movie -> movie.studio?.trim()?.takeIf(String::isNotEmpty)?.let { it to movie } }
+                .groupBy { (studio, _) -> studio.lowercase() }
+            for ((_, entries) in grouped) {
+                if (entries.size < t.studioMovies) continue
+                val spellings = entries.map { it.first }
+                val label = spellings.groupingBy { it }.eachCount().maxBy { it.value }.key
+                val suggestion = Suggestion(
+                    studioChannelName(label),
+                    ProgrammingSource.Library(lib.ref, MediaFilter(studios = spellings.toSet())),
+                    glyph("film"),
+                    OrderingMode.SHUFFLE,
+                    null,
+                    "${entries.size} movies, shuffled",
+                )
+                scored += entries.size to suggestion
+            }
+        }
+        return scored.sortedWith(compareByDescending<Pair<Int, Suggestion>> { it.first }.thenBy { it.second.name.lowercase() })
+            .map { it.second }
     }
 
     fun decades(scan: LibraryScan, t: Thresholds): List<Suggestion> {
@@ -169,6 +229,13 @@ object SuggestionRules {
     /** 1980 reads as "80s"; 2000 and later keep the century ("2000s", "2010s"). */
     fun decadeName(decade: Int): String = if (decade < CENTURY_2000) "${decade % CENTURY}s" else "${decade}s"
 
+    /** Append "Movies" when a studio name does not already read as a film studio (e.g. "A24" -> "A24 Movies"). */
+    fun studioChannelName(studio: String): String {
+        val lower = studio.lowercase()
+        val alreadyFilm = STUDIO_SUFFIXES.any { lower.endsWith(it) }
+        return if (alreadyFilm) studio else "$studio Movies"
+    }
+
     private fun countTagged(items: List<MediaItem>, tags: Set<String>): Int =
         items.count { item -> item.genres.any { it.lowercase() in tags } }
 
@@ -182,14 +249,17 @@ object SuggestionRules {
 
     const val SMALL_LIBRARY = 40
     private const val MAX_RERUNS = 4
-    private const val MAX_COLLECTIONS = 3
-    private const val MAX_THEMES = 3
-    private const val MAX_DECADES = 2
-    private const val MAX_PLAYLISTS = 1
+    private const val MAX_COLLECTIONS = 4
+    private const val MAX_THEMES = 5
+    private const val MAX_NETWORKS = 4
+    private const val MAX_STUDIOS = 3
+    private const val MAX_DECADES = 3
+    private const val MAX_PLAYLISTS = 2
     private const val DECADE = 10
     private const val CENTURY = 100
     private const val CENTURY_2000 = 2000
     private const val SHOW_RUN_MAX = 3
+    private val STUDIO_SUFFIXES = listOf("pictures", "films", "movies", "cinema", "studios", "animation", "entertainment")
 
     val SHOW_THEMES = listOf(
         Theme("Sitcoms", setOf("comedy"), "laugh"),

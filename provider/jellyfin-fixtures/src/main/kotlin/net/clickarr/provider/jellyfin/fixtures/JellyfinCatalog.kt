@@ -12,6 +12,7 @@ internal data class FxItem(
     val year: Int? = null,
     val genres: List<String> = emptyList(),
     val studio: String? = null,
+    val contentRating: String? = null,
     val minutes: Int = 0,
     val seriesId: String? = null,
     val season: Int? = null,
@@ -44,14 +45,20 @@ internal object JellyfinCatalog {
     private val pgs = FxSubtitle(index = 2, codec = "PGSSUB", language = "eng", external = false)
 
     val items: List<FxItem> = listOf(
-        FxItem("movie-fellowship", "The Fellowship of the Ring", "Movie", MOVIES, 2001, listOf("Adventure", "Fantasy"), "New Line", 178),
-        FxItem("movie-towers", "The Two Towers", "Movie", MOVIES, 2002, listOf("Adventure", "Fantasy"), "New Line", 179),
         FxItem(
-            "movie-bttf", "Back to the Future", "Movie", MOVIES, 1985, listOf("Science Fiction", "Comedy"), "Universal", 116,
+            "movie-fellowship", "The Fellowship of the Ring", "Movie", MOVIES, 2001,
+            listOf("Adventure", "Fantasy"), "New Line", "PG-13", 178,
+        ),
+        FxItem("movie-towers", "The Two Towers", "Movie", MOVIES, 2002, listOf("Adventure", "Fantasy"), "New Line", minutes = 179),
+        FxItem(
+            "movie-bttf", "Back to the Future", "Movie", MOVIES, 1985, listOf("Science Fiction", "Comedy"), "Universal", "PG", 116,
             container = "mkv", video = "hevc", audio = "truehd", width = 3840, height = 2160, subtitles = listOf(pgs),
         ),
-        FxItem("movie-goonies", "The Goonies", "Movie", MOVIES, 1985, listOf("Adventure"), "Warner Bros.", 114, subtitles = listOf(srt)),
-        FxItem(OFFICE, "The Office (US)", "Series", SHOWS, 2005, listOf("Comedy"), "NBC"),
+        FxItem(
+            "movie-goonies", "The Goonies", "Movie", MOVIES, 1985, listOf("Adventure"), "Warner Bros.", "PG", 114,
+            subtitles = listOf(srt),
+        ),
+        FxItem(OFFICE, "The Office (US)", "Series", SHOWS, 2005, listOf("Comedy"), "NBC", "TV-14"),
         FxItem(PARKS, "Parks and Recreation", "Series", SHOWS, 2009, listOf("Comedy"), "NBC"),
         episode("ep-office-101", "Pilot", OFFICE, 1, 1),
         episode("ep-office-102", "Diversity Day", OFFICE, 1, 2),

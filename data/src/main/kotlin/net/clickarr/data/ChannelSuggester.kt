@@ -75,7 +75,7 @@ class ChannelSuggester @Inject constructor(private val registry: ProviderRegistr
     }
 
     companion object {
-        const val MAX = 12
+        const val MAX = 24
         private const val MAX_ITEMS_SCANNED = 2_000
     }
 }

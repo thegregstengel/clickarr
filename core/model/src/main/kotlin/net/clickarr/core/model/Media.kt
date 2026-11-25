@@ -62,8 +62,10 @@ sealed interface MediaItem {
     val artwork: Artwork
     val genres: List<String>
     val year: Int?
+    val contentRating: String? get() = null
 }
 
+@Suppress("LongParameterList")
 @Serializable
 data class Show(
     override val ref: MediaRef,
@@ -77,6 +79,7 @@ data class Show(
     val episodeCount: Int = 0,
     /** The server's synopsis, for the guide's preview card. */
     val summary: String? = null,
+    override val contentRating: String? = null,
 ) : MediaItem
 
 @Serializable
@@ -120,6 +123,7 @@ data class Movie(
     override val media: List<MediaVersion> = emptyList(),
     /** The server's synopsis, for the guide's preview card. */
     val summary: String? = null,
+    override val contentRating: String? = null,
 ) : MediaItem, Playable
 
 /** [itemCount] is how many titles the server says it holds, when it says (Plex childCount, Jellyfin ChildCount). */

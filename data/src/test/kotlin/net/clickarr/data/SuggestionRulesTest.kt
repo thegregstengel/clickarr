@@ -25,11 +25,11 @@ class SuggestionRulesTest {
     private val tv = Library(ref("tv"), "TV Shows", LibraryKind.SHOWS)
     private val films = Library(ref("films"), "Movies", LibraryKind.MOVIES)
 
-    private fun show(title: String, episodes: Int, vararg genres: String, year: Int = 2010) =
-        Show(ref(title), title, genres = genres.toList(), year = year, episodeCount = episodes)
+    private fun show(title: String, episodes: Int, vararg genres: String, year: Int = 2010, network: String? = null) =
+        Show(ref(title), title, genres = genres.toList(), year = year, studio = network, network = network, episodeCount = episodes)
 
-    private fun movie(title: String, vararg genres: String, year: Int = 2010) =
-        Movie(ref(title), title, genres = genres.toList(), year = year, runtime = 100.minutes)
+    private fun movie(title: String, vararg genres: String, year: Int = 2010, studio: String? = null) =
+        Movie(ref(title), title, genres = genres.toList(), year = year, studio = studio, runtime = 100.minutes)
 
     /** Enough titles to count as a normal library, with no genre strong enough to make a channel on its own. */
     private fun ballast(): List<Movie> = (1..40).map { movie("Ballast $it", "Genre$it", year = 1900 + it) }
@@ -125,5 +125,50 @@ class SuggestionRulesTest {
         SuggestionRules.decadeName(1980) shouldBe "80s"
         SuggestionRules.decadeName(2000) shouldBe "2000s"
         SuggestionRules.decadeName(2010) shouldBe "2010s"
+    }
+
+    @Test
+    fun `networks and studios with enough titles become shuffled channels`() {
+        val shows = (1..5).map { show("NBC Show $it", 8, "Comedy", network = "NBC") } +
+            (1..2).map { show("Small Net $it", 8, "Drama", network = "CW") }
+        val movies = (1..6).map { movie("A24 Film $it", "Drama", year = 2015, studio = "A24") } +
+            (1..6).map { movie("Uni Film $it", "Action", year = 1995, studio = "Universal Pictures") } +
+            ballast()
+        val plan = SuggestionRules.plan(scan(shows = shows, movies = movies))
+        val names = plan.map { it.name }
+        names shouldContain "NBC"
+        names shouldNotContain "CW"
+        names shouldContain "A24 Movies"
+        names shouldContain "Universal Pictures"
+
+        val nbc = plan.first { it.name == "NBC" }
+        nbc.order shouldBe OrderingMode.SHUFFLE
+        nbc.runs shouldBe EpisodeRuns(2, 3)
+        nbc.reason shouldBe "5 shows, shuffled"
+
+        val a24 = plan.first { it.name == "A24 Movies" }
+        a24.order shouldBe OrderingMode.SHUFFLE
+        a24.runs.shouldBeNull()
+        a24.reason shouldBe "6 movies, shuffled"
+    }
+
+    @Test
+    fun `a large diverse library produces more than twelve suggestions up to the cap`() {
+        val shows = (1..5).map { show("Long Show $it", 100 + it, "Comedy", year = 1990, network = "NBC") } +
+            (1..5).map { show("SciFi Show $it", 10, "Sci-Fi", year = 2000, network = "HBO") } +
+            (1..5).map { show("Crime Show $it", 10, "Crime", year = 2010, network = "FX") } +
+            (1..5).map { show("Toon Show $it", 10, "Animation", year = 2010, network = "Cartoon Network") }
+        val movies = (1..15).map { movie("Comedy $it", "Comedy", year = 1985, studio = "A24") } +
+            (1..15).map { movie("Action $it", "Action", year = 1995, studio = "Universal Pictures") } +
+            (1..15).map { movie("Horror $it", "Horror", year = 2005, studio = "Blumhouse") }
+        val collections = (1..4).map { films to Collection(ref("c-$it"), "Collection $it", itemCount = 4) }
+        val playlists = (1..2).map { Playlist(ref("p-$it"), "Playlist $it", itemCount = 5) }
+
+        val plan = SuggestionRules.plan(scan(shows, movies, collections, playlists))
+        (plan.size > 12) shouldBe true
+        (plan.size <= ChannelSuggester.MAX) shouldBe true
+        plan.map { it.name } shouldContain "NBC"
+        plan.map { it.name } shouldContain "A24 Movies"
+        plan.map { it.name } shouldContain "Universal Pictures"
     }
 }

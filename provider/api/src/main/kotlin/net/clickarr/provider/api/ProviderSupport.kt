@@ -70,8 +70,14 @@ private fun MediaFilter.predicates(): List<(MediaItem) -> Boolean> = buildList {
     }
     yearFrom?.let { from -> add { (it.year ?: Int.MIN_VALUE) >= from } }
     yearTo?.let { to -> add { (it.year ?: Int.MAX_VALUE) <= to } }
-    if (studios.isNotEmpty()) add { it.studioOrNull() in studios }
-    if (networks.isNotEmpty()) add { (it as? Show)?.network in networks }
+    if (studios.isNotEmpty()) add { it.studioOrNull().matchesAny(studios) }
+    if (networks.isNotEmpty()) add { (it as? Show)?.network.matchesAny(networks) }
+    if (contentRatings.isNotEmpty()) add { it.contentRating.matchesAny(contentRatings) }
 }
 
 private fun MediaItem.studioOrNull(): String? = (this as? Movie)?.studio ?: (this as? Show)?.studio
+
+private fun String?.matchesAny(wanted: Set<String>): Boolean {
+    val value = this?.trim().orEmpty()
+    return value.isNotEmpty() && wanted.any { it.trim().equals(value, ignoreCase = true) }
+}

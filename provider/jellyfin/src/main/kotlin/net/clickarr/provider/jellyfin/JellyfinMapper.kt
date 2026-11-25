@@ -47,6 +47,7 @@ internal class JellyfinMapper(private val provider: ProviderId) {
         seasonCount = v.childCount ?: 0,
         episodeCount = v.recursiveCount ?: 0,
         summary = v.overview,
+        contentRating = v.officialRating?.trim()?.takeIf { it.isNotEmpty() },
     )
 
     fun season(v: JfItem) = Season(
@@ -93,6 +94,7 @@ internal class JellyfinMapper(private val provider: ProviderId) {
         runtime = runtime(v),
         media = versions(v),
         summary = v.overview,
+        contentRating = v.officialRating?.trim()?.takeIf { it.isNotEmpty() },
     )
 
     fun collection(v: JfItem) = Collection(ref(v.id), v.name, v.childCount)

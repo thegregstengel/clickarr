@@ -92,7 +92,10 @@ class PlexProviderContractTest : MediaProviderContractTest() {
         val lotr = p.resolve(ProgrammingSource.Library(lib, MediaFilter(yearFrom = 2001, yearTo = 2002))).value()
         lotr.map { it.ref.id.value } shouldBe listOf("101", "102")
         ids(MediaFilter(studios = setOf("Warner Bros."))) shouldBe listOf("104")
+        ids(MediaFilter(contentRatings = setOf("pg-13"))) shouldBe listOf("101")
         ids(MediaFilter(genres = setOf("Comedy"), decadeStart = 2000)) shouldBe emptyList()
+        val ratedShows = p.resolve(ProgrammingSource.Library(ref("2"), MediaFilter(contentRatings = setOf("TV-14")))).value()
+        ratedShows.map { it.ref.id.value } shouldBe listOf("2011", "2012", "2021", "2022")
     }
 
     @Test
