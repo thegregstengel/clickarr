@@ -27,6 +27,7 @@ import net.clickarr.core.model.OrderingMode
 class CyclicLineupStrategy : ScheduleStrategy {
 
     /** Per (lineup, cycle) permutation and prefix sums. Bounded so a long-running TV cannot grow it forever. */
+    private val layoutLock = Any()
     private val layouts = LinkedHashMap<LayoutKey, CycleLayout>()
 
     override fun airingAt(channel: Channel, lineup: LineupSnapshot, at: Instant): Airing? {
@@ -70,7 +71,7 @@ class CyclicLineupStrategy : ScheduleStrategy {
 
     private fun layout(channel: Channel, lineup: LineupSnapshot, geometry: Geometry, cycle: Long): CycleLayout {
         val key = LayoutKey(lineup.id.value, channel.seed, channel.order, channel.slotRounding, channel.runs, cycle)
-        layouts[key]?.let { return it }
+        synchronized(layoutLock) { layouts[key] }?.let { return it }
         val n = lineup.entries.size
         val runs = channel.runs
         val random = DeterministicRandom.forCycle(channel.seed, cycle)
@@ -82,8 +83,10 @@ class CyclicLineupStrategy : ScheduleStrategy {
         val prefix = LongArray(n + 1)
         for (i in 0 until n) prefix[i + 1] = prefix[i] + geometry.slotsMs[perm[i]]
         val layout = CycleLayout(perm, prefix)
-        if (layouts.size >= MAX_CACHED_LAYOUTS) layouts.remove(layouts.keys.first())
-        layouts[key] = layout
+        synchronized(layoutLock) {
+            if (layouts.size >= MAX_CACHED_LAYOUTS) layouts.remove(layouts.keys.first())
+            layouts[key] = layout
+        }
         return layout
     }
 

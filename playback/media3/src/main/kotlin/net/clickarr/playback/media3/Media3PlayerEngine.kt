@@ -34,7 +34,9 @@ import okhttp3.OkHttpClient
  */
 @OptIn(UnstableApi::class)
 class Media3PlayerEngine(context: Context, okHttp: OkHttpClient, userAgent: String) : PlayerEngine {
-    private val dataSourceFactory = OkHttpDataSource.Factory(okHttp).setUserAgent(userAgent)
+    // Never follow redirects on media, subtitle, or theme URLs because server tokens may travel in query parameters.
+    private val safeHttp = okHttp.newBuilder().followRedirects(false).followSslRedirects(false).build()
+    private val dataSourceFactory = OkHttpDataSource.Factory(safeHttp).setUserAgent(userAgent)
     private val exo: ExoPlayer = ExoPlayer.Builder(context)
         .setMediaSourceFactory(DefaultMediaSourceFactory(context).setDataSourceFactory(dataSourceFactory))
         .setAudioAttributes(
@@ -158,9 +160,8 @@ class Media3PlayerEngine(context: Context, okHttp: OkHttpClient, userAgent: Stri
             .clearOverridesOfType(C.TRACK_TYPE_AUDIO)
             .setPreferredAudioLanguage(language)
         if (trackId != null) {
-            val group = player.currentTracks.groups.firstOrNull {
-                it.type == C.TRACK_TYPE_AUDIO && it.isSupported && (it.mediaTrackGroup.id ?: "") == trackId
-            }
+            val supported = player.currentTracks.groups.filter { it.type == C.TRACK_TYPE_AUDIO && it.isSupported }
+            val group = supported.withIndex().firstOrNull { (i, g) -> (g.mediaTrackGroup.id ?: "a$i") == trackId }?.value
             if (group != null) builder.setOverrideForType(TrackSelectionOverride(group.mediaTrackGroup, 0))
         }
         player.trackSelectionParameters = builder.build()

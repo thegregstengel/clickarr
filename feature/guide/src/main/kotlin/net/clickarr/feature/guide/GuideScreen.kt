@@ -186,7 +186,7 @@ private fun GuideBody(
         Box(Modifier.weight(1f)) {
             if (w.rows.isEmpty()) {
                 Text(
-                    if (onlyFavorites) "No favorites yet. Mark channels as favorites from the Channels tab." else "No channels yet.",
+                    if (onlyFavorites) "No favorites yet. Press OK on a channel in the Guide to add a favorite." else "No channels yet.",
                     style = ClickarrTextStyles.Secondary,
                     color = ClickarrColors.TextSecondary,
                     modifier = Modifier.padding(24.dp),

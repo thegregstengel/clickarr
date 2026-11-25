@@ -154,10 +154,12 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    private fun differentKey(latest: UpdateChecker.Latest): String =
-        "${latest.versionName} (build ${latest.versionCode}) is available, but it is signed with a different key than " +
+    private fun differentKey(latest: UpdateChecker.Latest): String {
+        val path = if (latest.channel == UpdateChecker.CHANNEL_RELEASE) "apk" else latest.channel
+        return "${latest.versionName} (build ${latest.versionCode}) is available, but it is signed with a different key than " +
             "the Clickarr on this TV, so the system would refuse to update over it. Uninstall Clickarr and install once " +
-            "from clickarr.net/${latest.channel}; after that, updates install in place."
+            "from clickarr.net/$path; after that, updates install in place."
+    }
 
     fun downloadUpdate() {
         val latest = (_updateState.value as? UpdateState.Available)?.latest ?: return

@@ -55,11 +55,14 @@ internal class EditorLoader(private val provider: () -> MediaProvider?) {
         lib: Library,
         filter: MediaFilter = MediaFilter(),
         selected: Set<MediaRef> = emptySet(),
+        preloaded: List<LibraryTitle>? = null,
     ): Outcome<EditorStep.PickLibrary> {
-        val p = provider() ?: return noServer()
-        val rows = when (val loaded = loadTitles(p, lib)) {
-            is Outcome.Success -> loaded.value
-            is Outcome.Failure -> return Outcome.Failure(loaded.error)
+        val rows = preloaded ?: run {
+            val p = provider() ?: return noServer()
+            when (val loaded = loadTitles(p, lib)) {
+                is Outcome.Success -> loaded.value
+                is Outcome.Failure -> return Outcome.Failure(loaded.error)
+            }
         }
         val genres = rows.flatMap { it.genres }.distinct().sortedBy(::titleSortKey)
         val decades = rows.mapNotNull { it.year }.map { it - it % 10 }.distinct().sorted()
@@ -73,14 +76,15 @@ internal class EditorLoader(private val provider: () -> MediaProvider?) {
     suspend fun pickerForEdit(source: ProgrammingSource): Outcome<EditorStep> {
         val mode = modeFor(source)
             ?: return Outcome.Failure(ClickarrError.Invalid("This channel's content cannot be edited here"))
-        val lib = when (val r = resolveLibrary(source)) {
+        val resolved = when (val r = resolveLibrary(source)) {
             is Outcome.Success -> r.value
             is Outcome.Failure -> return r
         }
+        val (lib, preloaded) = resolved
         return when (mode) {
             ChannelMode.LIBRARY -> {
                 val (filter, selected) = libraryPrefill(source)
-                library(lib, filter, selected)
+                library(lib, filter, selected, preloaded = preloaded)
             }
             ChannelMode.COLLECTION -> collections(lib, (source as ProgrammingSource.Collection).ref)
             ChannelMode.PLAYLIST -> playlists(lib, (source as ProgrammingSource.Playlist).ref)
@@ -99,26 +103,29 @@ internal class EditorLoader(private val provider: () -> MediaProvider?) {
         }
     }
 
-    private suspend fun resolveLibrary(source: ProgrammingSource): Outcome<Library> {
+    private suspend fun resolveLibrary(source: ProgrammingSource): Outcome<Pair<Library, List<LibraryTitle>?>> {
         val libs = when (val r = libraries()) {
             is Outcome.Success -> r.value
             is Outcome.Failure -> return r
         }
         if (libs.isEmpty()) return Outcome.Failure(ClickarrError.Invalid("No libraries on this server"))
         return when (source) {
-            is ProgrammingSource.Library -> libs.firstOrNull { it.ref == source.library }?.let { Outcome.Success(it) }
+            is ProgrammingSource.Library -> libs.firstOrNull { it.ref == source.library }?.let { Outcome.Success(it to null) }
                 ?: Outcome.Failure(ClickarrError.NotFound("That library is no longer on this server"))
             is ProgrammingSource.Shows -> findLibraryWithRefs(libs.filter { it.kind == LibraryKind.SHOWS }, source.shows)
             is ProgrammingSource.Explicit -> findLibraryWithRefs(libs.filter { it.kind == LibraryKind.MOVIES }, source.items)
-            is ProgrammingSource.Collection -> findLibraryForCollection(libs, source.ref)
-            is ProgrammingSource.Playlist -> Outcome.Success(libs.first())
+            is ProgrammingSource.Collection -> findLibraryForCollection(libs, source.ref).map { it to null }
+            is ProgrammingSource.Playlist -> Outcome.Success(libs.first() to null)
             is ProgrammingSource.Union -> Outcome.Failure(
                 ClickarrError.Invalid("This channel's content cannot be edited here"),
             )
         }
     }
 
-    private suspend fun findLibraryWithRefs(libs: List<Library>, refs: List<MediaRef>): Outcome<Library> {
+    private suspend fun findLibraryWithRefs(
+        libs: List<Library>,
+        refs: List<MediaRef>,
+    ): Outcome<Pair<Library, List<LibraryTitle>?>> {
         if (libs.isEmpty()) {
             return Outcome.Failure(ClickarrError.NotFound("No matching library on this server"))
         }
@@ -133,7 +140,7 @@ internal class EditorLoader(private val provider: () -> MediaProvider?) {
             match is Outcome.Failure -> match
             match is Outcome.Success -> match
             // Titles may have been removed; still open a picker so the user can reselect.
-            else -> Outcome.Success(libs.first())
+            else -> Outcome.Success(libs.first() to null)
         }
     }
 
@@ -141,11 +148,11 @@ internal class EditorLoader(private val provider: () -> MediaProvider?) {
         p: MediaProvider,
         libs: List<Library>,
         want: Set<MediaRef>,
-    ): Outcome<Library>? {
+    ): Outcome<Pair<Library, List<LibraryTitle>?>>? {
         for (lib in libs) {
             when (val loaded = loadTitles(p, lib)) {
                 is Outcome.Success -> if (loaded.value.any { it.ref in want }) {
-                    return Outcome.Success(lib)
+                    return Outcome.Success(lib to loaded.value)
                 }
                 is Outcome.Failure -> return Outcome.Failure(loaded.error)
             }

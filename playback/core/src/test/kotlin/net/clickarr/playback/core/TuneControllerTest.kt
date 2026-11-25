@@ -257,4 +257,41 @@ class TuneControllerTest {
         runCurrent()
         h.controller.state.value.status shouldBe TuneStatus.Loading
     }
+
+    @Test
+    fun `a promoted lineup cutover takes effect at the next program boundary`() = runTest {
+        val nextEntries = provider.library.episodes.drop(2).take(2).map { LineupEntry(it.ref, it.runtime, it.title) }
+        val nextLineup = Lineups.create(LineupSnapshotId("l-next"), ChannelId("10"), nextEntries, anchor + 30.minutes)
+        var currentChannel = channel
+        val engine = FakePlayerEngine { testScheduler.currentTime }
+        val start = anchor + 20.minutes
+        val clock = Clock { Instant.fromEpochMilliseconds(start.toEpochMilliseconds() + testScheduler.currentTime) }
+        val controller = TuneController(
+            strategy = CyclicLineupStrategy(),
+            lineups = { id ->
+                when (id) {
+                    lineup.id -> lineup
+                    nextLineup.id -> nextLineup
+                    else -> null
+                }
+            },
+            providers = { provider },
+            profile = DeviceProfile.Conservative,
+            engine = engine,
+            clock = clock,
+            scope = backgroundScope,
+            requests = TuneRequests(latestChannel = { currentChannel }),
+        )
+        controller.tune(channel)
+        advanceTimeBy(301)
+        runCurrent()
+        controller.state.value.airing.shouldNotBeNull().entry.title shouldBe entries[0].title
+
+        // Simulate pending lineup promotion before the slot ends.
+        currentChannel = channel.copy(lineup = nextLineup.id, anchor = anchor + 30.minutes)
+        advanceTimeBy(10.minutes.inWholeMilliseconds)
+        runCurrent()
+        controller.state.value.airing.shouldNotBeNull().entry.title shouldBe nextEntries[0].title
+        controller.state.value.channel?.lineup shouldBe nextLineup.id
+    }
 }

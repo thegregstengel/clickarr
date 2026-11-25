@@ -19,6 +19,7 @@ import net.clickarr.core.common.Log
 import net.clickarr.core.common.Outcome
 import net.clickarr.core.model.Airing
 import net.clickarr.core.model.Channel
+import net.clickarr.core.model.ChannelId
 import net.clickarr.core.model.LineupSnapshot
 import net.clickarr.core.model.LineupSnapshotId
 import net.clickarr.core.model.ProviderId
@@ -59,6 +60,7 @@ class TuneController(
     private val driftTolerance get() = config.driftTolerance
     private val captions get() = requests.captions
     private val playbackChoice get() = requests.playbackChoice
+    private val latestChannel get() = requests.latestChannel
 
     private val _state = MutableStateFlow(TuneState())
     val state: StateFlow<TuneState> = _state.asStateFlow()
@@ -142,36 +144,60 @@ class TuneController(
         sessionJob = scope.launch { runAiring(channel, lineup, airing) }
     }
 
-    private suspend fun runAiring(channel: Channel, lineup: LineupSnapshot, airing: Airing) {
-        val next = strategy.next(channel, lineup, airing)
-        _state.update { it.copy(channel = channel, airing = airing, next = next, status = TuneStatus.Loading, position = Duration.ZERO) }
-
-        val now = clock.now()
-        val offset = (now - airing.start).coerceAtLeast(Duration.ZERO)
-        if (now < airing.contentEnd) {
-            when (val loaded = loadContent(airing, offset)) {
-                is Outcome.Success -> Unit
-                is Outcome.Failure -> _state.update { it.copy(status = TuneStatus.Unavailable(loaded.error.message)) }
+    private suspend fun runAiring(initialChannel: Channel, initialLineup: LineupSnapshot, initialAiring: Airing) {
+        var channel = initialChannel
+        var lineup = initialLineup
+        var airing: Airing? = initialAiring
+        while (airing != null) {
+            val current = airing
+            val next = strategy.next(channel, lineup, current)
+            _state.update {
+                it.copy(channel = channel, airing = current, next = next, status = TuneStatus.Loading, position = Duration.ZERO)
             }
-        } else {
-            engine.stop()
-            _state.update { it.copy(status = TuneStatus.Filler) }
+            val now = clock.now()
+            val offset = (now - current.start).coerceAtLeast(Duration.ZERO)
+            if (now < current.contentEnd) {
+                when (val loaded = loadContent(current, offset)) {
+                    is Outcome.Success -> Unit
+                    is Outcome.Failure -> _state.update { it.copy(status = TuneStatus.Unavailable(loaded.error.message)) }
+                }
+            } else {
+                engine.stop()
+                _state.update { it.copy(status = TuneStatus.Filler) }
+            }
+            waitForBoundary(current)
+            releaseCurrent()
+            val advance = advanceAtBoundary(channel, lineup, next)
+            channel = advance.first
+            lineup = advance.second
+            airing = advance.third
         }
+        _state.update { it.copy(status = TuneStatus.Unavailable("End of schedule")) }
+    }
 
-        // Boundary and drift loop. Runs until the slot ends, then advances.
+    private suspend fun waitForBoundary(airing: Airing) {
         while (true) {
-            val t = clock.now()
-            val remaining = airing.end - t
-            if (remaining <= Duration.ZERO) break
+            val remaining = airing.end - clock.now()
+            if (remaining <= Duration.ZERO) return
             delay(minOf(remaining, driftInterval))
             checkDrift(airing)
         }
-        releaseCurrent()
-        if (next != null) {
-            runAiring(channel, lineup, next)
-        } else {
-            _state.update { it.copy(status = TuneStatus.Unavailable("End of schedule")) }
+    }
+
+    /** Re-read the channel at a boundary so a queued lineup cutover takes effect without retuning. */
+    private suspend fun advanceAtBoundary(
+        channel: Channel,
+        lineup: LineupSnapshot,
+        fallbackNext: Airing?,
+    ): Triple<Channel, LineupSnapshot, Airing?> {
+        val fresh = latestChannel(channel.id)
+        if (fresh != null && fresh.lineup != lineup.id) {
+            val nextLineup = lineups(fresh.lineup)
+            if (nextLineup != null) {
+                return Triple(fresh, nextLineup, strategy.airingAt(fresh, nextLineup, clock.now()))
+            }
         }
+        return Triple(fresh ?: channel, lineup, fallbackNext)
     }
 
     private suspend fun loadContent(airing: Airing, offset: Duration): Outcome<Unit> {
@@ -269,10 +295,11 @@ data class TuneConfig(
     val driftTolerance: Duration = 5.seconds,
 )
 
-/** Per-load requests from the player (captions toggle, in-player Audio & video pick). */
+/** Per-load requests from the player (captions toggle, in-player Audio & video pick, boundary refresh). */
 data class TuneRequests(
     val captions: () -> CaptionRequest? = { null },
     val playbackChoice: () -> PlaybackChoice? = { null },
+    val latestChannel: suspend (ChannelId) -> Channel? = { null },
 )
 
 data class TuneState(

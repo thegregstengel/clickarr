@@ -178,4 +178,24 @@ class CyclicLineupStrategyTest {
         (at - airing.start) shouldBe 17.minutes
         airing.end - airing.start shouldBe 30.minutes
     }
+
+    @Test
+    fun `shared strategy instance is thread-safe under concurrent lookups`() {
+        val strategy = CyclicLineupStrategy()
+        val l = lineup(entries(22, 22, 22, 22))
+        val ch = channel(order = OrderingMode.SHUFFLE, rounding = 30.minutes, seed = 99)
+        val errors = java.util.concurrent.CopyOnWriteArrayList<Throwable>()
+        val threads = (0 until 8).map { t ->
+            Thread {
+                runCatching {
+                    for (step in 0 until 200) {
+                        val at = anchor + ((t * 200 + step) * 15).minutes
+                        strategy.airingAt(ch, l, at).shouldNotBeNull()
+                    }
+                }.onFailure { errors += it }
+            }.apply { start() }
+        }
+        threads.forEach { it.join() }
+        errors shouldBe emptyList()
+    }
 }

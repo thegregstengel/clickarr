@@ -74,7 +74,11 @@ private fun LibraryMain(s: EditorStep.PickLibrary, vm: EditorViewModel) {
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     val createFocus = remember { FocusRequester() }
-    val toCreate = Modifier.focusProperties { right = createFocus }
+    val cancelFocus = remember { FocusRequester() }
+    val canCreate = EditorLibraryOps.canCreate(s)
+    val pickedVisible = EditorLibraryOps.visibleSelected(s)
+    val actionFocus = if (canCreate) createFocus else cancelFocus
+    val toAction = Modifier.focusProperties { right = actionFocus }
     Column(Modifier.fillMaxWidth().fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         FilterActions(vm)
         Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
@@ -82,11 +86,10 @@ private fun LibraryMain(s: EditorStep.PickLibrary, vm: EditorViewModel) {
                 titles = filtered,
                 selected = s.selected,
                 onToggle = { vm.onLibrary(LibraryUiAction.ToggleTitle(it)) },
-                rowModifier = toCreate,
                 listState = listState,
                 modifier = Modifier.weight(1f),
             )
-            LetterIndex(filtered) { key ->
+            LetterIndex(filtered, rowModifier = toAction) { key ->
                 val index = filtered.indexOfFirst { titleJumpKey(it.title) == key }
                 if (index >= 0) scope.launch { listState.animateScrollToItem(index) }
             }
@@ -97,12 +100,10 @@ private fun LibraryMain(s: EditorStep.PickLibrary, vm: EditorViewModel) {
                     color = ClickarrColors.TextSecondary,
                 )
                 Text(
-                    "${s.selected.size} selected",
+                    "${pickedVisible.size} selected",
                     style = ClickarrTextStyles.Caption,
                     color = ClickarrColors.TextMuted,
                 )
-                val canCreate = EditorLibraryOps.canCreate(s)
-                val pickedVisible = EditorLibraryOps.visibleSelected(s)
                 val editingSelections = vm.isEditingSelections()
                 val confirmLabel = if (editingSelections) "Apply" else "Create"
                 Button(
@@ -112,11 +113,11 @@ private fun LibraryMain(s: EditorStep.PickLibrary, vm: EditorViewModel) {
                 ) {
                     Text(confirmLabel)
                 }
-                Button(onClick = vm::back) { Text("Cancel") }
+                Button(onClick = vm::back, modifier = Modifier.focusRequester(cancelFocus)) { Text("Cancel") }
                 Text(
                     when {
                         pickedVisible.isNotEmpty() ->
-                            "Press Right from any title to reach $confirmLabel."
+                            "Press Right past the letter index to reach $confirmLabel."
                         canCreate ->
                             "$confirmLabel uses every title matching the filters."
                         else ->
@@ -188,7 +189,6 @@ private fun TitleList(
     titles: List<LibraryTitle>,
     selected: Set<MediaRef>,
     onToggle: (MediaRef) -> Unit,
-    rowModifier: Modifier,
     listState: LazyListState,
     modifier: Modifier,
 ) {
@@ -212,7 +212,6 @@ private fun TitleList(
                         }
                     },
                     trailingContent = { if (picked) Text("✓", style = ClickarrTextStyles.RowTitle) },
-                    modifier = rowModifier,
                 )
             }
         }
@@ -220,7 +219,7 @@ private fun TitleList(
 }
 
 @Composable
-private fun LetterIndex(titles: List<LibraryTitle>, onKey: (Char) -> Unit) {
+private fun LetterIndex(titles: List<LibraryTitle>, rowModifier: Modifier = Modifier, onKey: (Char) -> Unit) {
     val present = remember(titles) {
         titles.mapNotNull { titleJumpKey(it.title) }.toSet()
     }
@@ -240,7 +239,7 @@ private fun LetterIndex(titles: List<LibraryTitle>, onKey: (Char) -> Unit) {
                         color = if (enabled) ClickarrColors.TextPrimary else ClickarrColors.TextMuted,
                     )
                 },
-                modifier = Modifier.width(56.dp),
+                modifier = Modifier.width(56.dp).then(rowModifier),
             )
         }
     }

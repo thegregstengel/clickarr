@@ -36,20 +36,34 @@ class SecretStore(context: Context, fileName: String = "secrets.bin") {
     private val mutex = Mutex()
     private val json = Json
     private val serializer = MapSerializer(String.serializer(), String.serializer())
+    private var cache: Map<String, String>? = null
 
     @Volatile
     var usingSoftwareKey: Boolean = false
         private set
 
-    suspend fun get(key: String): String? = mutex.withLock { readAll()[key] }
+    suspend fun get(key: String): String? = mutex.withLock { cached()[key] }
 
-    suspend fun put(key: String, value: String) = mutex.withLock { writeAll(readAll() + (key to value)) }
+    suspend fun put(key: String, value: String) = mutex.withLock {
+        val next = cached() + (key to value)
+        writeAll(next)
+        cache = next
+    }
 
-    suspend fun remove(key: String) = mutex.withLock { writeAll(readAll() - key) }
+    suspend fun remove(key: String) = mutex.withLock {
+        val next = cached() - key
+        writeAll(next)
+        cache = next
+    }
 
-    suspend fun keys(): Set<String> = mutex.withLock { readAll().keys }
+    suspend fun keys(): Set<String> = mutex.withLock { cached().keys }
 
-    suspend fun clear() = mutex.withLock { writeAll(emptyMap()) }
+    suspend fun clear() = mutex.withLock {
+        writeAll(emptyMap())
+        cache = emptyMap()
+    }
+
+    private suspend fun cached(): Map<String, String> = cache ?: readAll().also { cache = it }
 
     private suspend fun readAll(): Map<String, String> = withContext(Dispatchers.IO) {
         if (!file.exists()) return@withContext emptyMap()

@@ -68,9 +68,10 @@ interface MediaProvider {
 
     /**
      * Video versions and audio tracks the in-player Audio & video panel can offer for [item].
+     * When [mediaId] is set, audio tracks reflect that server version rather than the first.
      * Empty lists mean the server only has one implicit choice (or none known yet).
      */
-    suspend fun playbackOptions(item: MediaRef): Outcome<PlaybackOptions> =
+    suspend fun playbackOptions(item: MediaRef, mediaId: String? = null): Outcome<PlaybackOptions> =
         Outcome.Success(PlaybackOptions())
 
     /** Tell the server a playback session is over so it can release transcoder resources. */

@@ -5,9 +5,9 @@ import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.server.request.header
-import io.ktor.server.request.receive
 import io.ktor.server.request.contentLength
+import io.ktor.server.request.header
+import io.ktor.server.request.receiveChannel
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
@@ -18,8 +18,11 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
 import io.ktor.server.websocket.WebSockets
 import io.ktor.server.websocket.webSocket
+import io.ktor.utils.io.readAvailable
 import io.ktor.websocket.Frame
 import io.ktor.websocket.close
+import java.io.ByteArrayOutputStream
+import kotlinx.serialization.KSerializer
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.onEach
@@ -52,13 +55,11 @@ fun Application.coordinatorRoutes(coordinator: Coordinator) {
 
 private fun Route.pairingRoutes(coordinator: Coordinator) {
     post("/v1/pair/start") {
-        if (call.tooLarge(PAIR_BODY_LIMIT)) return@post
-        val req = call.receive<PairStartRequest>()
+        val req = call.receiveBounded(PairStartRequest.serializer(), PAIR_BODY_LIMIT) ?: return@post
         call.respondOutcome(coordinator.pairStart(req))
     }
     post("/v1/pair/complete") {
-        if (call.tooLarge(PAIR_BODY_LIMIT)) return@post
-        val req = call.receive<PairCompleteRequest>()
+        val req = call.receiveBounded(PairCompleteRequest.serializer(), PAIR_BODY_LIMIT) ?: return@post
         call.respondOutcome(coordinator.pairComplete(req))
     }
 }
@@ -95,8 +96,7 @@ private fun Route.stateRoutes(coordinator: Coordinator) {
 private fun Route.commandRoutes(coordinator: Coordinator) {
     post("/v1/commands") {
         val device = call.authenticated(coordinator) ?: return@post
-        if (call.tooLarge(COMMAND_BODY_LIMIT)) return@post
-        val command = call.receive<Command>()
+        val command = call.receiveBounded(Command.serializer(), COMMAND_BODY_LIMIT) ?: return@post
         call.respondCommand(coordinator.apply(command, device))
     }
     delete("/v1/devices/{id}") {
@@ -161,13 +161,34 @@ private suspend fun RoutingCall.respondError(error: ClickarrError) {
     respond(status, ErrorResponse(code, error.message))
 }
 
-/** Rejects a body the declared length says is bigger than a legitimate request; Ktor has no limit of its own. */
-private suspend fun ApplicationCall.tooLarge(limit: Long): Boolean {
-    val length = request.contentLength() ?: return false
-    if (length <= limit) return false
-    respond(HttpStatusCode.PayloadTooLarge, ErrorResponse(ErrorResponse.INVALID, "Request too large"))
-    return true
+/**
+ * Reads a JSON body up to [limit] bytes even when Transfer-Encoding is chunked and Content-Length is absent.
+ * Responds with 413 Payload Too Large or 400 Bad Request and returns null on failure.
+ */
+private suspend fun <T> ApplicationCall.receiveBounded(serializer: KSerializer<T>, limit: Long): T? {
+    val declared = request.contentLength()
+    if (declared != null && declared > limit) {
+        respond(HttpStatusCode.PayloadTooLarge, ErrorResponse(ErrorResponse.INVALID, "Request too large"))
+        return null
+    }
+    val channel = receiveChannel()
+    val out = ByteArrayOutputStream()
+    val buf = ByteArray(READ_CHUNK)
+    while (true) {
+        val n = channel.readAvailable(buf)
+        if (n < 0) break
+        if (out.size().toLong() + n > limit) {
+            respond(HttpStatusCode.PayloadTooLarge, ErrorResponse(ErrorResponse.INVALID, "Request too large"))
+            return null
+        }
+        out.write(buf, 0, n)
+    }
+    return runCatching { ProtocolJson.decodeFromString(serializer, out.toString(Charsets.UTF_8.name())) }.getOrElse {
+        respond(HttpStatusCode.BadRequest, ErrorResponse(ErrorResponse.INVALID, "Malformed request body"))
+        null
+    }
 }
 
+private const val READ_CHUNK = 8 * 1024
 private const val PAIR_BODY_LIMIT = 64L * 1024
 private const val COMMAND_BODY_LIMIT = 4L * 1024 * 1024

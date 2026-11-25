@@ -220,11 +220,11 @@ class JellyfinProvider(
             }
     }
 
-    override suspend fun playbackOptions(item: MediaRef): Outcome<PlaybackOptions> =
+    override suspend fun playbackOptions(item: MediaRef, mediaId: String?): Outcome<PlaybackOptions> =
         http.get(
             url("/Items/${item.id.value}", "userId" to userId, "fields" to "MediaSources"),
             JfItem.serializer(),
-        ).map(::jellyfinOptionsFrom)
+        ).map { jellyfinOptionsFrom(it, mediaId) }
 
     override suspend fun endPlayback(source: PlaybackSource): Outcome<Unit> = when (source) {
         is PlaybackSource.Hls -> http.touch(
