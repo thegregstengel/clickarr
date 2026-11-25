@@ -9,8 +9,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDateTime
@@ -18,8 +20,10 @@ import kotlinx.datetime.LocalTime
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import net.clickarr.core.common.AppTime
-import net.clickarr.core.model.inSeason
 import net.clickarr.core.common.Clock
+import net.clickarr.core.common.Log
+import net.clickarr.core.common.Outcome
+import net.clickarr.core.model.inSeason
 import net.clickarr.core.model.Airing
 import net.clickarr.core.model.Channel
 import net.clickarr.core.model.ChannelId
@@ -34,7 +38,6 @@ import net.clickarr.core.model.Show
 import net.clickarr.core.model.Movie
 import net.clickarr.core.model.MediaRef
 import net.clickarr.core.model.Episode
-import net.clickarr.core.common.Outcome
 import kotlinx.coroutines.Job
 
 /**
@@ -101,33 +104,32 @@ class GuideViewModel @Inject constructor(
     }
 
     private val lineups = HashMap<LineupSnapshotId, LineupSnapshot>()
-    private var hours = DevicePrefs.DEFAULT_GUIDE_HOURS
 
     init {
-        viewModelScope.launch {
-            combine(repository.channels, repository.favorites) { c, f -> c to f }
-                .collect { (c, f) -> rebuild(c, f.map { it.value }.toSet()) }
-        }
-        viewModelScope.launch {
-            prefs.guideHours.collect { h ->
-                hours = h
-                _window.value?.let { w -> rebuild(w.rows.map { it.channel }, w.favorites) }
+        val ticks = flow {
+            while (true) {
+                emit(Unit)
+                delay(MINUTE_MS)
             }
         }
         viewModelScope.launch {
-            while (true) {
-                delay(60_000)
-                _window.value?.let { w -> rebuild(w.rows.map { it.channel }, w.favorites) }
+            combine(repository.channels, repository.favorites, prefs.guideHours, ticks) { c, f, h, _ ->
+                Triple(c, f.map { it.value }.toSet(), h)
+            }.collectLatest { (c, f, h) ->
+                rebuild(c, f, h)
             }
         }
     }
 
-    private suspend fun rebuild(channels: List<Channel>, favorites: Set<String>) {
+    private suspend fun rebuild(channels: List<Channel>, favorites: Set<String>, hours: Int) {
         val now = clock.now()
         val from = floorToHalfHour(now)
         val to = from + hours.hours
         val today = AppTime.local(now).date
-        val rows = channels.filter { it.inSeason(today) }.sortedBy { it.number }.map { ch ->
+        val visible = channels.filter { it.inSeason(today) }.sortedBy { it.number }
+        val activeIds = visible.map { it.lineup }.toSet()
+        lineups.keys.retainAll(activeIds)
+        val rows = visible.map { ch ->
             val lineup = lineups[ch.lineup] ?: repository.lineup(ch.lineup)?.also { lineups[ch.lineup] = it }
             Row(ch, lineup?.let { strategy.airingsBetween(ch, it, from, to) } ?: emptyList())
         }
@@ -137,7 +139,8 @@ class GuideViewModel @Inject constructor(
     fun toggleFavorite(id: ChannelId) {
         viewModelScope.launch {
             val favorites = _window.value?.favorites.orEmpty()
-            repository.setFavorite(id, id.value !in favorites)
+            runCatching { repository.setFavorite(id, id.value !in favorites) }
+                .onFailure { Log.w(TAG) { "could not update favorite: ${it.message}" } }
         }
     }
 
@@ -157,6 +160,8 @@ class GuideViewModel @Inject constructor(
 
 }
 
+private const val TAG = "Guide"
+private const val MINUTE_MS = 60_000L
 private const val PREVIEW_CACHE = 200
 private const val PREVIEW_DEBOUNCE_MS = 250L
 private const val LOAD_FACTOR = 0.75f

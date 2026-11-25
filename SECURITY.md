@@ -41,8 +41,9 @@ store, logging, settings lock, and CI. What changed as a result:
 - Wrong PIN guesses count against the PIN, not the session (three and it is cancelled); pairing sessions are capped.
 - Every channel a member or a Drive document supplies is bounds-checked (number 1 to 9999, name length, slot
   rounding, lineup size, lineup ownership) before any TV persists it.
-- Request bodies to the coordinator are capped; the TLS bridge pool is bounded with a read timeout; the event
-  stream no longer accepts a token in the URL.
+- Request bodies to the coordinator are capped (including chunked requests without `Content-Length`); the TLS bridge pool is bounded with a handshake timeout while keeping idle WebSocket bridges open; the event stream no longer accepts a token in the URL.
+- Both individual commands and full remote household states (from a LAN coordinator or Google Drive) are validated against channel and lineup bounds before persistence.
+- Media server clients and the Media3 player engine never follow HTTP redirects so server tokens in query parameters cannot leak to another host.
 - A TV that leaves Drive sync forgets its sync base so re-enabling cannot push a stale state over the shared file;
   a file written by a newer scheduler is not merged.
 - The Plex client never follows redirects (the token rides as a query parameter) and prefers https among a

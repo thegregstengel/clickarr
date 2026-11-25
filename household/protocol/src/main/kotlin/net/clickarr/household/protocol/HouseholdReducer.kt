@@ -65,12 +65,36 @@ class HouseholdReducer {
         val known = lineups.map { it.id }.toSet()
         val problem = firstProblem(
             "Channel number ${c.channel.number} is taken" to state.channels.any { c.channel.clashesWith(it) },
+            "Lineup is empty" to (c.lineup != null && c.lineup.entries.isEmpty()),
             "Unknown lineup ${c.channel.lineup.value}" to (c.channel.lineup !in known),
             "Unknown pending lineup" to (c.channel.pendingLineup != null && c.channel.pendingLineup !in known),
         ) ?: firstProblem(shape(c.channel, c.lineup))
         if (problem != null) return invalid(problem)
         val channels = state.channels.map { if (it.id == existing.id) c.channel else it }
         return Outcome.Success(state.copy(channels = channels, lineups = lineups))
+    }
+
+    /**
+     * Validate a full [HouseholdState] received from another TV or Google Drive before persisting it.
+     * Enforces the same channel and lineup bounds as individual commands.
+     */
+    fun validateState(state: HouseholdState): ClickarrError? {
+        val byId = state.lineups.associateBy { it.id }
+        val seenIds = HashSet<String>(state.channels.size)
+        for ((index, ch) in state.channels.withIndex()) {
+            val lineup = byId[ch.lineup]
+            val pending = ch.pendingLineup?.let { byId[it] }
+            val problem = firstProblem(
+                "Duplicate channel id ${ch.id.value}" to !seenIds.add(ch.id.value),
+                "Channel number ${ch.number} is taken" to state.channels.subList(0, index).any { ch.clashesWith(it) },
+                "Unknown lineup ${ch.lineup.value}" to (lineup == null),
+                "Lineup is empty" to (lineup != null && lineup.entries.isEmpty()),
+                "Unknown pending lineup" to (ch.pendingLineup != null && pending == null),
+                "Pending lineup is empty" to (pending != null && pending.entries.isEmpty()),
+            ) ?: firstProblem(shape(ch, lineup)) ?: firstProblem(shape(ch, pending))
+            if (problem != null) return ClickarrError.Invalid(problem)
+        }
+        return null
     }
 
     /**

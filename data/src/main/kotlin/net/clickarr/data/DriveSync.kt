@@ -194,10 +194,18 @@ class DriveSync(
         val problem = sameServer(theirs)
             ?: ClickarrError.Unsupported("The sync file was written by a newer Clickarr; update this TV")
                 .takeIf { theirs.schedulerVersion > SCHEDULER_VERSION }
+            ?: reducer.validateState(theirs)
         if (problem != null) return Outcome.Failure(problem)
-        val merged = pending().fold(theirs) { acc, cmd -> (reducer.apply(acc, cmd, clock.now()) as? Outcome.Success)?.value ?: acc }
-        store.saveState(merged)
-        return push(merged, remote.id)
+        val queued = pending()
+        return if (queued.isEmpty()) {
+            store.saveState(theirs)
+            db.syncState().put(SyncStateEntity(KEY_BASE, theirs.revision.toString()))
+            Outcome.Success(Unit)
+        } else {
+            val merged = queued.fold(theirs) { acc, cmd -> (reducer.apply(acc, cmd, clock.now()) as? Outcome.Success)?.value ?: acc }
+            store.saveState(merged)
+            push(merged, remote.id)
+        }
     }
 
     private suspend fun push(state: HouseholdState, fileId: String?): Outcome<Unit> {

@@ -51,9 +51,13 @@ class StreamOptionsController(
     private var sittingRef: MediaRef? = null
 
     fun currentChoice(): PlaybackChoice? {
+        val currentRef = tune().airing?.entry?.ref
+        val sameProgramme = currentRef != null && currentRef == sittingRef
+        val media = choiceMedia.takeIf { sameProgramme }
+        val audio = choiceAudio.takeIf { sameProgramme }
         val lang = preferredAudioLanguage()
-        if (choiceMedia == null && choiceAudio == null && lang == null) return null
-        return PlaybackChoice(choiceMedia, choiceAudio, lang)
+        if (media == null && audio == null && lang == null) return null
+        return PlaybackChoice(media, audio, lang)
     }
 
     fun open() {
@@ -79,8 +83,12 @@ class StreamOptionsController(
     }
 
     fun pickVideo(id: String?) {
+        val ref = tune().airing?.entry?.ref
+        if (ref != null) sittingRef = ref
         choiceMedia = id?.takeUnless { it == AUTO_VIDEO_ID }
+        choiceAudio = null
         _selectedMedia.value = choiceMedia
+        _selectedAudio.value = null
         scope.launch {
             controller.retune()
             reloadAudios()
@@ -88,6 +96,8 @@ class StreamOptionsController(
     }
 
     fun pickAudio(id: String?, language: String?) {
+        val ref = tune().airing?.entry?.ref
+        if (ref != null) sittingRef = ref
         choiceAudio = id
         _selectedAudio.value = id
         scope.launch {
@@ -99,7 +109,7 @@ class StreamOptionsController(
 
     private suspend fun loadOptions(ref: MediaRef, slotDuration: Duration) {
         val provider = providers(ref) ?: return
-        when (val result = provider.playbackOptions(ref)) {
+        when (val result = provider.playbackOptions(ref, choiceMedia)) {
             is Outcome.Failure -> Log.w(TAG) { "playbackOptions failed: ${result.error.message}" }
             is Outcome.Success -> {
                 val opts = result.value
@@ -117,7 +127,7 @@ class StreamOptionsController(
     private suspend fun reloadAudios() {
         val ref = tune().airing?.entry?.ref ?: return
         val provider = providers(ref) ?: return
-        when (val result = provider.playbackOptions(ref)) {
+        when (val result = provider.playbackOptions(ref, choiceMedia)) {
             is Outcome.Success -> {
                 val audios = result.value.audios.ifEmpty {
                     engine.audioTracks().map { AudioOption(it.id, it.label, it.language) }

@@ -10,6 +10,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -30,10 +31,10 @@ class TimeSync @Inject constructor(private val prefs: DevicePrefs) {
         job?.cancel()
         job = scope.launch {
             launch { prefs.timeZoneId.collect { AppTime.zone = zoneOrDevice(it) } }
-            prefs.autoTime.collect { auto ->
+            prefs.autoTime.collectLatest { auto ->
                 if (!auto) {
                     AppTime.networkOffsetMs = 0L
-                    return@collect
+                    return@collectLatest
                 }
                 while (true) {
                     syncNow()

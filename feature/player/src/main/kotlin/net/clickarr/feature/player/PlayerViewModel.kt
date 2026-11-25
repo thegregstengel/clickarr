@@ -12,6 +12,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flow
 import net.clickarr.core.model.Airing
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.first
@@ -71,6 +73,10 @@ class PlayerViewModel @Inject constructor(
         requests = TuneRequests(
             captions = { if (captions.value) CaptionRequest(captionLanguage) else null },
             playbackChoice = { choiceProvider() },
+            latestChannel = { id ->
+                deps.channels.applyPendingCutovers()
+                deps.channels.byId(id)
+            },
         ),
     )
 
@@ -165,9 +171,16 @@ class PlayerViewModel @Inject constructor(
     val gearOk = OkKeyGesture(onTap = { streams.open() }, onHold = { toggleCaptions() })
 
     /** The channels in season today; surfing and numbers skip a Christmas channel in July. */
-    val channels: StateFlow<List<Channel>> = deps.channels.channels
-        .map { list -> list.filter { it.inSeason(AppTime.local(deps.clock.now()).date) } }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+    private val minuteTicks = flow {
+        while (true) {
+            emit(Unit)
+            delay(MS_PER_MINUTE)
+        }
+    }
+
+    val channels: StateFlow<List<Channel>> = combine(deps.channels.channels, minuteTicks) { list, _ ->
+        list.filter { it.inSeason(AppTime.local(deps.clock.now()).date) }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     private val _overlayVisible = MutableStateFlow(false)
     val overlayVisible: StateFlow<Boolean> = _overlayVisible.asStateFlow()

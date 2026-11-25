@@ -36,7 +36,7 @@ Three things follow:
 
 Dependencies point downward and inward. The scheduling engine and the household protocol types are plain Kotlin with no Android imports, so they are unit tested on the JVM in milliseconds ([ADR-0016](adr/0016-module-structure-and-pure-kotlin-core.md)).
 
-Stack summary: minSdk 25 ([ADR-0001](adr/0001-platform-floor-minsdk-25.md)), Kotlin with coroutines and Flow, Compose with `tv-material` ([ADR-0002](adr/0002-ui-toolkit-compose-tv-material.md)), Media3 ExoPlayer ([ADR-0003](adr/0003-player-media3-exoplayer.md)), Ktor client and Netty-backed Ktor server ([ADR-0004](adr/0004-http-ktor-client-and-server.md)), Room and Proto DataStore ([ADR-0005](adr/0005-persistence-room-and-proto-datastore.md)), Hilt ([ADR-0006](adr/0006-dependency-injection-hilt.md)), Coil 3 for images. No Google Play Services, Firebase, or Cast SDK.
+Stack summary: minSdk 25 ([ADR-0001](adr/0001-platform-floor-minsdk-25.md)), Kotlin with coroutines and Flow, Compose with `tv-material` ([ADR-0002](adr/0002-ui-toolkit-compose-tv-material.md)), Media3 ExoPlayer ([ADR-0003](adr/0003-player-media3-exoplayer.md)), OkHttp for clients and a CIO-backed Ktor server behind `TlsFrontDoor` ([ADR-0004](adr/0004-http-ktor-client-and-server.md)), Room and DataStore ([ADR-0005](adr/0005-persistence-room-and-proto-datastore.md)), Hilt ([ADR-0006](adr/0006-dependency-injection-hilt.md)), Coil 3 for images. No Google Play Services, Firebase, or Cast SDK.
 
 ## 3. Data flow: opening the app
 
@@ -89,7 +89,7 @@ All types are Kotlin `data class` or `value class` in `core:model`. Identifiers 
 
 **Media (normalized).** `ServerInfo` carries `kind` (PLEX or JELLYFIN), a `serverIdentity` that is stable across URLs (Plex's machineIdentifier, Jellyfin's server Id), and `baseUrl`. A TV connects to one server ([ADR-0022](adr/0022-jellyfin-alongside-plex.md)); `ProviderRegistry` holds one `MediaProviderFactory` per kind, stores credentials as `ProviderCredentials` JSON in the `SecretStore` (a bare token from before is read as Plex), and refuses a second, different server until the first is disconnected. `MediaItem` is a sealed interface with `Show`, `Season`, `Episode`, and `Movie`; `Episode` and `Movie` are `Playable` and carry `runtime` and a list of `MediaVersion`. `runtime` is the **file duration** reported by the server for the chosen version, not the metadata runtime; the schedule depends on it being accurate. `Artwork` holds provider-relative `ArtworkRef`s resolved to URLs by the provider.
 
-**Channel.** `Channel(id, number, name, icon, source, order, slotRounding, seed, lineup, anchor, enabled)`. `source` is a sealed `ProgrammingSource`: `Shows` (with aired or interleaved episode order), `Library` (with an optional `MediaFilter`), `Collection`, `Playlist`, or `Explicit`. The MVP implements `Shows`, `Library` without filter, and `Explicit`. `order` is SEQUENTIAL or SHUFFLE. `seed` is fixed at creation. `anchor` is the schedule epoch where cycle 0 begins. `slotRounding` (for example 30 minutes) pads each program to the grid.
+**Channel.** `Channel(id, number, name, icon, source, order, slotRounding, seed, lineup, anchor, enabled)`. `source` is a sealed `ProgrammingSource`: `Shows` (with aired or interleaved episode order), `Library` (with an optional `MediaFilter`), `Collection`, `Playlist`, `Explicit`, or `Union`. `order` is SEQUENTIAL or SHUFFLE. `seed` is fixed at creation. `anchor` is the schedule epoch where cycle 0 begins. `slotRounding` (for example 30 minutes) pads each program to the grid.
 
 **Lineup snapshot.** `LineupSnapshot(id, channelId, createdAt, entries, contentHash)` where each `LineupEntry` is `(ref, duration, title, subtitle)`. This is the single most important concept for determinism: it freezes which items and how long each is, so two devices querying a live server at different moments cannot drift.
 
@@ -121,7 +121,7 @@ The player is created once and reused across channel changes. It lives in the pl
 
 Latency budget on channel change: the overlay switches to the new channel's info immediately from local data; `airingAt` is sub-millisecond; `playbackSource` is one metadata GET for direct play; transcodes cost a decision round trip plus server spin-up. Direct play from a LAN server typically shows first frame in about a second, HLS transcodes in three to six. The MVP prefers direct play aggressively, debounces 300 ms during rapid surfing so intermediate channels never start loading, and stops server transcode sessions on departure.
 
-Program boundaries are seamless: when `airing.end - now < 20 s`, the next program is appended to the ExoPlayer playlist with a `clippingConfiguration`, and the current item is clipped at `contentEnd`. If the file is shorter than the lineup claims, filler shows until `end`; if longer, it is cut at `contentEnd`.
+At each program boundary (`airing.end`), `TuneController` releases the previous session, checks for any queued lineup cutover, and loads the next airing at offset zero. If the file is shorter than the lineup claims, filler or the "Coming up next" promo shows until `end`.
 
 Returning to a channel never resumes. It always calls `airingAt(now)`. Pausing a live channel is allowed; resuming re-tunes to the live position.
 

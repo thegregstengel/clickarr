@@ -207,4 +207,16 @@ class CoordinatorRoutesTest {
         client.get("/v1/state") { header("Authorization", "Bearer $token") }.status shouldBe HttpStatusCode.Unauthorized
         store.tokens.size shouldBe 0
     }
+
+    @Test
+    fun `oversized pairing request body is rejected with 413`() = testApplication {
+        val c = coordinator()
+        application { coordinatorRoutes(c) }
+        c.beginAcceptingJoins()
+        val oversized = client.post("/v1/pair/start") {
+            contentType(ContentType.Application.Json)
+            setBody("{\"pad\":\"" + "a".repeat(70_000) + "\"}")
+        }
+        oversized.status shouldBe HttpStatusCode.PayloadTooLarge
+    }
 }

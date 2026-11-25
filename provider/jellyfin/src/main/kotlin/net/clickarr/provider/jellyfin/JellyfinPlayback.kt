@@ -75,7 +75,7 @@ internal fun jellyfinDecide(input: JellyfinDecideInput, wire: JellyfinPlayWire):
     )
 }
 
-internal fun jellyfinOptionsFrom(item: JfItem): PlaybackOptions {
+internal fun jellyfinOptionsFrom(item: JfItem, mediaId: String? = null): PlaybackOptions {
     val sources = item.mediaSources
     val videos = sources.map { s ->
         val video = s.streams.firstOrNull { it.type == "Video" }
@@ -90,7 +90,8 @@ internal fun jellyfinOptionsFrom(item: JfItem): PlaybackOptions {
             duration = s.runTimeTicks?.let { JellyfinMapper.ticks(it) },
         )
     }
-    val audios = sources.firstOrNull()?.streams.orEmpty().filter { it.type == "Audio" }.map { s ->
+    val chosen = sources.firstOrNull { mediaId != null && it.id == mediaId } ?: sources.firstOrNull()
+    val audios = chosen?.streams.orEmpty().filter { it.type == "Audio" }.map { s ->
         AudioOption(
             id = s.index.toString(),
             label = s.displayTitle ?: listOfNotNull(s.language, s.codec).joinToString(" · ").ifBlank { "Audio ${s.index}" },

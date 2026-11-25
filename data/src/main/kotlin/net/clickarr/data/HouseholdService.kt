@@ -51,6 +51,7 @@ import net.clickarr.household.discovery.DiscoveredCoordinator
 import net.clickarr.household.discovery.HouseholdDiscovery
 import net.clickarr.household.protocol.Command
 import net.clickarr.household.protocol.Event
+import net.clickarr.household.protocol.HouseholdReducer
 import net.clickarr.household.protocol.MIN_PAIRING_VERSION
 import net.clickarr.household.protocol.PROTOCOL_VERSION
 import net.clickarr.household.protocol.PairCompleteResponse
@@ -336,11 +337,14 @@ class HouseholdService @Inject constructor(
                 _role.update { r -> if (r is Role.Member) r.copy(connected = true, lastSync = systemClock.now()) else r }
                 // Follow events until the socket drops, with a safety poll every five minutes.
                 val watcher = scope.launch { while (true) { delay(5.minutes); syncOnce(c) } }
-                c.events()
-                    .catch { e -> Log.w(TAG, e) { "events socket closed; will reconnect" } }
-                    .onEach { ev -> if (ev is Event.RevisionChanged) syncOnce(c) }
-                    .collect()
-                watcher.cancel()
+                try {
+                    c.events()
+                        .catch { e -> Log.w(TAG, e) { "events socket closed; will reconnect" } }
+                        .onEach { ev -> if (ev is Event.RevisionChanged) syncOnce(c) }
+                        .collect()
+                } finally {
+                    watcher.cancel()
+                }
             }
             _role.update { r -> if (r is Role.Member) r.copy(connected = false) else r }
             delay(backoff)
@@ -420,6 +424,10 @@ class HouseholdService @Inject constructor(
             Log.w(TAG) { "not applying the household state: ${it.message}" }
             return
         }
+        HouseholdReducer().validateState(state)?.let {
+            Log.w(TAG) { "rejected invalid household state: ${it.message}" }
+            return
+        }
         store.saveState(state)
     }
 
@@ -441,7 +449,12 @@ class HouseholdService @Inject constructor(
         store.saveState(state.copy(household = state.household.copy(coordinator = selfId), revision = state.revision + 1))
         db.household().get()?.let {
             db.household().upsert(
-                it.copy(role = RoomCoordinatorStore.ROLE_COORDINATOR, coordinatorDeviceId = selfId.value, coordinatorBaseUrl = null),
+                it.copy(
+                    role = RoomCoordinatorStore.ROLE_COORDINATOR,
+                    coordinatorDeviceId = selfId.value,
+                    coordinatorBaseUrl = null,
+                    coordinatorFingerprint = null,
+                ),
             )
         }
         Log.i(TAG) { "promoted to coordinator" }

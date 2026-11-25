@@ -131,4 +131,32 @@ class HouseholdReducerTest {
         reducer.apply(s, Command.ReorderChannels(emptyList()), now)
             .shouldBeInstanceOf<Outcome.Failure>()
     }
+
+    @Test
+    fun `updating a channel with an empty lineup is rejected`() {
+        val s = empty.apply(Command.CreateChannel(channel("a", 10), lineup(ChannelId("a"))))
+        val emptyLineup = Lineups.create(LineupSnapshotId("l-empty"), ChannelId("a"), emptyList(), now)
+        val updated = s.channels.single().copy(pendingLineup = emptyLineup.id, pendingAt = now + 30.minutes)
+        reducer.apply(s, Command.UpdateChannel(updated, emptyLineup), now)
+            .shouldBeInstanceOf<Outcome.Failure>().error.shouldBeInstanceOf<ClickarrError.Invalid>()
+    }
+
+    @Test
+    fun `validateState enforces bounds on full remote household documents`() {
+        val valid = empty.apply(Command.CreateChannel(channel("a", 10), lineup(ChannelId("a"))))
+        reducer.validateState(valid) shouldBe null
+
+        val badNumber = valid.copy(channels = listOf(valid.channels.single().copy(number = 99_999)))
+        reducer.validateState(badNumber).shouldBeInstanceOf<ClickarrError.Invalid>()
+
+        val emptySnap = Lineups.create(LineupSnapshotId("l-a"), ChannelId("a"), emptyList(), now)
+        val badLineup = valid.copy(lineups = listOf(emptySnap))
+        reducer.validateState(badLineup).shouldBeInstanceOf<ClickarrError.Invalid>()
+
+        val clash = valid.copy(
+            channels = valid.channels + channel("b", 10),
+            lineups = valid.lineups + lineup(ChannelId("b")),
+        )
+        reducer.validateState(clash).shouldBeInstanceOf<ClickarrError.Invalid>()
+    }
 }

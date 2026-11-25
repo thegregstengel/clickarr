@@ -1,5 +1,6 @@
 package net.clickarr.data
 
+import androidx.room.withTransaction
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -157,8 +158,10 @@ class ChannelRepository @Inject constructor(
                     is Outcome.Success -> {
                         val before = current.associateBy { it.id }
                         val now = clock.now()
-                        next.value.forEach { ch ->
-                            if (before[ch.id] != ch) db.channels().upsert(ch.toEntity(now))
+                        db.withTransaction {
+                            next.value.forEach { ch ->
+                                if (before[ch.id] != ch) db.channels().upsert(ch.toEntity(now))
+                            }
                         }
                     }
                 }
@@ -173,6 +176,7 @@ class ChannelRepository @Inject constructor(
     suspend fun refreshLineup(id: ChannelId, applyNow: Boolean): Outcome<Channel> {
         val channel = byId(id) ?: return Outcome.Failure(ClickarrError.NotFound("Channel not found"))
         return resolveEntries(channel.source).flatMap { entries ->
+            if (entries.isEmpty()) return@flatMap Outcome.Failure(ClickarrError.Invalid("Nothing to schedule for that source"))
             val now = clock.now()
             val snapshot = Lineups.create(LineupSnapshotId(UUID.randomUUID().toString()), id, entries, now)
             val current = lineup(channel.lineup)

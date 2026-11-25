@@ -3,6 +3,7 @@ package net.clickarr.household.coordinator
 import java.security.SecureRandom
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -53,7 +54,7 @@ class Coordinator(
     private val _events = MutableSharedFlow<Event>(replay = 1, extraBufferCapacity = 64)
     val events: SharedFlow<Event> = _events.asSharedFlow()
 
-    private var tokens: MutableMap<String, PairedDevice> = HashMap()
+    private val tokens = ConcurrentHashMap<String, PairedDevice>()
 
     /** Pairing is only possible while the user has opened the "Add device" screen. */
     @Volatile
@@ -62,8 +63,7 @@ class Coordinator(
 
     /** [attempts] counts pairing attempts against this PIN across every session: each one is a single guess. */
     data class ActivePin(val pin: String, val expiresAt: Instant) {
-        @Volatile
-        var attempts: Int = 0
+        internal val attempts = AtomicInteger(0)
     }
 
     private class PairSession(
@@ -76,7 +76,8 @@ class Coordinator(
     )
 
     suspend fun start() {
-        tokens = store.loadTokens().toMutableMap()
+        tokens.clear()
+        tokens.putAll(store.loadTokens())
         store.loadState()?.let { _state.value = it }
     }
 
@@ -149,7 +150,7 @@ class Coordinator(
             pin == null -> ClickarrError.Unauthorized("This household is not accepting new devices right now")
             sessions.size >= MAX_SESSIONS -> ClickarrError.Unauthorized("Too many devices are pairing at once")
             // Every start is one guess at the PIN (the joiner learns from B's confirmation whether it was right).
-            ++pin.attempts > Pairing.MAX_ATTEMPTS -> ClickarrError.Unauthorized(cancelPin())
+            pin.attempts.incrementAndGet() > Pairing.MAX_ATTEMPTS -> ClickarrError.Unauthorized(cancelPin())
             else -> null
         }
         if (refusal != null || pin == null) return Outcome.Failure(refusal ?: ClickarrError.Unauthorized("Not accepting joins"))
@@ -167,10 +168,10 @@ class Coordinator(
         return Outcome.Success(PairStartResponse(sessionId, pake.message.toHex(), keys.confirmB.toHex(), pin.expiresAt))
     }
 
-    suspend fun pairComplete(req: PairCompleteRequest): Outcome<PairCompleteResponse> {
+    suspend fun pairComplete(req: PairCompleteRequest): Outcome<PairCompleteResponse> = mutex.withLock {
         val session = when (val check = validatePairing(req)) {
             is Outcome.Success -> check.value
-            is Outcome.Failure -> return check
+            is Outcome.Failure -> return@withLock check
         }
         // Success: one PIN pairs one device.
         sessions.remove(req.sessionId)
@@ -180,13 +181,11 @@ class Coordinator(
         store.saveToken(token, device)
         tokens[token] = device
         val now = clock.now()
-        mutex.withLock {
-            val s = _state.value
-            val devices = s.devices.filter { it.id != session.deviceId } + HouseholdDevice(session.deviceId, session.deviceName, now, now)
-            commit(s.copy(revision = s.revision + 1, devices = devices))
-        }
+        val s = _state.value
+        val devices = s.devices.filter { it.id != session.deviceId } + HouseholdDevice(session.deviceId, session.deviceName, now, now)
+        commit(s.copy(revision = s.revision + 1, devices = devices))
         Log.i(TAG) { "paired ${session.deviceName}" }
-        return Outcome.Success(PairCompleteResponse(state.value.household.id, token, fingerprint(), state.value))
+        Outcome.Success(PairCompleteResponse(state.value.household.id, token, fingerprint(), state.value))
     }
 
     /** Window open, session known and fresh, proof correct (with the three-attempt rule). */

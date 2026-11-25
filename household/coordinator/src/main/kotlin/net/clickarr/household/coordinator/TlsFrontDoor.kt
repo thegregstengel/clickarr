@@ -15,6 +15,7 @@ import javax.net.ssl.KeyManagerFactory
 import javax.net.ssl.SSLContext
 import javax.net.ssl.SSLEngine
 import javax.net.ssl.SSLServerSocket
+import javax.net.ssl.SSLSocket
 import javax.net.ssl.X509ExtendedKeyManager
 import javax.net.ssl.X509KeyManager
 
@@ -57,19 +58,19 @@ class TlsFrontDoor(private val ssl: SSLContext, private val backendPort: Int) {
     private fun acceptLoop(socket: SSLServerSocket) {
         while (!closed) {
             val client = runCatching { socket.accept() }.getOrNull() ?: continue
-            // No SO_TIMEOUT: WebSocket members are idle on the client→server half between revisions, and
-            // application Event.Ping frames only write server→client. A read timeout here closes the bridge
-            // under members (~30s) and they stop seeing RevisionChanged until the next reconnect/poll.
-            // Floods are bounded by [MAX_THREADS] on the pool, not by socket idle time.
-            runCatching { client.soTimeout = 0 }
             runCatching { pool.execute { bridge(client) } }.onFailure { runCatching { client.close() } }
         }
     }
 
     private fun bridge(client: Socket) {
         runCatching {
-            Socket("127.0.0.1", backendPort).use { backend ->
-                client.use { c ->
+            client.use { c ->
+                // Bound the TLS handshake so stalled unauthenticated connections cannot exhaust the pool.
+                // After handshake, clear SO_TIMEOUT so idle WebSocket members stay connected between revisions.
+                c.soTimeout = HANDSHAKE_TIMEOUT_MS
+                (c as? SSLSocket)?.startHandshake()
+                c.soTimeout = 0
+                Socket("127.0.0.1", backendPort).use { backend ->
                     val upstream = pool.submit { pump(c.getInputStream(), backend.getOutputStream()) }
                     pump(backend.getInputStream(), c.getOutputStream())
                     upstream.cancel(true)
@@ -95,6 +96,7 @@ class TlsFrontDoor(private val ssl: SSLContext, private val backendPort: Int) {
     companion object {
         private const val MAX_THREADS = 64
         private const val KEEP_ALIVE_S = 60L
+        private const val HANDSHAKE_TIMEOUT_MS = 10_000
 
         private const val BACKLOG = 50
         private const val BUFFER = 16 * 1024

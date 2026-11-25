@@ -127,12 +127,21 @@ class PlexProvider(
         }
     }
 
-    /** A collection or playlist's children: shows expand to episodes, movies and episodes pass through. */
+    /** A collection or playlist's children, in order: shows expand to episodes, movies and episodes pass through. */
     private suspend fun playablesFrom(listUrl: okhttp3.HttpUrl): Outcome<List<Playable>> =
         http.get(listUrl, PlexResponse.serializer()).flatMap { r ->
-            val direct = r.container.metadata.mapNotNull { map.item(it) as? Playable }
-            val shows = r.container.metadata.filter { it.type == "show" }.map { map.ref(it.ratingKey) }
-            collectAll(shows) { episodes(it) }.map { fromShows -> direct + fromShows }
+            val out = ArrayList<Playable>()
+            for (m in r.container.metadata) {
+                if (m.type == "show") {
+                    when (val eps = episodes(map.ref(m.ratingKey))) {
+                        is Outcome.Success -> out += eps.value
+                        is Outcome.Failure -> return@flatMap eps
+                    }
+                } else {
+                    (map.item(m) as? Playable)?.let(out::add)
+                }
+            }
+            Outcome.Success(out)
         }
 
     override suspend fun playbackSource(
@@ -205,7 +214,7 @@ class PlexProvider(
             }
         }
 
-    override suspend fun playbackOptions(item: MediaRef): Outcome<PlaybackOptions> =
+    override suspend fun playbackOptions(item: MediaRef, mediaId: String?): Outcome<PlaybackOptions> =
         http.get(url("/library/metadata/${item.id.value}"), PlexResponse.serializer()).map { r ->
             val m = r.container.metadata.firstOrNull() ?: return@map PlaybackOptions()
             val videos = m.media.mapIndexed { i, media ->
@@ -215,7 +224,7 @@ class PlexProvider(
                     duration = media.duration?.milliseconds,
                 )
             }
-            val part = m.media.firstOrNull()?.parts?.firstOrNull()
+            val part = m.media.getOrNull(plexMediaIndex(m.media, mediaId))?.parts?.firstOrNull()
             val audios = part?.streams.orEmpty().filter { it.streamType == AUDIO_STREAM }.map { s ->
                 AudioOption(
                     id = s.id.toString(),
