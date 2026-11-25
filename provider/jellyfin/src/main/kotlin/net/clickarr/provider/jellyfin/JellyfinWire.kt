@@ -38,6 +38,7 @@ internal data class JfItem(
     @SerialName("RunTimeTicks") val runTimeTicks: Long? = null,
     @SerialName("Genres") val genres: List<String> = emptyList(),
     @SerialName("Studios") val studios: List<JfNamed> = emptyList(),
+    @SerialName("OfficialRating") val officialRating: String? = null,
     @SerialName("Overview") val overview: String? = null,
     @SerialName("ImageTags") val imageTags: Map<String, String> = emptyMap(),
     @SerialName("BackdropImageTags") val backdropTags: List<String> = emptyList(),

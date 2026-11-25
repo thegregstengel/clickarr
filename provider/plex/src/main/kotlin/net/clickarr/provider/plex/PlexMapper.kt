@@ -49,6 +49,7 @@ internal class PlexMapper(private val provider: ProviderId) {
         network = m.studio,
         seasonCount = m.childCount ?: 0,
         episodeCount = m.leafCount ?: 0,
+        contentRating = m.contentRating?.trim()?.takeIf { it.isNotEmpty() },
     )
 
     fun movie(m: PlexMetadata) = Movie(
@@ -61,6 +62,7 @@ internal class PlexMapper(private val provider: ProviderId) {
         studio = m.studio,
         runtime = runtime(m),
         media = versions(m),
+        contentRating = m.contentRating?.trim()?.takeIf { it.isNotEmpty() },
     )
 
     fun episode(m: PlexMetadata) = Episode(

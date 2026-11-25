@@ -5,6 +5,12 @@ second release the same day); the household protocol, scheduler, and database ca
 
 ## [Unreleased]
 
+### Added
+
+- Guide: press Menu from anywhere in the Guide or Favorites (or Settings on remotes with a Settings key) to jump directly to Settings; press Menu again to return to Guide. Pressing Left from any channel column also jumps focus to the top tab bar without scrolling up (#25).
+- Custom channel Library picker: added a **Ratings** multi-select filter (backed by Plex `contentRating` and Jellyfin `OfficialRating`), active filter counts on filter buttons, and content-rating display on title rows (#48).
+- Suggest channels: expanded suggestions from 12 to up to 24 channels, adding TV network and movie studio starters alongside reruns, collections, genres, decades, movie channels, and playlists (#15).
+
 ## 2026.11.5
 
 ### Added

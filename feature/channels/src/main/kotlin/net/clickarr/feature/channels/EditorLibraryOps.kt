@@ -10,11 +10,13 @@ import net.clickarr.core.model.decadeSet
 sealed interface LibraryUiAction {
     data object OpenGenres : LibraryUiAction
     data object OpenDecades : LibraryUiAction
+    data object OpenRatings : LibraryUiAction
     data object ClearFilters : LibraryUiAction
     data object ApplyFilters : LibraryUiAction
     data class ToggleTitle(val ref: MediaRef) : LibraryUiAction
     data class ToggleGenre(val genre: String) : LibraryUiAction
     data class ToggleDecade(val decade: Int) : LibraryUiAction
+    data class ToggleRating(val rating: String) : LibraryUiAction
     data object Confirm : LibraryUiAction
 }
 
@@ -26,18 +28,20 @@ internal object EditorLibraryOps {
     fun apply(s: EditorStep.PickLibrary, action: LibraryUiAction): EditorStep.PickLibrary = when (action) {
         LibraryUiAction.OpenGenres -> openPane(s, LibraryPane.GENRES)
         LibraryUiAction.OpenDecades -> openPane(s, LibraryPane.DECADES)
+        LibraryUiAction.OpenRatings -> openPane(s, LibraryPane.RATINGS)
         LibraryUiAction.ClearFilters -> clearFilters(s)
         LibraryUiAction.ApplyFilters -> applyPane(s)
         is LibraryUiAction.ToggleTitle -> toggleTitle(s, action.ref)
         is LibraryUiAction.ToggleGenre -> toggleDraftGenre(s, action.genre)
         is LibraryUiAction.ToggleDecade -> toggleDraftDecade(s, action.decade)
+        is LibraryUiAction.ToggleRating -> toggleDraftRating(s, action.rating)
         LibraryUiAction.Confirm -> s
     }
 
     fun closePane(s: EditorStep.PickLibrary): EditorStep.PickLibrary =
         s.copy(pane = LibraryPane.MAIN, draftFilter = null)
 
-    /** True when Confirm may run: any genre/decade filter, and/or at least one visible title selected. */
+    /** True when Confirm may run: any filter active, and/or at least one visible title selected. */
     fun canCreate(s: EditorStep.PickLibrary): Boolean {
         if (s.pane != LibraryPane.MAIN) return false
         if (hasFilter(s.filter)) return true
@@ -65,31 +69,42 @@ internal object EditorLibraryOps {
             return source to name
         }
         val parts = buildList {
+            addAll(s.filter.networks)
+            addAll(s.filter.studios)
             addAll(s.filter.decadeSet().sorted().map { "${it}s" })
             addAll(s.filter.genres)
+            addAll(s.filter.contentRatings)
         }
         return ProgrammingSource.Library(s.library.ref, s.filter) to parts.joinToString(" ")
     }
 
     fun hasFilter(filter: MediaFilter): Boolean =
-        filter.genres.isNotEmpty() || filter.decadeSet().isNotEmpty()
+        filter.genres.isNotEmpty() ||
+            filter.decadeSet().isNotEmpty() ||
+            filter.contentRatings.isNotEmpty() ||
+            filter.studios.isNotEmpty() ||
+            filter.networks.isNotEmpty()
 
     /** Selected titles that still match the current filter. */
     fun visibleSelected(s: EditorStep.PickLibrary): List<LibraryTitle> =
         s.titles.filter { it.ref in s.selected && titleMatches(it, s.filter) }
 
-    /** Title rows use the same genre/decade rules as a library [MediaFilter]. */
+    /** Title rows use the same filter rules as a library [MediaFilter]. */
     fun titleMatches(title: LibraryTitle, filter: MediaFilter): Boolean {
-        if (filter.genres.isNotEmpty()) {
-            val ok = title.genres.any { g -> filter.genres.any { it.equals(g, ignoreCase = true) } }
-            if (!ok) return false
-        }
+        val genresOk = filter.genres.isEmpty() ||
+            title.genres.any { g -> filter.genres.any { it.equals(g, ignoreCase = true) } }
         val decades = filter.decadeSet()
-        if (decades.isNotEmpty()) {
-            val year = title.year ?: return false
-            if (decades.none { d -> year in d until d + 10 }) return false
-        }
-        return true
+        val decadesOk = decades.isEmpty() || (title.year != null && decades.any { d -> title.year in d until d + 10 })
+        val ratingsOk = title.contentRating.matchesFilter(filter.contentRatings)
+        val studiosOk = title.studio.matchesFilter(filter.studios)
+        val networksOk = title.network.matchesFilter(filter.networks)
+        return genresOk && decadesOk && ratingsOk && studiosOk && networksOk
+    }
+
+    private fun String?.matchesFilter(wanted: Set<String>): Boolean {
+        if (wanted.isEmpty()) return true
+        val value = this?.trim().orEmpty()
+        return value.isNotEmpty() && wanted.any { it.trim().equals(value, ignoreCase = true) }
     }
 
     private fun openPane(s: EditorStep.PickLibrary, pane: LibraryPane): EditorStep.PickLibrary =
@@ -116,6 +131,15 @@ internal object EditorLibraryOps {
         val current = draft.decadeSet()
         val next = if (decade in current) current - decade else current + decade
         return s.copy(draftFilter = draft.copy(decadeStart = null, decades = next))
+    }
+
+    private fun toggleDraftRating(s: EditorStep.PickLibrary, rating: String): EditorStep.PickLibrary {
+        if (s.pane != LibraryPane.RATINGS) return s
+        val draft = s.draftFilter ?: s.filter
+        val current = draft.contentRatings
+        val existing = current.firstOrNull { it.equals(rating, ignoreCase = true) }
+        val next = if (existing != null) current - existing else current + rating
+        return s.copy(draftFilter = draft.copy(contentRatings = next))
     }
 
     private fun applyPane(s: EditorStep.PickLibrary): EditorStep.PickLibrary =

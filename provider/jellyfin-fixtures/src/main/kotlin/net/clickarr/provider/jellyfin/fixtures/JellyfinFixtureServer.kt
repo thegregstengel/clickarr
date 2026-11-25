@@ -181,6 +181,7 @@ class JellyfinFixtureServer : AutoCloseable {
         i.year?.let { put("ProductionYear", it) }
         putJsonArray("Genres") { i.genres.forEach { add(it) } }
         putJsonArray("Studios") { i.studio?.let { s -> addJsonObject { put("Name", s) } } }
+        i.contentRating?.let { put("OfficialRating", it) }
         put("Overview", "A synthetic ${i.type.lowercase()} for tests.")
         put("ImageTags", buildJsonObject { put("Primary", "tag-${i.id}") })
         putJsonArray("BackdropImageTags") { add("bd-${i.id}") }

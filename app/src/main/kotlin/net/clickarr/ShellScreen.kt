@@ -118,7 +118,13 @@ fun ShellScreen(
         Modifier
             .fillMaxSize()
             .background(ClickarrColors.BgBase)
-            .onPreviewKeyEvent { lastKeyAt[0] = SystemClock.uptimeMillis(); false },
+            .onPreviewKeyEvent { lastKeyAt[0] = SystemClock.uptimeMillis(); false }
+            .onKeyEvent { e ->
+                handleShellKey(e, tab) { next, isSwitched ->
+                    switched = isSwitched
+                    tab = next
+                }
+            },
     ) {
         ShellTopRow(
             tab,
@@ -257,6 +263,25 @@ private fun ShellTabPill(t: ShellTab, selected: Boolean, onFocus: () -> Unit, on
         } else {
             Text(t.label, style = ClickarrTextStyles.ScreenTitle, color = color)
         }
+    }
+}
+
+private fun handleShellKey(
+    e: androidx.compose.ui.input.key.KeyEvent,
+    tab: ShellTab,
+    onNavigate: (ShellTab, Boolean) -> Unit,
+): Boolean {
+    if (e.type != KeyEventType.KeyDown || e.nativeKeyEvent.repeatCount != 0) return false
+    return when {
+        e.key == Key.Menu -> {
+            if (tab == ShellTab.SETTINGS) onNavigate(ShellTab.GUIDE, false) else onNavigate(ShellTab.SETTINGS, true)
+            true
+        }
+        e.nativeKeyEvent.keyCode == android.view.KeyEvent.KEYCODE_SETTINGS -> {
+            if (tab != ShellTab.SETTINGS) onNavigate(ShellTab.SETTINGS, true)
+            true
+        }
+        else -> false
     }
 }
 
